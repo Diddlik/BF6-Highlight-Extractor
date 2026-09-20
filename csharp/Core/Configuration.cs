@@ -416,6 +416,24 @@ public static class ConfigurationFile
         }), notices);
     }
 
+    /// <summary>
+    /// Adds or replaces a resolution profile in an existing configuration. Every other value is
+    /// kept; comments of a hand-written file are lost, as in the Python original.
+    /// </summary>
+    public static Configuration SaveRegionProfile(string path, string name,
+        ResolutionSettings resolution, RegionSettings region)
+    {
+        if (string.IsNullOrWhiteSpace(name)) throw new ConfigurationException("Profilname fehlt.");
+        var configuration = Load(path);
+        var profiles = new Dictionary<string, ProfileSettings>(configuration.Profiles)
+        {
+            [name.Trim()] = new() { Resolution = resolution, Killfeed = region },
+        };
+        var updated = configuration with { Profiles = profiles };
+        Save(path, updated);
+        return updated;
+    }
+
     /// <summary>Writes the configuration to a temporary file first and publishes it afterwards.</summary>
     public static void Save(string path, Configuration configuration)
     {

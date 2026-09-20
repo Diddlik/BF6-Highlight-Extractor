@@ -78,6 +78,65 @@ try
             Console.WriteLine($"{exported.Written.Count} von {clipSegments.Count} Clips in "
                 + Path.GetFullPath(Path.Combine(destination, "clips")));
             break;
+        case ["inspect-frame", var input, var configuration, var time, .. var target]
+            when target.Length <= 1:
+            var inspectConfig = ConfigurationFile.Load(configuration);
+            var inspection = await FrameInspector.InspectAsync(inspectConfig, input, Seconds(time),
+                target.Length == 1 ? target[0] : inspectConfig.Video.OutputDirectory,
+                () => new OnnxOcrEngine(), cancel.Token);
+            var box = inspection.Region;
+            Console.WriteLine($"Bereich {box.X},{box.Y} {box.Width}x{box.Height} | Frame "
+                + $"{inspection.FrameNumber} | {Reports.FormatTimestamp(inspection.TimestampSeconds)}");
+            if (inspectConfig.Detection.Mode == "template")
+                Console.WriteLine(inspection.Template is { } match
+                    ? $"Treffer: {match.Label} {match.Confidence:0.000} bei "
+                      + $"{match.BoundingBox.X},{match.BoundingBox.Y}"
+                    : "Keine Vorlage getroffen.");
+            else
+            {
+                foreach (var line in inspection.Lines)
+                    Console.WriteLine($"  Text {line.Confidence:0.00} x={line.BoundingBox.X} "
+                        + $"y={line.BoundingBox.Y}: {line.Text}");
+                foreach (var rejection in inspection.Rejections)
+                    Console.WriteLine($"  Verworfen ({rejection.Reason}, {rejection.Score:0.0}): "
+                        + rejection.RowText);
+                foreach (var candidate in inspection.Candidates)
+                    Console.WriteLine($"  Kandidat {candidate.SimilarityScore:0.0}: {candidate.RawText} "
+                        + $"-> Gegner {candidate.OpponentName ?? "?"}");
+                if (inspection.Lines.Count == 0) Console.WriteLine("  Kein Text erkannt.");
+            }
+            Console.WriteLine("Ausschnitt: " + inspection.CropPath);
+            break;
+        case ["configure-region", var input, var configuration, .. var picker]
+            when picker.Length <= 2:
+            // Fail on a broken configuration before opening the picker window.
+            ConfigurationFile.Load(configuration);
+            var probed = await service.ProbeAsync(input, cancel.Token);
+            var at = picker.Length >= 1 ? Seconds(picker[0]) : 60.0;
+            using (var frame = await FrameInspector.CropAsync(probed,
+                Math.Min(at, Math.Max(0, probed.DurationSeconds - 1)),
+                new PixelRegion(0, 0, probed.Width, probed.Height), cancel.Token))
+            {
+                Console.WriteLine("Rechteck über den Killfeed ziehen, dann ENTER. ESC bricht ab.");
+                var picked = OpenCvSharp.Cv2.SelectROI("Killfeed-Bereich wählen", frame);
+                OpenCvSharp.Cv2.DestroyAllWindows();
+                if (picked.Width <= 0 || picked.Height <= 0)
+                {
+                    Console.Error.WriteLine("Abgebrochen, kein Bereich gewählt.");
+                    return 130;
+                }
+                var profile = picker.Length == 2 ? picker[1]
+                    : $"battlefield6_{probed.Width}x{probed.Height}";
+                ConfigurationFile.SaveRegionProfile(configuration, profile,
+                    new ResolutionSettings { Width = probed.Width, Height = probed.Height },
+                    new RegionSettings
+                    {
+                        X = picked.X, Y = picked.Y, Width = picked.Width, Height = picked.Height,
+                    });
+                Console.WriteLine($"Profil '{profile}' in {Path.GetFullPath(configuration)}: "
+                    + $"{picked.X},{picked.Y} {picked.Width}x{picked.Height}");
+            }
+            break;
         case ["version"]:
             Console.WriteLine("bf6-highlights C# 0.1.0-preview (Video/OCR-Prototyp)");
             break;
@@ -108,6 +167,8 @@ try
                 sample VIDEO START ENDE ZEIT LABEL ZIELORDNER
                 analyze VIDEO KONFIG.yaml ZIELORDNER [--export]
                 export VIDEO EVENTS.json KONFIG.yaml ZIELORDNER
+                inspect-frame VIDEO KONFIG.yaml ZEIT [ZIELORDNER]
+                configure-region VIDEO KONFIG.yaml [ZEIT] [PROFILNAME]
                 config-check KONFIG.yaml
                 config-import PYTHON-KONFIG.yaml ZIEL-KONFIG.yaml
                 frame-check VIDEO ZEIT
