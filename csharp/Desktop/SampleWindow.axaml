@@ -1,0 +1,71 @@
+<Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="Bf6Highlights.Desktop.SampleWindow" Title="Prüfsample erstellen"
+        Width="560" Height="500" MinWidth="500" MinHeight="440"
+        WindowStartupLocation="CenterOwner" x:CompileBindings="False" Background="#1B1D20">
+  <Window.Styles>
+    <Style Selector="TextBlock.h">
+      <Setter Property="FontSize" Value="17" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="#F2F3F5" />
+    </Style>
+    <Style Selector="TextBlock">
+      <Setter Property="Foreground" Value="#D6D8DC" />
+    </Style>
+    <Style Selector="TextBlock.dim">
+      <Setter Property="Foreground" Value="#9AA0A6" />
+      <Setter Property="FontSize" Value="12" />
+    </Style>
+    <Style Selector="TextBox">
+      <Setter Property="MinWidth" Value="120" />
+    </Style>
+  </Window.Styles>
+
+  <DockPanel LastChildFill="True">
+    <Border DockPanel.Dock="Top" Background="#23262A" Padding="16,12">
+      <StackPanel Spacing="4">
+        <TextBlock Classes="h" Text="Prüfsample erstellen" />
+        <TextBlock Name="VideoHint" Classes="dim" TextWrapping="Wrap" />
+      </StackPanel>
+    </Border>
+
+    <Border DockPanel.Dock="Bottom" Background="#17191C" Padding="16,12"
+            BorderBrush="#33373C" BorderThickness="0,1,0,0">
+      <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
+        <TextBlock Name="Error" Grid.Row="0" Foreground="#E4735F" TextWrapping="Wrap"
+                   IsVisible="False" Margin="0,0,12,8" />
+        <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Spacing="10">
+          <Button Content="Abbrechen" Click="CancelClick" IsCancel="True" />
+          <Button Name="Accept" Content="Übernehmen" Click="AcceptClick" IsDefault="True"
+                  Background="#C2600F" Foreground="#FFFFFF" Padding="16,8"
+                  FontWeight="SemiBold" />
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <ScrollViewer>
+      <StackPanel Margin="16" Spacing="12">
+        <TextBlock Text="Zeiten in Sekunden (Dezimalpunkt)" Classes="dim" />
+        <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto"
+              ColumnSpacing="12" RowSpacing="10">
+          <TextBlock Grid.Row="0" Text="Start" VerticalAlignment="Center" />
+          <TextBox Name="Start" Grid.Row="0" Grid.Column="1" AutomationProperties.Name="Startzeit in Sekunden" />
+          <TextBlock Grid.Row="1" Text="Zeitmarke" VerticalAlignment="Center" />
+          <TextBox Name="Timestamp" Grid.Row="1" Grid.Column="1" AutomationProperties.Name="Screenshot-Zeit in Sekunden" />
+          <TextBlock Grid.Row="2" Text="Ende" VerticalAlignment="Center" />
+          <TextBox Name="End" Grid.Row="2" Grid.Column="1" AutomationProperties.Name="Endzeit in Sekunden" />
+          <TextBlock Grid.Row="3" Text="Label" VerticalAlignment="Center" />
+          <ComboBox Name="Label" Grid.Row="3" Grid.Column="1" AutomationProperties.Name="Label" />
+          <TextBlock Grid.Row="4" Text="Spieler" VerticalAlignment="Center" />
+          <TextBox Name="Player" Grid.Row="4" Grid.Column="1" AutomationProperties.Name="Eigener Spielername" />
+          <TextBlock Grid.Row="5" Text="Datensatz" VerticalAlignment="Center" />
+          <ComboBox Name="Split" Grid.Row="5" Grid.Column="1" AutomationProperties.Name="Datensatz-Aufteilung" />
+          <TextBlock Grid.Row="6" Text="Zielordner" VerticalAlignment="Center" />
+          <TextBox Name="Destination" Grid.Row="6" Grid.Column="1" IsReadOnly="True"
+                   AutomationProperties.Name="Zielordner" />
+        </Grid>
+        <TextBlock Classes="dim" TextWrapping="Wrap"
+                   Text="Die Zeitmarke muss innerhalb des Ausschnitts liegen. Das Sample-Ziel darf noch nicht existieren." />
+      </StackPanel>
+    </ScrollViewer>
+  </DockPanel>
+</Window>

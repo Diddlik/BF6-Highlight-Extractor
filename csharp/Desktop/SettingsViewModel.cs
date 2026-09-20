@@ -40,6 +40,17 @@ public sealed class SettingsViewModel : Observable
     private string regionHeight = "0";
     public string RegionHeight { get => regionHeight; set => Set(ref regionHeight, value); }
 
+    public RegionSettings? RegionForEditor()
+    {
+        if (!int.TryParse(RegionX, NumberStyles.Integer, CultureInfo.InvariantCulture, out var x)
+            || !int.TryParse(RegionY, NumberStyles.Integer, CultureInfo.InvariantCulture, out var y)
+            || !int.TryParse(RegionWidth, NumberStyles.Integer, CultureInfo.InvariantCulture, out var width)
+            || !int.TryParse(RegionHeight, NumberStyles.Integer, CultureInfo.InvariantCulture, out var height)
+            || x < 0 || y < 0 || width < 1 || height < 1)
+            return null;
+        return new() { X = x, Y = y, Width = width, Height = height };
+    }
+
     private string samplesPerSecond = "3";
     public string SamplesPerSecond { get => samplesPerSecond; set => Set(ref samplesPerSecond, value); }
     private string maxWorkers = "2";

@@ -78,13 +78,17 @@
                 <ItemsControl.ItemTemplate>
                   <DataTemplate>
                     <Border Background="#1E2124" CornerRadius="4" Padding="12,10" Margin="0,0,0,8">
-                      <Grid ColumnDefinitions="*,Auto">
+                      <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="8">
                         <StackPanel Spacing="3">
                           <TextBlock Text="{Binding FileName}" FontWeight="SemiBold" />
                           <TextBlock Classes="dim mono" Text="{Binding Details}" TextWrapping="Wrap" />
                         </StackPanel>
                         <Button Grid.Column="1" Content="Entfernen" Click="RemoveVideo"
                                 VerticalAlignment="Center" />
+                        <Button Grid.Column="2" Content="Prüfsample …" Click="CreateSample"
+                                IsEnabled="{Binding Valid}" VerticalAlignment="Center" />
+                        <Button Grid.Column="3" Content="Bereich …" Click="PickRegion"
+                                IsEnabled="{Binding Valid}" VerticalAlignment="Center" />
                       </Grid>
                     </Border>
                   </DataTemplate>
@@ -143,8 +147,12 @@
                   <TextBlock Text="Höhe" VerticalAlignment="Center" />
                   <TextBox Text="{Binding Settings.RegionHeight}" Width="90" />
                 </StackPanel>
-                <TextBlock Classes="dim" TextWrapping="Wrap"
-                           Text="Bereich mit der Maus markieren: bf6-highlights.exe configure-region VIDEO KONFIG.yaml. Der Editor in der Oberfläche folgt." />
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                  <Button Content="Bereich im Video markieren …" Click="PickRegion"
+                          IsEnabled="{Binding Idle}" />
+                  <TextBlock Classes="dim" VerticalAlignment="Center"
+                             Text="Nimmt ein Bild der ersten lesbaren Aufnahme." />
+                </StackPanel>
                 <StackPanel Orientation="Horizontal" Spacing="8">
                   <TextBlock Text="Namensähnlichkeit" VerticalAlignment="Center" />
                   <TextBox Text="{Binding Settings.NameThreshold}" Width="70" />
@@ -252,6 +260,7 @@
                             <TextBox Text="{Binding StartText}" Width="90" />
                             <TextBlock Text="Ende" VerticalAlignment="Center" Classes="dim" />
                             <TextBox Text="{Binding EndText}" Width="90" />
+                            <Button Content="Vorschau …" Click="PreviewHighlight" />
                           </StackPanel>
                         </Grid>
                       </Border>

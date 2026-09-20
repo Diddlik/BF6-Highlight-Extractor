@@ -10,6 +10,7 @@ public sealed partial class MainWindow : Window
 {
     private static readonly string[] Extensions = [".mp4", ".mkv", ".mov", ".avi"];
     private readonly MainViewModel model = new();
+    private bool dialogOpen;
 
     public MainWindow()
     {
@@ -48,12 +49,17 @@ public sealed partial class MainWindow : Window
 
     private async void ChooseVideos(object? sender, RoutedEventArgs e)
     {
-        var files = await StorageProvider.OpenFilePickerAsync(new()
+        if (!BeginDialog()) return;
+        try
         {
-            Title = "Aufnahmen auswählen", AllowMultiple = true,
-            FileTypeFilter = [new("Videos") { Patterns = ["*.mp4", "*.mkv", "*.mov", "*.avi"] }],
-        });
-        if (files.Count > 0) await model.AddVideosAsync(Collect(files));
+            var files = await StorageProvider.OpenFilePickerAsync(new()
+            {
+                Title = "Aufnahmen auswählen", AllowMultiple = true,
+                FileTypeFilter = [new("Videos") { Patterns = ["*.mp4", "*.mkv", "*.mov", "*.avi"] }],
+            });
+            if (files.Count > 0) await model.AddVideosAsync(Collect(files));
+        }
+        finally { dialogOpen = false; }
     }
 
     private void RemoveVideo(object? sender, RoutedEventArgs e)
@@ -61,34 +67,78 @@ public sealed partial class MainWindow : Window
         if (!model.Busy && (sender as Control)?.DataContext is VideoItem video) model.Remove(video);
     }
 
+    private async void CreateSample(object? sender, RoutedEventArgs e)
+    {
+        if ((sender as Control)?.DataContext is not VideoItem { Valid: true } video || !BeginDialog())
+            return;
+        try
+        {
+            var folders = await StorageProvider.OpenFolderPickerAsync(new()
+            {
+                Title = "Überordner für den Trainingsfall",
+            });
+            if (folders.FirstOrDefault()?.TryGetLocalPath() is not { } parent) return;
+            var destination = UniqueSamplePath(parent);
+            var player = model.Settings.PlayerNames.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+                .FirstOrDefault() ?? "";
+            var dialog = new SampleWindow(video, destination, player);
+            await dialog.ShowDialog(this);
+            if (dialog.Request is { } request) await model.ExportSampleAsync(video, request);
+        }
+        finally { dialogOpen = false; }
+    }
+
+    private static string UniqueSamplePath(string parent)
+    {
+        var stem = "sample-" + DateTime.Now.ToString("yyyyMMdd-HHmmss");
+        var path = Path.Combine(parent, stem);
+        for (var suffix = 2; Directory.Exists(path) || File.Exists(path); suffix++)
+            path = Path.Combine(parent, $"{stem}-{suffix}");
+        return path;
+    }
+
     private void ClearVideos(object? sender, RoutedEventArgs e) => model.ClearVideos();
 
     private async void ChooseOutput(object? sender, RoutedEventArgs e)
     {
-        var folders = await StorageProvider.OpenFolderPickerAsync(new() { Title = "Ausgabeordner" });
-        if (folders.FirstOrDefault()?.TryGetLocalPath() is { } path)
-            model.Settings.OutputDirectory = path;
+        if (!BeginDialog()) return;
+        try
+        {
+            var folders = await StorageProvider.OpenFolderPickerAsync(new() { Title = "Ausgabeordner" });
+            if (folders.FirstOrDefault()?.TryGetLocalPath() is { } path)
+                model.Settings.OutputDirectory = path;
+        }
+        finally { dialogOpen = false; }
     }
 
     private async void LoadConfig(object? sender, RoutedEventArgs e)
     {
-        if (await PickConfig("Konfiguration laden") is { } path) model.LoadSettings(path);
+        if (!BeginDialog()) return;
+        try { if (await PickConfig("Konfiguration laden") is { } path) model.LoadSettings(path); }
+        finally { dialogOpen = false; }
     }
 
     private async void ImportConfig(object? sender, RoutedEventArgs e)
     {
-        if (await PickConfig("Python-Konfiguration übernehmen") is { } path) model.ImportSettings(path);
+        if (!BeginDialog()) return;
+        try { if (await PickConfig("Python-Konfiguration übernehmen") is { } path) model.ImportSettings(path); }
+        finally { dialogOpen = false; }
     }
 
     private async void SaveConfig(object? sender, RoutedEventArgs e)
     {
-        var file = await StorageProvider.SaveFilePickerAsync(new()
+        if (!BeginDialog()) return;
+        try
         {
-            Title = "Konfiguration speichern", SuggestedFileName = "config.yaml",
-            DefaultExtension = "yaml",
-            FileTypeChoices = [new("YAML") { Patterns = ["*.yaml", "*.yml"] }],
-        });
-        if (file?.TryGetLocalPath() is { } path) model.SaveSettings(path);
+            var file = await StorageProvider.SaveFilePickerAsync(new()
+            {
+                Title = "Konfiguration speichern", SuggestedFileName = "config.yaml",
+                DefaultExtension = "yaml",
+                FileTypeChoices = [new("YAML") { Patterns = ["*.yaml", "*.yml"] }],
+            });
+            if (file?.TryGetLocalPath() is { } path) model.SaveSettings(path);
+        }
+        finally { dialogOpen = false; }
     }
 
     private async Task<string?> PickConfig(string title)
@@ -101,10 +151,39 @@ public sealed partial class MainWindow : Window
         return files.FirstOrDefault()?.TryGetLocalPath();
     }
 
+    private async void PickRegion(object? sender, RoutedEventArgs e)
+    {
+        if (!BeginDialog()) return;
+        var source = (sender as Control)?.DataContext as VideoItem;
+        try
+        {
+            if (await model.FrameForRegionAsync(source) is not { } frame) return;
+            var editor = new RegionWindow(frame, model.RegionForEditor(frame.Video),
+                timestamp => model.FrameForRegionAsync(source, timestamp));
+            await editor.ShowDialog(this);
+            if (editor.Region is { } region) model.ApplyRegion(region, frame.Video);
+        }
+        finally { dialogOpen = false; }
+    }
+
     private async void StartAnalysis(object? sender, RoutedEventArgs e) => await model.AnalyzeAsync();
 
     private async void ExportSelection(object? sender, RoutedEventArgs e) =>
         await model.ExportSelectionAsync();
+
+    private async void PreviewHighlight(object? sender, RoutedEventArgs e)
+    {
+        if ((sender as Control)?.DataContext is not SegmentItem item || !BeginDialog()) return;
+        try { await new PreviewWindow(item).ShowDialog(this); }
+        finally { dialogOpen = false; }
+    }
+
+    private bool BeginDialog()
+    {
+        if (dialogOpen || model.Busy) return false;
+        dialogOpen = true;
+        return true;
+    }
 
     private void CancelWork(object? sender, RoutedEventArgs e) => model.Cancel();
 

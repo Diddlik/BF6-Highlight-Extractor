@@ -1,0 +1,49 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vlc="clr-namespace:LibVLCSharp.Avalonia;assembly=LibVLCSharp.Avalonia"
+        x:Class="Bf6Highlights.Desktop.PreviewWindow"
+        Title="Highlight-Vorschau" Width="960" Height="620"
+        MinWidth="640" MinHeight="420" WindowStartupLocation="CenterOwner"
+        x:CompileBindings="False" Background="#111315">
+  <Window.Styles>
+    <Style Selector="TextBlock">
+      <Setter Property="Foreground" Value="#D6D8DC" />
+    </Style>
+    <Style Selector="TextBlock.dim">
+      <Setter Property="Foreground" Value="#9AA0A6" />
+      <Setter Property="FontSize" Value="12" />
+    </Style>
+  </Window.Styles>
+
+  <DockPanel LastChildFill="True">
+    <Border DockPanel.Dock="Top" Background="#23262A" Padding="14,10">
+      <StackPanel Spacing="3">
+        <TextBlock Name="TitleText" FontSize="17" FontWeight="SemiBold" />
+        <TextBlock Name="StatusText" Classes="dim" TextWrapping="Wrap" />
+      </StackPanel>
+    </Border>
+
+    <Border DockPanel.Dock="Bottom" Background="#17191C" Padding="12,10"
+            BorderBrush="#33373C" BorderThickness="0,1,0,0">
+      <StackPanel Spacing="8">
+        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+          <TextBlock Name="CurrentText" Text="00:00.000" VerticalAlignment="Center" />
+          <Slider Name="Seek" Grid.Column="1" Minimum="0" Maximum="1"
+                  VerticalAlignment="Center" AutomationProperties.Name="Videoposition" />
+          <TextBlock Name="DurationText" Grid.Column="2" Text="00:00.000" VerticalAlignment="Center" />
+        </Grid>
+        <Grid ColumnDefinitions="Auto,Auto,Auto,*,Auto" ColumnSpacing="8">
+          <Button Name="PlayPause" Content="Abspielen" Click="PlayPauseClick" MinWidth="100" />
+          <Button Content="Start = Position" Click="StartClick" />
+          <Button Content="Ende = Position" Click="EndClick" />
+          <TextBlock Grid.Column="3" Classes="dim" Text="Leertaste: Play/Pause · ←/→: 5 Sekunden" VerticalAlignment="Center" />
+          <Button Grid.Column="4" Content="Schließen" Click="CloseClick" IsCancel="True" MinWidth="90" />
+        </Grid>
+      </StackPanel>
+    </Border>
+
+    <Border Margin="12" Background="#000000" CornerRadius="3">
+      <vlc:VideoView Name="Video" />
+    </Border>
+  </DockPanel>
+</Window>

@@ -77,6 +77,18 @@ public sealed class ViewModelTests : IDisposable
             Assert.Throws<ConfigurationException>(settings.ToConfiguration).Message);
     }
 
+    [Fact]
+    public void ExistingRegionCanBeReopenedWithoutValidatingUnrelatedSettings()
+    {
+        var settings = Settings();
+        settings.SamplesPerSecond = "ungültig";
+        Assert.Equal(new RegionSettings { X = 1967, Y = 173, Width = 593, Height = 295 },
+            settings.RegionForEditor());
+
+        settings.RegionWidth = "0";
+        Assert.Null(settings.RegionForEditor());
+    }
+
     private static SegmentItem Item(double start, double end) => new()
     {
         SourcePath = @"D:\Streams\match.mkv",
@@ -107,6 +119,21 @@ public sealed class ViewModelTests : IDisposable
         Assert.Equal(102, item.Segment.EndSeconds);
         item.StartText = "500";
         Assert.True(item.Segment.StartSeconds < item.Segment.EndSeconds);
+    }
+
+    [Fact]
+    public void PreviewPlayheadCanSetClampedClipBounds()
+    {
+        var item = Item(97, 102);
+        item.SetStart(98.25);
+        item.SetEnd(101.75);
+        Assert.Equal(98.25, item.Segment.StartSeconds);
+        Assert.Equal(101.75, item.Segment.EndSeconds);
+
+        item.SetStart(double.NaN);
+        item.SetEnd(900);
+        Assert.Equal(98.25, item.Segment.StartSeconds);
+        Assert.Equal(600, item.Segment.EndSeconds);
     }
 
     [Fact]

@@ -1,0 +1,47 @@
+<Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="Bf6Highlights.Desktop.RegionWindow" Title="Erkennungsbereich markieren"
+        Width="1100" Height="740" MinWidth="720" MinHeight="520"
+        WindowStartupLocation="CenterOwner" x:CompileBindings="False" Background="#1B1D20">
+  <DockPanel LastChildFill="True">
+    <Border DockPanel.Dock="Top" Background="#23262A" Padding="16,12">
+      <StackPanel Spacing="8">
+        <TextBlock Text="Rechteck über den Killfeed ziehen" FontSize="16" FontWeight="SemiBold"
+                   Foreground="#F2F3F5" />
+        <TextBlock Name="Hint" Foreground="#9AA0A6" FontSize="12"
+                   Text="Ziehen mit der linken Maustaste. Die Auswahl gilt für diese Auflösung." />
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <TextBlock Text="Frame bei Sekunde" VerticalAlignment="Center" Foreground="#D6D8DC" />
+          <TextBox Name="Timestamp" Width="110" AutomationProperties.Name="Frame-Zeit in Sekunden" />
+          <Button Name="LoadFrame" Content="Bild laden" Click="LoadFrameClick" />
+          <TextBlock Text="Pfeile: 1 px · Umschalt+Pfeile: 10 px · Entf: zurücksetzen"
+                     VerticalAlignment="Center" Foreground="#9AA0A6" FontSize="12" />
+        </StackPanel>
+      </StackPanel>
+    </Border>
+
+    <Border DockPanel.Dock="Bottom" Background="#17191C" Padding="16,12"
+            BorderBrush="#33373C" BorderThickness="0,1,0,0">
+      <Grid ColumnDefinitions="*,Auto">
+        <TextBlock Name="Readout" VerticalAlignment="Center" Foreground="#D6D8DC"
+                   FontFamily="Consolas,monospace" Text="Kein Bereich gewählt." />
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10">
+          <Button Content="Zurücksetzen" Click="ResetClick" />
+          <Button Content="Abbrechen" Click="CancelClick" IsCancel="True" />
+          <Button Name="Accept" Content="Übernehmen" Click="AcceptClick" IsEnabled="False"
+                  IsDefault="True" Background="#C2600F" Foreground="#FFFFFF"
+                  Padding="16,8" FontWeight="SemiBold" />
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <Grid Name="Surface" Background="#101214">
+      <Image Name="Frame" Stretch="Uniform" />
+      <Canvas Name="Overlay" Background="Transparent" Focusable="True"
+              AutomationProperties.Name="Videobild für Bereichsauswahl"
+              AutomationProperties.HelpText="Mit gedrückter linker Maustaste ein Rechteck ziehen oder eine vorhandene Auswahl verschieben.">
+        <Rectangle Name="Selection" Stroke="#C2600F" StrokeThickness="2" IsVisible="False"
+                   Fill="#22C2600F" />
+      </Canvas>
+    </Grid>
+  </DockPanel>
+</Window>

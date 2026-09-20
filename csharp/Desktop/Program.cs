@@ -2,14 +2,18 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Themes.Fluent;
+using LibVLCSharp.Shared;
 
 namespace Bf6Highlights.Desktop;
 
 internal static class Program
 {
     [STAThread]
-    public static void Main(string[] args) => AppBuilder.Configure<App>()
-        .UsePlatformDetect().StartWithClassicDesktopLifetime(args);
+    public static void Main(string[] args)
+    {
+        Core.Initialize();
+        AppBuilder.Configure<App>().UsePlatformDetect().StartWithClassicDesktopLifetime(args);
+    }
 }
 
 public sealed class App : Application

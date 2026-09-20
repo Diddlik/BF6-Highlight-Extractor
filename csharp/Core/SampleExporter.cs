@@ -9,9 +9,12 @@ public static class SampleExporter
         ["own_kill", "own_death", "headshot", "foreign_kill", "no_event", "no_event_marker", "multiple_kills"];
 
     public static async Task ExportAsync(string source, double start, double end, double timestamp,
-        string label, string destination, CancellationToken token = default)
+        string label, string destination, CancellationToken token = default,
+        string player = "", string split = "unassigned")
     {
         if (!Labels.Contains(label)) throw new ArgumentException("Unbekanntes Label: " + label);
+        if (split is not ("unassigned" or "development" or "holdout"))
+            throw new ArgumentException("Split muss unassigned, development oder holdout sein.");
         if (!double.IsFinite(timestamp) || timestamp < start || timestamp >= end)
             throw new ArgumentException("Zeitmarke muss innerhalb des Ausschnitts liegen.");
         destination = Path.GetFullPath(destination);
@@ -38,8 +41,8 @@ public static class SampleExporter
                 source_audio_codec = metadata.AudioCodec,
                 window_start_seconds = start, window_end_seconds = end,
                 timestamp_hint_seconds = timestamp, frame_in_clip_seconds = timestamp - start,
-                label_hint = label, status = "needs_review", split = "unassigned",
-                expected_events = (object?)null, player = "", reviewer = "", reviewed_at = (string?)null,
+                label_hint = label, status = "needs_review", split,
+                expected_events = (object?)null, player = player.Trim(), reviewer = "", reviewed_at = (string?)null,
                 clip = "clip.mp4", frame = "frame.png",
             };
             await File.WriteAllTextAsync(Path.Combine(temporary, "sample.json"),

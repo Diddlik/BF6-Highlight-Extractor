@@ -110,6 +110,27 @@ public sealed class VideoTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task SampleRecordsPlayerAndSplit()
+    {
+        var target = Path.Combine(directory, "labelled-sample");
+        await SampleExporter.ExportAsync(Source, 0.5, 1.5, 1, "own_kill", target,
+            player: " BulletWaltz ", split: "holdout");
+
+        using var manifest = JsonDocument.Parse(await File.ReadAllTextAsync(Path.Combine(target, "sample.json")));
+        Assert.Equal("BulletWaltz", manifest.RootElement.GetProperty("player").GetString());
+        Assert.Equal("holdout", manifest.RootElement.GetProperty("split").GetString());
+    }
+
+    [Fact]
+    public async Task SampleRejectsUnknownSplitBeforeWriting()
+    {
+        var target = Path.Combine(directory, "invalid-split");
+        await Assert.ThrowsAsync<ArgumentException>(() => SampleExporter.ExportAsync(
+            Source, 0.5, 1.5, 1, "own_kill", target, split: "training"));
+        Assert.False(Directory.Exists(target));
+    }
+
+    [Fact]
     public async Task CancellationAndTimeoutStopRunningProcess()
     {
         string[] args = ["-nostdin", "-v", "error", "-re", "-f", "lavfi", "-i",

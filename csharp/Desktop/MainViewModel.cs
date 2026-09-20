@@ -5,6 +5,8 @@ using System.Runtime.CompilerServices;
 
 namespace Bf6Highlights.Desktop;
 
+public sealed record RegionFrame(byte[] Png, VideoMetadata Video, double Timestamp);
+
 public abstract class Observable : INotifyPropertyChanged
 {
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -83,20 +85,26 @@ public sealed class SegmentItem : Observable
     public string StartText
     {
         get => Segment.StartSeconds.ToString("0.000", CultureInfo.InvariantCulture);
-        set => Move(value, start: true);
+        set { if (TryNumber(value, out var number)) SetStart(number); }
     }
 
     public string EndText
     {
         get => Segment.EndSeconds.ToString("0.000", CultureInfo.InvariantCulture);
-        set => Move(value, start: false);
+        set { if (TryNumber(value, out var number)) SetEnd(number); }
     }
 
+    public void SetStart(double value) => Move(value, start: true);
+    public void SetEnd(double value) => Move(value, start: false);
+
+    private static bool TryNumber(string text, out double value) =>
+        double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value)
+        && double.IsFinite(value);
+
     /// <summary>Manual correction of a clip boundary; invalid input is ignored.</summary>
-    private void Move(string text, bool start)
+    private void Move(double value, bool start)
     {
-        if (!double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var value)
-            || !double.IsFinite(value)) return;
+        if (!double.IsFinite(value)) return;
         value = Math.Clamp(value, 0, VideoDurationSeconds);
         var corrected = start
             ? Segment with { StartSeconds = Math.Min(value, Segment.EndSeconds - 0.1) }
@@ -310,6 +318,87 @@ public sealed class MainViewModel : Observable
             Busy = false;
             Stage = "";
         }
+    }
+
+    public async Task ExportSampleAsync(VideoItem video, SampleRequest request)
+    {
+        if (Busy || !video.Valid) return;
+        Problem = null;
+        Busy = true;
+        using var cancel = new CancellationTokenSource();
+        cancellation = cancel;
+        try
+        {
+            Stage = "Prüfsample: " + video.FileName;
+            await Task.Run(() => SampleExporter.ExportAsync(video.Path, request.Start, request.End,
+                request.Timestamp, request.Label, request.Destination, cancel.Token,
+                request.Player, request.Split), cancel.Token);
+            Status = "Prüfsample erstellt: " + request.Destination;
+        }
+        catch (OperationCanceledException)
+        {
+            Status = "Sample-Export abgebrochen. Unfertige Dateien wurden entfernt.";
+        }
+        catch (Exception error) when (error is IOException or ArgumentException or TimeoutException
+            or System.ComponentModel.Win32Exception)
+        {
+            Problem = error.Message;
+            Status = "Sample-Export fehlgeschlagen.";
+        }
+        finally
+        {
+            cancellation = null;
+            Busy = false;
+            Stage = "";
+        }
+    }
+
+    /// <summary>A full frame for the region editor at the requested source time.</summary>
+    public async Task<RegionFrame?> FrameForRegionAsync(VideoItem? source = null, double timestamp = 60)
+    {
+        var video = source is { Valid: true } ? source : Videos.FirstOrDefault(item => item.Valid);
+        if (video?.Metadata is not { } metadata)
+        {
+            Problem = "Für den Bereichseditor fehlt ein lesbares Video.";
+            return null;
+        }
+        Busy = true;
+        try
+        {
+            if (!double.IsFinite(timestamp)) throw new ArgumentException("Ungültige Frame-Zeit.");
+            var at = Math.Clamp(timestamp, 0, Math.Max(0, metadata.DurationSeconds - 0.001));
+            using var frame = await Task.Run(() => FrameInspector.CropAsync(metadata, at,
+                new PixelRegion(0, 0, metadata.Width, metadata.Height)));
+            Problem = null;
+            Status = $"Bild bei {Reports.FormatTimestamp(at)} aus {video.FileName}.";
+            return new(frame.ToBytes(".png"), metadata, at);
+        }
+        catch (Exception error) when (error is IOException or ArgumentException
+            or ConfigurationException or TimeoutException or OpenCvSharp.OpenCVException)
+        {
+            Problem = error.Message;
+            return null;
+        }
+        finally { Busy = false; }
+    }
+
+    public RegionSettings? RegionForEditor(VideoMetadata video)
+    {
+        var region = Settings.RegionForEditor();
+        return region is not null && region.Width <= video.Width && region.Height <= video.Height
+            && region.X <= video.Width - region.Width && region.Y <= video.Height - region.Height
+            ? region : null;
+    }
+
+    /// <summary>Takes the picked region and reports which resolution it belongs to.</summary>
+    public void ApplyRegion(RegionSettings region, VideoMetadata video)
+    {
+        Settings.RegionX = region.X.ToString(CultureInfo.InvariantCulture);
+        Settings.RegionY = region.Y.ToString(CultureInfo.InvariantCulture);
+        Settings.RegionWidth = region.Width.ToString(CultureInfo.InvariantCulture);
+        Settings.RegionHeight = region.Height.ToString(CultureInfo.InvariantCulture);
+        Status = $"Bereich {region.X},{region.Y} {region.Width}×{region.Height} für "
+            + $"{video.Width}×{video.Height} übernommen. Zum Behalten die Konfiguration speichern.";
     }
 
     public void LoadSettings(string path)
