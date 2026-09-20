@@ -85,7 +85,7 @@ public sealed class SegmentBuilderTests
     [Fact]
     public void BaselineSegmentsAreReproducedFromTheBaselineEvents()
     {
-        var baseline = Path.Combine(AppContext.BaseDirectory, "reports-baseline");
+        var baseline = Path.Combine(AppContext.BaseDirectory, "reference", "reports-baseline");
         var segments = SegmentBuilder.Build(
             Reports.ReadEventsJson(Path.Combine(baseline, "events.json")),
             new ClipSettings { SecondsBefore = 3.0, SecondsAfter = 1.0, MergeGapSeconds = 1.5 },

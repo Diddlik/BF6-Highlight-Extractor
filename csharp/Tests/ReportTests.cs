@@ -8,7 +8,7 @@ namespace Bf6Highlights.Tests;
 public sealed class ReportTests : IDisposable
 {
     private static readonly string Baseline =
-        Path.Combine(AppContext.BaseDirectory, "reports-baseline");
+        Path.Combine(AppContext.BaseDirectory, "reference", "reports-baseline");
     private readonly string folder = Directory.CreateTempSubdirectory("bf6-reports-").FullName;
 
     public void Dispose() => Directory.Delete(folder, recursive: true);

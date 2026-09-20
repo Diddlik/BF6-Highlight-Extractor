@@ -1,0 +1,8 @@
+timestamp_seconds,timestamp_formatted,player_name_detected,player_name_configured,opponent_name,weapon_text,raw_text,ocr_confidence,similarity_score,frame_number,source_video,event_type,detection_method
+251.8,00:04:11.800,IlletWaltz,BulletWaltz,Thhickwg,,IlletWaltz Thhickwg,0.7684,85.71,15108,2026-09-13 21-57-11.mp4,kill,ocr
+252.0,00:04:12.000,llletWaltz,BulletWaltz,Thhickina,,llletWaltz Thhickina,0.4555,85.71,15120,2026-09-13 21-57-11.mp4,kill,ocr
+252.6,00:04:12.600,JlletWaltz,BulletWaltz,Suppress-2a,,JlletWaltz Suppress-2a,0.833,85.71,15156,2026-09-13 21-57-11.mp4,kill,ocr
+253.6,00:04:13.600,IlletWaltz,BulletWaltz,Thickn4,,IlletWaltz Thickn4,0.5961,85.71,15216,2026-09-13 21-57-11.mp4,kill,ocr
+254.0,00:04:14.000,JlletWaltz,BulletWaltz,ThickW44,,JlletWaltz ThickW44,0.6369,85.71,15240,2026-09-13 21-57-11.mp4,kill,ocr
+254.2,00:04:14.200,ulletWaltz,BulletWaltz,Thickw44,,ulletWaltz Thickw44,0.9991,95.24,15252,2026-09-13 21-57-11.mp4,kill,ocr
+254.2,00:04:14.200,ulletWaltz,BulletWaltz,Suppress-24,,ulletWaltz Suppress-24,0.79,95.24,15252,2026-09-13 21-57-11.mp4,kill,ocr

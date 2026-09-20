@@ -1,11 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup><IsTestProject>true</IsTestProject><IsPackable>false</IsPackable></PropertyGroup>
   <ItemGroup>
-    <Content Include="../../docs/migration-reference/detection-golden.json" Link="detection-golden.json" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="../../docs/migration-reference/reports-baseline/*" Link="reports-baseline/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="../../docs/migration-reference/change-detection-golden.json" Link="change-detection-golden.json" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="../../docs/migration-reference/config-defaults.json" Link="config-defaults.json" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="../../config.example.yaml" Link="config.example.yaml" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="reference/**/*" CopyToOutputDirectory="PreserveNewest" />
     <ProjectReference Include="../Core/Core.csproj" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.9.0" />
     <PackageReference Include="xunit" Version="2.9.3" />

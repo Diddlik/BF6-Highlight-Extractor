@@ -11,7 +11,7 @@ public sealed class ChangeDetectorTests
     public static TheoryData<string, JsonElement> Cases()
     {
         using var document = JsonDocument.Parse(File.ReadAllText(
-            Path.Combine(AppContext.BaseDirectory, "change-detection-golden.json")));
+            Path.Combine(AppContext.BaseDirectory, "reference", "change-detection-golden.json")));
         var cases = new TheoryData<string, JsonElement>();
         foreach (var item in document.RootElement.GetProperty("cases").EnumerateArray())
             cases.Add(item.GetProperty("id").GetString()!, item.Clone());

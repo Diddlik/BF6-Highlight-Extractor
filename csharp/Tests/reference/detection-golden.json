@@ -1,0 +1,1062 @@
+{
+  "schema_version": 1,
+  "source": {
+    "implementation": "Python bf6_highlights",
+    "capture_script": "scripts/capture_detection_reference.py"
+  },
+  "normalization": [
+    {
+      "id": "casefold_sharp_s",
+      "input": {
+        "text": "Straße"
+      },
+      "expected": {
+        "normalized": "strasse"
+      }
+    },
+    {
+      "id": "casefold_sigma",
+      "input": {
+        "text": "ΟΣΟΣ"
+      },
+      "expected": {
+        "normalized": "οσοσ"
+      }
+    },
+    {
+      "id": "accent_preserved",
+      "input": {
+        "text": "Été"
+      },
+      "expected": {
+        "normalized": "été"
+      }
+    },
+    {
+      "id": "fullwidth_nfkc",
+      "input": {
+        "text": "Ｄｉｄｄｌｉｋ"
+      },
+      "expected": {
+        "normalized": "diddlik"
+      }
+    },
+    {
+      "id": "confusables_folded",
+      "input": {
+        "text": "Didd1k I|! 0 5"
+      },
+      "expected": {
+        "normalized": "diddlk lll o s"
+      }
+    },
+    {
+      "id": "confusables_kept",
+      "input": {
+        "text": "Didd1k I|! 0 5",
+        "confusables": false
+      },
+      "expected": {
+        "normalized": "didd1k i 0 5"
+      }
+    },
+    {
+      "id": "punctuation_and_space",
+      "input": {
+        "text": " [CLAN]Diddlik\tM4A1! "
+      },
+      "expected": {
+        "normalized": "clan diddlik m4all"
+      }
+    },
+    {
+      "id": "punctuation_kept",
+      "input": {
+        "text": "[CLAN]Diddlik",
+        "strip_special": false
+      },
+      "expected": {
+        "normalized": "[clan]diddlik"
+      }
+    }
+  ],
+  "similarity": [
+    {
+      "id": "exact",
+      "input": {
+        "left": "Diddlik",
+        "right": "diddlik"
+      },
+      "expected": {
+        "ratio": 85.71428571428572,
+        "token_sort_ratio": 85.71428571428572,
+        "text_similarity": 85.71428571428572
+      }
+    },
+    {
+      "id": "ocr_confusable",
+      "input": {
+        "left": "DiddIik",
+        "right": "Diddlik"
+      },
+      "expected": {
+        "ratio": 85.71428571428572,
+        "token_sort_ratio": 85.71428571428572,
+        "text_similarity": 85.71428571428572
+      }
+    },
+    {
+      "id": "different_player",
+      "input": {
+        "left": "EnemyPlayer",
+        "right": "Diddlik"
+      },
+      "expected": {
+        "ratio": 11.111111111111116,
+        "token_sort_ratio": 11.111111111111116,
+        "text_similarity": 11.111111111111116
+      }
+    },
+    {
+      "id": "token_order",
+      "input": {
+        "left": "diddlik m4 enemy",
+        "right": "m4 enemy diddlik"
+      },
+      "expected": {
+        "ratio": 50.0,
+        "token_sort_ratio": 100.0,
+        "text_similarity": 100.0
+      }
+    },
+    {
+      "id": "short_variant",
+      "input": {
+        "left": "Steini3",
+        "right": "Steinia"
+      },
+      "expected": {
+        "ratio": 85.71428571428572,
+        "token_sort_ratio": 85.71428571428572,
+        "text_similarity": 85.71428571428572
+      }
+    },
+    {
+      "id": "accent_variant",
+      "input": {
+        "left": "café",
+        "right": "cafe"
+      },
+      "expected": {
+        "ratio": 75.0,
+        "token_sort_ratio": 75.0,
+        "text_similarity": 75.0
+      }
+    }
+  ],
+  "detector": [
+    {
+      "id": "own_kill_left",
+      "config": {
+        "player": {
+          "names": [
+            "Diddlik"
+          ]
+        },
+        "killfeed": {
+          "region": {
+            "x": 0,
+            "y": 0,
+            "width": 600,
+            "height": 500
+          }
+        }
+      },
+      "input": {
+        "crop_width": 600,
+        "timestamp_seconds": 100.0,
+        "frame_number": 6000,
+        "source_video": "stream.mkv",
+        "lines": [
+          {
+            "text": "Diddlik",
+            "confidence": 0.9,
+            "bounding_box": [
+              10,
+              0,
+              56,
+              20
+            ]
+          },
+          {
+            "text": "M4A1",
+            "confidence": 0.9,
+            "bounding_box": [
+              150,
+              0,
+              32,
+              20
+            ]
+          },
+          {
+            "text": "EnemyPlayer",
+            "confidence": 0.9,
+            "bounding_box": [
+              300,
+              0,
+              88,
+              20
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "events": [
+          {
+            "timestamp_seconds": 100.0,
+            "player_name_detected": "Diddlik",
+            "player_name_configured": "Diddlik",
+            "opponent_name": "EnemyPlayer",
+            "weapon_text": "M4A1",
+            "raw_text": "Diddlik M4A1 EnemyPlayer",
+            "confidence": 0.9,
+            "similarity_score": 100.0,
+            "frame_number": 6000,
+            "source_video": "stream.mkv",
+            "row_y": 10,
+            "event_type": "kill",
+            "detection_method": "ocr"
+          }
+        ],
+        "rejections": []
+      }
+    },
+    {
+      "id": "own_death_left",
+      "config": {
+        "player": {
+          "names": [
+            "Diddlik"
+          ]
+        },
+        "killfeed": {
+          "region": {
+            "x": 0,
+            "y": 0,
+            "width": 600,
+            "height": 500
+          }
+        }
+      },
+      "input": {
+        "crop_width": 600,
+        "timestamp_seconds": 101.0,
+        "frame_number": 6060,
+        "source_video": "stream.mkv",
+        "lines": [
+          {
+            "text": "EnemyPlayer",
+            "confidence": 0.9,
+            "bounding_box": [
+              10,
+              0,
+              88,
+              20
+            ]
+          },
+          {
+            "text": "M4A1",
+            "confidence": 0.9,
+            "bounding_box": [
+              150,
+              0,
+              32,
+              20
+            ]
+          },
+          {
+            "text": "Diddlik",
+            "confidence": 0.9,
+            "bounding_box": [
+              300,
+              0,
+              56,
+              20
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "events": [],
+        "rejections": [
+          {
+            "row_text": "EnemyPlayer M4A1 Diddlik",
+            "reason": "name_not_on_killer_side",
+            "score": 100.0,
+            "timestamp_seconds": 101.0
+          }
+        ]
+      }
+    },
+    {
+      "id": "own_kill_right_direction",
+      "config": {
+        "player": {
+          "names": [
+            "Diddlik"
+          ]
+        },
+        "killfeed": {
+          "region": {
+            "x": 0,
+            "y": 0,
+            "width": 600,
+            "height": 500
+          },
+          "killer_side": "right",
+          "direction": "right_to_left",
+          "killer_region": {
+            "x_min_ratio": 0.52,
+            "x_max_ratio": 1.0
+          }
+        }
+      },
+      "input": {
+        "crop_width": 600,
+        "timestamp_seconds": 102.0,
+        "frame_number": 6120,
+        "source_video": "stream.mkv",
+        "lines": [
+          {
+            "text": "EnemyPlayer",
+            "confidence": 0.9,
+            "bounding_box": [
+              10,
+              0,
+              88,
+              20
+            ]
+          },
+          {
+            "text": "M4A1",
+            "confidence": 0.9,
+            "bounding_box": [
+              150,
+              0,
+              32,
+              20
+            ]
+          },
+          {
+            "text": "Diddlik",
+            "confidence": 0.9,
+            "bounding_box": [
+              400,
+              0,
+              56,
+              20
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "events": [
+          {
+            "timestamp_seconds": 102.0,
+            "player_name_detected": "Diddlik",
+            "player_name_configured": "Diddlik",
+            "opponent_name": "EnemyPlayer",
+            "weapon_text": "M4A1",
+            "raw_text": "Diddlik M4A1 EnemyPlayer",
+            "confidence": 0.9,
+            "similarity_score": 100.0,
+            "frame_number": 6120,
+            "source_video": "stream.mkv",
+            "row_y": 10,
+            "event_type": "kill",
+            "detection_method": "ocr"
+          }
+        ],
+        "rejections": []
+      }
+    },
+    {
+      "id": "split_clan_name",
+      "config": {
+        "player": {
+          "names": [
+            "[CLAN]Diddlik"
+          ]
+        },
+        "killfeed": {
+          "region": {
+            "x": 0,
+            "y": 0,
+            "width": 600,
+            "height": 500
+          }
+        }
+      },
+      "input": {
+        "crop_width": 600,
+        "timestamp_seconds": 103.0,
+        "frame_number": 6180,
+        "source_video": "stream.mkv",
+        "lines": [
+          {
+            "text": "[CLAN]",
+            "confidence": 0.91,
+            "bounding_box": [
+              5,
+              0,
+              70,
+              20
+            ]
+          },
+          {
+            "text": "Diddlik",
+            "confidence": 0.91,
+            "bounding_box": [
+              80,
+              1,
+              70,
+              20
+            ]
+          },
+          {
+            "text": "M4A1",
+            "confidence": 0.91,
+            "bounding_box": [
+              180,
+              0,
+              60,
+              20
+            ]
+          },
+          {
+            "text": "Enemy",
+            "confidence": 0.91,
+            "bounding_box": [
+              300,
+              0,
+              70,
+              20
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "events": [
+          {
+            "timestamp_seconds": 103.0,
+            "player_name_detected": "[CLAN] Diddlik",
+            "player_name_configured": "[CLAN]Diddlik",
+            "opponent_name": "Enemy",
+            "weapon_text": "M4A1",
+            "raw_text": "[CLAN] Diddlik M4A1 Enemy",
+            "confidence": 0.91,
+            "similarity_score": 100.0,
+            "frame_number": 6180,
+            "source_video": "stream.mkv",
+            "row_y": 10,
+            "event_type": "kill",
+            "detection_method": "ocr"
+          }
+        ],
+        "rejections": []
+      }
+    },
+    {
+      "id": "similarity_rejection",
+      "config": {
+        "player": {
+          "names": [
+            "Diddlik"
+          ]
+        },
+        "killfeed": {
+          "region": {
+            "x": 0,
+            "y": 0,
+            "width": 600,
+            "height": 500
+          }
+        },
+        "ocr": {
+          "player_name_similarity_threshold": 90
+        }
+      },
+      "input": {
+        "crop_width": 600,
+        "timestamp_seconds": 104.0,
+        "frame_number": 6240,
+        "source_video": "stream.mkv",
+        "lines": [
+          {
+            "text": "Diddxik",
+            "confidence": 0.9,
+            "bounding_box": [
+              10,
+              0,
+              56,
+              20
+            ]
+          },
+          {
+            "text": "Enemy",
+            "confidence": 0.9,
+            "bounding_box": [
+              250,
+              0,
+              40,
+              20
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "events": [],
+        "rejections": [
+          {
+            "row_text": "Diddxik Enemy",
+            "reason": "similarity_below_threshold",
+            "score": 85.71428571428572,
+            "timestamp_seconds": 104.0
+          }
+        ]
+      }
+    },
+    {
+      "id": "ocr_variant_accepted",
+      "config": {
+        "player": {
+          "names": [
+            "Diddlik"
+          ]
+        },
+        "killfeed": {
+          "region": {
+            "x": 0,
+            "y": 0,
+            "width": 600,
+            "height": 500
+          }
+        }
+      },
+      "input": {
+        "crop_width": 600,
+        "timestamp_seconds": 104.5,
+        "frame_number": 6270,
+        "source_video": "stream.mkv",
+        "lines": [
+          {
+            "text": "Diddlikx",
+            "confidence": 0.9,
+            "bounding_box": [
+              10,
+              0,
+              64,
+              20
+            ]
+          },
+          {
+            "text": "Enemy",
+            "confidence": 0.9,
+            "bounding_box": [
+              250,
+              0,
+              40,
+              20
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "events": [
+          {
+            "timestamp_seconds": 104.5,
+            "player_name_detected": "Diddlikx",
+            "player_name_configured": "Diddlik",
+            "opponent_name": "Enemy",
+            "weapon_text": null,
+            "raw_text": "Diddlikx Enemy",
+            "confidence": 0.9,
+            "similarity_score": 93.33333333333333,
+            "frame_number": 6270,
+            "source_video": "stream.mkv",
+            "row_y": 10,
+            "event_type": "kill",
+            "detection_method": "ocr"
+          }
+        ],
+        "rejections": []
+      }
+    },
+    {
+      "id": "confidence_rejection",
+      "config": {
+        "player": {
+          "names": [
+            "Diddlik"
+          ]
+        },
+        "killfeed": {
+          "region": {
+            "x": 0,
+            "y": 0,
+            "width": 600,
+            "height": 500
+          }
+        },
+        "ocr": {
+          "minimum_confidence": 0.95
+        }
+      },
+      "input": {
+        "crop_width": 600,
+        "timestamp_seconds": 105.0,
+        "frame_number": 6300,
+        "source_video": "stream.mkv",
+        "lines": [
+          {
+            "text": "Diddlik",
+            "confidence": 0.9,
+            "bounding_box": [
+              10,
+              0,
+              56,
+              20
+            ]
+          },
+          {
+            "text": "Enemy",
+            "confidence": 0.9,
+            "bounding_box": [
+              250,
+              0,
+              40,
+              20
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "events": [],
+        "rejections": [
+          {
+            "row_text": "Diddlik Enemy",
+            "reason": "ocr_confidence_below_minimum",
+            "score": 100.0,
+            "timestamp_seconds": 105.0
+          }
+        ]
+      }
+    },
+    {
+      "id": "killer_region_rejection",
+      "config": {
+        "player": {
+          "names": [
+            "Diddlik"
+          ]
+        },
+        "killfeed": {
+          "region": {
+            "x": 0,
+            "y": 0,
+            "width": 600,
+            "height": 500
+          }
+        }
+      },
+      "input": {
+        "crop_width": 600,
+        "timestamp_seconds": 106.0,
+        "frame_number": 6360,
+        "source_video": "stream.mkv",
+        "lines": [
+          {
+            "text": "Diddlik",
+            "confidence": 0.9,
+            "bounding_box": [
+              400,
+              0,
+              56,
+              20
+            ]
+          },
+          {
+            "text": "Enemy",
+            "confidence": 0.9,
+            "bounding_box": [
+              500,
+              0,
+              40,
+              20
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "events": [],
+        "rejections": [
+          {
+            "row_text": "Diddlik Enemy",
+            "reason": "name_not_on_killer_side",
+            "score": 100.0,
+            "timestamp_seconds": 106.0
+          }
+        ]
+      }
+    },
+    {
+      "id": "single_box_row",
+      "config": {
+        "player": {
+          "names": [
+            "Diddlik"
+          ]
+        },
+        "killfeed": {
+          "region": {
+            "x": 0,
+            "y": 0,
+            "width": 600,
+            "height": 500
+          }
+        }
+      },
+      "input": {
+        "crop_width": 600,
+        "timestamp_seconds": 107.0,
+        "frame_number": 6420,
+        "source_video": "stream.mkv",
+        "lines": [
+          {
+            "text": "Diddlik M4A1 EnemyPlayer",
+            "confidence": 0.9,
+            "bounding_box": [
+              0,
+              0,
+              240,
+              20
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "events": [
+          {
+            "timestamp_seconds": 107.0,
+            "player_name_detected": "Diddlik",
+            "player_name_configured": "Diddlik",
+            "opponent_name": "EnemyPlayer",
+            "weapon_text": "M4A1",
+            "raw_text": "Diddlik M4A1 EnemyPlayer",
+            "confidence": 0.9,
+            "similarity_score": 100.0,
+            "frame_number": 6420,
+            "source_video": "stream.mkv",
+            "row_y": 10,
+            "event_type": "kill",
+            "detection_method": "ocr"
+          }
+        ],
+        "rejections": []
+      }
+    },
+    {
+      "id": "marker_only_legacy_candidate",
+      "config": {
+        "player": {
+          "names": [
+            "[CLAN]"
+          ]
+        },
+        "killfeed": {
+          "region": {
+            "x": 0,
+            "y": 0,
+            "width": 600,
+            "height": 500
+          }
+        }
+      },
+      "input": {
+        "crop_width": 600,
+        "timestamp_seconds": 108.0,
+        "frame_number": 6480,
+        "source_video": "stream.mkv",
+        "lines": [
+          {
+            "text": "[CLAN]",
+            "confidence": 0.9,
+            "bounding_box": [
+              10,
+              0,
+              48,
+              20
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "events": [
+          {
+            "timestamp_seconds": 108.0,
+            "player_name_detected": "[CLAN]",
+            "player_name_configured": "[CLAN]",
+            "opponent_name": null,
+            "weapon_text": null,
+            "raw_text": "[CLAN]",
+            "confidence": 0.9,
+            "similarity_score": 100.0,
+            "frame_number": 6480,
+            "source_video": "stream.mkv",
+            "row_y": 10,
+            "event_type": "kill",
+            "detection_method": "ocr"
+          }
+        ],
+        "rejections": []
+      }
+    }
+  ],
+  "deduplication": [
+    {
+      "id": "repeated_row_and_distinct_opponent",
+      "config": {
+        "duplicate_window_seconds": 8.0,
+        "text_similarity_threshold": 88.0,
+        "opponent_similarity_threshold": 85.0
+      },
+      "input": {
+        "events": [
+          {
+            "timestamp_seconds": 100.0,
+            "player_name_detected": "Diddlik",
+            "player_name_configured": "Diddlik",
+            "opponent_name": "Steini3",
+            "weapon_text": "M4",
+            "raw_text": "Diddlik M4 Steini3",
+            "confidence": 0.9,
+            "similarity_score": 100.0,
+            "frame_number": 6000,
+            "source_video": "stream.mkv",
+            "row_y": 0,
+            "event_type": "kill",
+            "detection_method": "ocr"
+          },
+          {
+            "timestamp_seconds": 100.5,
+            "player_name_detected": "Diddlik",
+            "player_name_configured": "Diddlik",
+            "opponent_name": "Steinia",
+            "weapon_text": "M4",
+            "raw_text": "DiddIik M4 Steinia",
+            "confidence": 0.9,
+            "similarity_score": 100.0,
+            "frame_number": 6030,
+            "source_video": "stream.mkv",
+            "row_y": 0,
+            "event_type": "kill",
+            "detection_method": "ocr"
+          },
+          {
+            "timestamp_seconds": 101.0,
+            "player_name_detected": "Diddlik",
+            "player_name_configured": "Diddlik",
+            "opponent_name": "EnemyB",
+            "weapon_text": "M4",
+            "raw_text": "Diddlik M4 EnemyB",
+            "confidence": 0.9,
+            "similarity_score": 100.0,
+            "frame_number": 6060,
+            "source_video": "stream.mkv",
+            "row_y": 0,
+            "event_type": "kill",
+            "detection_method": "ocr"
+          },
+          {
+            "timestamp_seconds": 110.0,
+            "player_name_detected": "Diddlik",
+            "player_name_configured": "Diddlik",
+            "opponent_name": "Steini3",
+            "weapon_text": "M4",
+            "raw_text": "Diddlik M4 Steini3",
+            "confidence": 0.9,
+            "similarity_score": 100.0,
+            "frame_number": 6600,
+            "source_video": "stream.mkv",
+            "row_y": 0,
+            "event_type": "kill",
+            "detection_method": "ocr"
+          }
+        ]
+      },
+      "expected": {
+        "accepted_indices": [
+          0,
+          2,
+          3
+        ],
+        "events": [
+          {
+            "timestamp_seconds": 100.0,
+            "player_name_detected": "Diddlik",
+            "player_name_configured": "Diddlik",
+            "opponent_name": "Steini3",
+            "weapon_text": "M4",
+            "raw_text": "Diddlik M4 Steini3",
+            "confidence": 0.9,
+            "similarity_score": 100.0,
+            "frame_number": 6000,
+            "source_video": "stream.mkv",
+            "row_y": 0,
+            "event_type": "kill",
+            "detection_method": "ocr"
+          },
+          {
+            "timestamp_seconds": 101.0,
+            "player_name_detected": "Diddlik",
+            "player_name_configured": "Diddlik",
+            "opponent_name": "EnemyB",
+            "weapon_text": "M4",
+            "raw_text": "Diddlik M4 EnemyB",
+            "confidence": 0.9,
+            "similarity_score": 100.0,
+            "frame_number": 6060,
+            "source_video": "stream.mkv",
+            "row_y": 0,
+            "event_type": "kill",
+            "detection_method": "ocr"
+          },
+          {
+            "timestamp_seconds": 110.0,
+            "player_name_detected": "Diddlik",
+            "player_name_configured": "Diddlik",
+            "opponent_name": "Steini3",
+            "weapon_text": "M4",
+            "raw_text": "Diddlik M4 Steini3",
+            "confidence": 0.9,
+            "similarity_score": 100.0,
+            "frame_number": 6600,
+            "source_video": "stream.mkv",
+            "row_y": 0,
+            "event_type": "kill",
+            "detection_method": "ocr"
+          }
+        ]
+      }
+    },
+    {
+      "id": "sliding_window_long_row",
+      "config": {
+        "duplicate_window_seconds": 8.0,
+        "text_similarity_threshold": 88.0,
+        "opponent_similarity_threshold": 85.0
+      },
+      "input": {
+        "events": [
+          {
+            "timestamp_seconds": 100.0,
+            "player_name_detected": "Diddlik",
+            "player_name_configured": "Diddlik",
+            "opponent_name": "Enemy",
+            "weapon_text": "M4",
+            "raw_text": "Diddlik M4 Enemy",
+            "confidence": 0.9,
+            "similarity_score": 100.0,
+            "frame_number": 6000,
+            "source_video": "stream.mkv",
+            "row_y": 0,
+            "event_type": "kill",
+            "detection_method": "ocr"
+          },
+          {
+            "timestamp_seconds": 104.0,
+            "player_name_detected": "Diddlik",
+            "player_name_configured": "Diddlik",
+            "opponent_name": "Enemy",
+            "weapon_text": "M4",
+            "raw_text": "Diddlik M4 Enemy",
+            "confidence": 0.9,
+            "similarity_score": 100.0,
+            "frame_number": 6240,
+            "source_video": "stream.mkv",
+            "row_y": 0,
+            "event_type": "kill",
+            "detection_method": "ocr"
+          },
+          {
+            "timestamp_seconds": 108.0,
+            "player_name_detected": "Diddlik",
+            "player_name_configured": "Diddlik",
+            "opponent_name": "Enemy",
+            "weapon_text": "M4",
+            "raw_text": "Diddlik M4 Enemy",
+            "confidence": 0.9,
+            "similarity_score": 100.0,
+            "frame_number": 6480,
+            "source_video": "stream.mkv",
+            "row_y": 0,
+            "event_type": "kill",
+            "detection_method": "ocr"
+          },
+          {
+            "timestamp_seconds": 112.0,
+            "player_name_detected": "Diddlik",
+            "player_name_configured": "Diddlik",
+            "opponent_name": "Enemy",
+            "weapon_text": "M4",
+            "raw_text": "Diddlik M4 Enemy",
+            "confidence": 0.9,
+            "similarity_score": 100.0,
+            "frame_number": 6720,
+            "source_video": "stream.mkv",
+            "row_y": 0,
+            "event_type": "kill",
+            "detection_method": "ocr"
+          },
+          {
+            "timestamp_seconds": 116.0,
+            "player_name_detected": "Diddlik",
+            "player_name_configured": "Diddlik",
+            "opponent_name": "Enemy",
+            "weapon_text": "M4",
+            "raw_text": "Diddlik M4 Enemy",
+            "confidence": 0.9,
+            "similarity_score": 100.0,
+            "frame_number": 6960,
+            "source_video": "stream.mkv",
+            "row_y": 0,
+            "event_type": "kill",
+            "detection_method": "ocr"
+          }
+        ]
+      },
+      "expected": {
+        "accepted_indices": [
+          0
+        ],
+        "events": [
+          {
+            "timestamp_seconds": 100.0,
+            "player_name_detected": "Diddlik",
+            "player_name_configured": "Diddlik",
+            "opponent_name": "Enemy",
+            "weapon_text": "M4",
+            "raw_text": "Diddlik M4 Enemy",
+            "confidence": 0.9,
+            "similarity_score": 100.0,
+            "frame_number": 6000,
+            "source_video": "stream.mkv",
+            "row_y": 0,
+            "event_type": "kill",
+            "detection_method": "ocr"
+          }
+        ]
+      }
+    }
+  ]
+}

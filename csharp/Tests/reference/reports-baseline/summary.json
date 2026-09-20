@@ -1,0 +1,12 @@
+{
+  "source_video": "2026-09-13 21-57-11.mp4",
+  "duration_seconds": 423.65,
+  "frames_sampled": 2119,
+  "ocr_calls": 1474,
+  "template_checks": 0,
+  "kills_detected": 7,
+  "clips_created": 0,
+  "processing_duration_seconds": 88.822,
+  "average_processing_fps": 23.86,
+  "interrupted": false
+}

@@ -1,0 +1,231 @@
+{
+  "schema_version": 1,
+  "note": "Python vision/change_detection.py outputs; crops are built by formula.",
+  "work_width": 160,
+  "pixel_delta": 25,
+  "cases": [
+    {
+      "id": "first_crop_is_always_a_change",
+      "threshold": 0.08,
+      "steps": [
+        {
+          "crop": {
+            "pattern": "gradient",
+            "width": 320,
+            "height": 120,
+            "a": 7,
+            "b": 13,
+            "c": 0
+          },
+          "changed": true,
+          "ratio": 1.0
+        }
+      ]
+    },
+    {
+      "id": "identical_crop_is_no_change",
+      "threshold": 0.08,
+      "steps": [
+        {
+          "crop": {
+            "pattern": "gradient",
+            "width": 320,
+            "height": 120,
+            "a": 7,
+            "b": 13,
+            "c": 0
+          },
+          "changed": true,
+          "ratio": 1.0
+        },
+        {
+          "crop": {
+            "pattern": "gradient",
+            "width": 320,
+            "height": 120,
+            "a": 7,
+            "b": 13,
+            "c": 0
+          },
+          "changed": false,
+          "ratio": 0.0
+        }
+      ]
+    },
+    {
+      "id": "shifted_gradient_changes_everything",
+      "threshold": 0.08,
+      "steps": [
+        {
+          "crop": {
+            "pattern": "gradient",
+            "width": 320,
+            "height": 120,
+            "a": 7,
+            "b": 13,
+            "c": 0
+          },
+          "changed": true,
+          "ratio": 1.0
+        },
+        {
+          "crop": {
+            "pattern": "gradient",
+            "width": 320,
+            "height": 120,
+            "a": 7,
+            "b": 13,
+            "c": 64
+          },
+          "changed": true,
+          "ratio": 0.891042
+        }
+      ]
+    },
+    {
+      "id": "small_offset_stays_below_the_threshold",
+      "threshold": 0.08,
+      "steps": [
+        {
+          "crop": {
+            "pattern": "constant",
+            "width": 320,
+            "height": 120,
+            "value": 100
+          },
+          "changed": true,
+          "ratio": 1.0
+        },
+        {
+          "crop": {
+            "pattern": "constant",
+            "width": 320,
+            "height": 120,
+            "value": 110
+          },
+          "changed": false,
+          "ratio": 0.0
+        }
+      ]
+    },
+    {
+      "id": "different_size_resets_the_reference",
+      "threshold": 0.08,
+      "steps": [
+        {
+          "crop": {
+            "pattern": "gradient",
+            "width": 320,
+            "height": 120,
+            "a": 7,
+            "b": 13,
+            "c": 0
+          },
+          "changed": true,
+          "ratio": 1.0
+        },
+        {
+          "crop": {
+            "pattern": "gradient",
+            "width": 320,
+            "height": 60,
+            "a": 7,
+            "b": 13,
+            "c": 0
+          },
+          "changed": true,
+          "ratio": 1.0
+        }
+      ]
+    },
+    {
+      "id": "colour_crop_is_converted_to_grey",
+      "threshold": 0.08,
+      "steps": [
+        {
+          "crop": {
+            "pattern": "blocks",
+            "width": 320,
+            "height": 120,
+            "a": 16,
+            "b": 8,
+            "value": 255
+          },
+          "changed": true,
+          "ratio": 1.0
+        },
+        {
+          "crop": {
+            "pattern": "blocks",
+            "width": 320,
+            "height": 120,
+            "a": 16,
+            "b": 8,
+            "value": 255,
+            "channels": 3
+          },
+          "changed": false,
+          "ratio": 0.0
+        }
+      ]
+    },
+    {
+      "id": "narrow_crop_is_not_upscaled",
+      "threshold": 0.08,
+      "steps": [
+        {
+          "crop": {
+            "pattern": "blocks",
+            "width": 90,
+            "height": 40,
+            "a": 4,
+            "b": 4,
+            "value": 255
+          },
+          "changed": true,
+          "ratio": 1.0
+        },
+        {
+          "crop": {
+            "pattern": "blocks",
+            "width": 90,
+            "height": 40,
+            "a": 5,
+            "b": 4,
+            "value": 255
+          },
+          "changed": true,
+          "ratio": 0.733333
+        }
+      ]
+    },
+    {
+      "id": "half_of_the_rows_change",
+      "threshold": 0.08,
+      "steps": [
+        {
+          "crop": {
+            "pattern": "constant",
+            "width": 320,
+            "height": 120,
+            "value": 0
+          },
+          "changed": true,
+          "ratio": 1.0
+        },
+        {
+          "crop": {
+            "pattern": "blocks",
+            "width": 320,
+            "height": 120,
+            "a": 320,
+            "b": 60,
+            "value": 255
+          },
+          "changed": true,
+          "ratio": 0.516667
+        }
+      ]
+    }
+  ]
+}

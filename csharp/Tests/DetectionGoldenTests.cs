@@ -9,7 +9,7 @@ public sealed class DetectionGoldenTests
     private static readonly JsonSerializerOptions Json = new() { PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower };
     public static IEnumerable<object[]> Cases(string section)
     {
-        using var document = JsonDocument.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "detection-golden.json")));
+        using var document = JsonDocument.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "reference", "detection-golden.json")));
         return document.RootElement.GetProperty(section).EnumerateArray()
             .Select(c => new object[] { c.GetProperty("id").GetString()!, c.Clone() }).ToArray();
     }

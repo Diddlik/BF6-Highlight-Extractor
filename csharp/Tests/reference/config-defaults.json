@@ -1,0 +1,81 @@
+{
+  "application": {
+    "log_level": "INFO",
+    "language": "de"
+  },
+  "player": {
+    "names": [
+      "ReferencePlayer"
+    ]
+  },
+  "video": {
+    "input": "",
+    "output_directory": "output"
+  },
+  "killfeed": {
+    "direction": "left_to_right",
+    "killer_side": "left",
+    "region": null,
+    "region_normalized": null,
+    "killer_region": {
+      "x_min_ratio": 0.0,
+      "x_max_ratio": 0.48
+    }
+  },
+  "detection": {
+    "mode": "ocr",
+    "region": null,
+    "region_normalized": null,
+    "templates": [],
+    "grouping_gap_seconds": 0.8,
+    "min_confirmations": 2
+  },
+  "profiles": {},
+  "analysis": {
+    "samples_per_second": 3,
+    "enable_change_detection": true,
+    "change_threshold": 0.08,
+    "max_workers": 2
+  },
+  "preprocessing": {
+    "upscale_factor": 2.0,
+    "grayscale": true,
+    "sharpen": true,
+    "adaptive_threshold": false,
+    "denoise": true,
+    "invert": false
+  },
+  "ocr": {
+    "engine": "paddleocr",
+    "language": "en",
+    "use_gpu": false,
+    "fallback_to_cpu": true,
+    "minimum_confidence": 0.45,
+    "player_name_similarity_threshold": 82.0,
+    "normalize_strip_special": true,
+    "normalize_confusables": true
+  },
+  "deduplication": {
+    "duplicate_window_seconds": 8.0,
+    "text_similarity_threshold": 88.0,
+    "opponent_similarity_threshold": 85.0
+  },
+  "clips": {
+    "seconds_before": 3.0,
+    "seconds_after": 2.0,
+    "merge_gap_seconds": 1.5,
+    "export_mode": "accurate",
+    "video_codec": "libx264",
+    "preset": "fast",
+    "crf": 18,
+    "audio_codec": "aac",
+    "audio_bitrate": "192k"
+  },
+  "debug": {
+    "enabled": false,
+    "save_changed_frames": false,
+    "save_ocr_frames": true,
+    "save_detected_kills": true,
+    "save_rejected_matches": false
+  }
+}

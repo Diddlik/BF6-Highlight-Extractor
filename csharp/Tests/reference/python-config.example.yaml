@@ -1,0 +1,124 @@
+# bf6-highlights configuration. Copy to config.yaml and adjust.
+
+application:
+  log_level: "INFO"          # DEBUG | INFO | WARNING | ERROR
+  language: "de"
+
+player:
+  # Every spelling that can appear in the killfeed. OCR errors are tolerated via fuzzy matching.
+  names:
+    - "BulletWaltz"
+    - "[CLAN]Diddlik"
+
+video:
+  input: ""
+  output_directory: "./output"
+
+# Personal kill-confirmation template matching. Keep mode "ocr" until region and templates
+# have been cropped from your own recording. Relative template paths start at the working folder.
+detection:
+  mode: "ocr"                # template (recommended for BF6) | ocr (compatibility)
+  region:
+    x: 700
+    y: 400
+    width: 500
+    height: 250
+  templates: []
+  # - path: "templates/kill.png"
+  #   label: "kill"
+  #   threshold: 0.72
+  #   reference_width: 1920
+  #   edge_detection: true       # recommended for translucent HUD text
+  # - path: "templates/headshot.png"
+  #   label: "headshot"
+  #   threshold: 0.86
+  #   reference_width: 1920
+  #   edge_detection: true
+  grouping_gap_seconds: 0.8
+  min_confirmations: 2
+
+killfeed:
+  direction: "left_to_right"  # only affects how raw_text is written to the reports
+  killer_side: "left"         # which end of the row is the killer
+
+  # Absolute region, used when no matching profile exists.
+  region:
+    x: 1900
+    y: 100
+    width: 600
+    height: 500
+
+  # Alternative: resolution-independent (fractions of width/height), takes precedence over `region`.
+  # region_normalized:
+  #   x: 0.742
+  #   y: 0.069
+  #   width: 0.234
+  #   height: 0.347
+
+  # Horizontal band inside the crop in which the own name must sit to count as the killer.
+  # Mirror these values when killer_side is "right".
+  killer_region:
+    x_min_ratio: 0.0
+    x_max_ratio: 0.48
+
+# Written by `bf6-highlights configure-region`; matched against the video resolution.
+profiles: {}
+#  battlefield6_2560x1440:
+#    resolution:
+#      width: 2560
+#      height: 1440
+#    killfeed:
+#      x: 1900
+#      y: 100
+#      width: 600
+#      height: 500
+
+analysis:
+  samples_per_second: 3       # 1-15
+  enable_change_detection: true
+  change_threshold: 0.08      # fraction of changed pixels that triggers OCR
+  max_workers: 2              # parallel OCR tasks
+
+preprocessing:
+  upscale_factor: 2.0
+  grayscale: true
+  sharpen: true
+  adaptive_threshold: false
+  denoise: true
+  invert: false
+
+ocr:
+  engine: "paddleocr"         # paddleocr (in der EXE enthalten) | easyocr | tesseract
+  language: "en"
+  use_gpu: false             # portable EXE enthaelt die CPU-Ausgabe von PaddlePaddle
+  fallback_to_cpu: true
+  minimum_confidence: 0.45
+  player_name_similarity_threshold: 82
+  normalize_strip_special: true
+  normalize_confusables: true  # fold 1/I/| -> l and 0 -> o before comparing
+
+deduplication:
+  duplicate_window_seconds: 8    # gap tolerance: refreshed on every repeat of the same line
+  text_similarity_threshold: 88  # full killfeed row (killer + weapon + opponent)
+  # Opponent name alone - keep lower than the row threshold, since a short name loses a lot of
+  # ratio to one wrong OCR character (Steini3/Steinia score ~86). Lower to merge more variants;
+  # raise it if different enemies with similar names get merged into one kill.
+  opponent_similarity_threshold: 82
+
+clips:
+  seconds_before: 3.0
+  seconds_after: 2.0
+  merge_gap_seconds: 1.5
+  export_mode: "accurate"     # accurate = re-encode (frame exact) | fast = stream copy
+  video_codec: "libx264"      # e.g. h264_nvenc for NVIDIA hardware encoding
+  preset: "fast"
+  crf: 18
+  audio_codec: "aac"
+  audio_bitrate: "192k"
+
+debug:
+  enabled: false
+  save_changed_frames: false
+  save_ocr_frames: true
+  save_detected_kills: true
+  save_rejected_matches: false

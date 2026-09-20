@@ -27,7 +27,7 @@ public sealed class ConfigurationTests : IDisposable
     public void DefaultsMatchPythonBaseline()
     {
         using var reference = JsonDocument.Parse(
-            File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "config-defaults.json")));
+            File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "reference", "config-defaults.json")));
         var actual = JsonSerializer.SerializeToDocument(new Configuration(),
             new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower });
         var differences = new List<string>();
@@ -42,7 +42,7 @@ public sealed class ConfigurationTests : IDisposable
     public void ExampleConfigurationImportsWithBackendNotice()
     {
         var (configuration, notices) =
-            ConfigurationFile.Import(Path.Combine(AppContext.BaseDirectory, "config.example.yaml"));
+            ConfigurationFile.Import(Path.Combine(AppContext.BaseDirectory, "reference", "python-config.example.yaml"));
         Assert.Equal(["BulletWaltz", "[CLAN]Diddlik"], configuration.Player.Names);
         Assert.Equal(new RegionSettings { X = 1900, Y = 100, Width = 600, Height = 500 },
             configuration.Killfeed.Region);
