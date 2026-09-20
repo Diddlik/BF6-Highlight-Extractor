@@ -1,0 +1,176 @@
+using System.Collections.Concurrent;
+using System.Diagnostics;
+using OpenCvSharp;
+
+namespace Bf6Highlights;
+
+/// <summary>OCR on an already cropped frame; the origin maps boxes back to source coordinates.</summary>
+public interface IOcrEngine : IDisposable
+{
+    Task<IReadOnlyList<OcrLine>> ReadAsync(Mat crop, PixelRegion origin, CancellationToken token = default);
+}
+
+public sealed record AnalysisProgress(double TimestampSeconds, double DurationSeconds,
+    int FramesSampled, int OcrCalls, int TemplateChecks, int KillsDetected, string Stage)
+{
+    public double Percent => DurationSeconds <= 0
+        ? 0 : Math.Min(100, 100 * TimestampSeconds / DurationSeconds);
+}
+
+public sealed record AnalysisResult(VideoMetadata Video, IReadOnlyList<KillCandidate> Events,
+    IReadOnlyList<ClipSegment> Segments, AnalysisSummary Summary, bool Interrupted)
+{
+    public IReadOnlyList<string> Clips { get; init; } = [];
+}
+
+/// <summary>
+/// The detection pipeline (Python services/analysis_service.py): sample, cheap change detection,
+/// OCR only on changed crops or template matching, then deduplicate, group and report.
+/// </summary>
+public sealed class AnalysisService(Configuration configuration, Func<IOcrEngine> ocrEngineFactory)
+{
+    /// <summary>
+    /// Analyses the recording and writes the reports. With <paramref name="exportClips"/> the
+    /// segments are exported as well; without it the run stays a report-only pass.
+    /// </summary>
+    public async Task<AnalysisResult> RunAsync(string source, string outputDirectory,
+        IProgress<AnalysisProgress>? progress = null, CancellationToken token = default,
+        bool exportClips = false)
+    {
+        var started = Stopwatch.StartNew();
+        var video = await new VideoService().ProbeAsync(source, token);
+        var templateMode = configuration.Detection.Mode == "template";
+        var region = (templateMode
+            ? configuration.ResolveDetectionRegion(video.Width, video.Height)
+            : configuration.ResolveKillfeedRegion(video.Width, video.Height)).ToPixelRegion();
+        var name = Path.GetFileName(video.Path);
+        var events = new List<KillCandidate>();
+        var sampled = 0;
+        var calls = 0;
+        var checks = 0;
+        var timestamp = 0.0;
+        var interrupted = false;
+
+        void Report(string stage) => progress?.Report(
+            new(timestamp, video.DurationSeconds, sampled, calls, checks, events.Count, stage));
+
+        async Task AnalyzeWithOcr()
+        {
+            var detector = new KillfeedDetector(configuration.ToDetectionSettings());
+            var deduplicator = new EventDeduplicator(configuration.ToDetectionSettings());
+            var engines = new ConcurrentBag<IOcrEngine>();
+            var workers = Math.Max(1, configuration.Analysis.MaxWorkers);
+            using var slots = new SemaphoreSlim(workers);
+            var pending = new Queue<(SampledFrame Frame, Task<IReadOnlyList<OcrLine>> Ocr)>();
+            using var change = new ChangeDetector(configuration.Analysis.ChangeThreshold);
+
+            void Consume((SampledFrame Frame, IReadOnlyList<OcrLine> Lines) sample)
+            {
+                using (sample.Frame)
+                    foreach (var candidate in detector.Detect(sample.Lines, region,
+                        sample.Frame.TimestampSeconds, sample.Frame.Number, name).Candidates)
+                        if (deduplicator.Accept(candidate)) events.Add(candidate);
+                Report("analyzing");
+            }
+
+            try
+            {
+                await foreach (var frame in FrameStream.ReadAsync(video, region,
+                    configuration.Analysis.SamplesPerSecond, token))
+                {
+                    sampled++;
+                    timestamp = frame.TimestampSeconds;
+                    if (configuration.Analysis.EnableChangeDetection
+                        && !change.Changed(frame.Image).Changed)
+                    {
+                        frame.Dispose();
+                        Report("analyzing");
+                        continue;
+                    }
+                    calls++;
+                    pending.Enqueue((frame, Task.Run(async () =>
+                    {
+                        // At most one engine per worker slot; native OCR sessions are expensive.
+                        await slots.WaitAsync(token);
+                        var engine = engines.TryTake(out var idle) ? idle : ocrEngineFactory();
+                        try { return await engine.ReadAsync(frame.Image, region, token); }
+                        finally { engines.Add(engine); slots.Release(); }
+                    }, token)));
+                    while (pending.Count >= workers * 2) Consume(await Take(pending));
+                }
+                while (pending.Count > 0) Consume(await Take(pending));
+            }
+            finally
+            {
+                // Frames must outlive the OCR tasks that still read their pixels.
+                var remaining = pending.ToArray();
+                pending.Clear();
+                try { await Task.WhenAll(remaining.Select(entry => entry.Ocr)); }
+                catch (Exception error) when (error is OperationCanceledException or IOException
+                    or ArgumentException or Microsoft.ML.OnnxRuntime.OnnxRuntimeException) { }
+                foreach (var (frame, _) in remaining) frame.Dispose();
+                foreach (var engine in engines) engine.Dispose();
+            }
+        }
+
+        async Task AnalyzeWithTemplates()
+        {
+            using var matcher = new TemplateMatcher(configuration.Detection, video.Width);
+            var grouper = new TemplateEventGrouper(configuration.Detection, name);
+            await foreach (var frame in FrameStream.ReadAsync(video, region,
+                configuration.Analysis.SamplesPerSecond, token))
+                using (frame)
+                {
+                    sampled++;
+                    checks++;
+                    timestamp = frame.TimestampSeconds;
+                    var grouped = grouper.Feed(matcher.Match(frame.Image, frame.TimestampSeconds,
+                        frame.Number), frame.TimestampSeconds);
+                    if (grouped is not null) events.Add(grouped);
+                    Report("analyzing");
+                }
+            var last = grouper.Finish();
+            if (last is not null) events.Add(last);
+        }
+
+        try
+        {
+            if (templateMode) await AnalyzeWithTemplates(); else await AnalyzeWithOcr();
+        }
+        catch (OperationCanceledException)
+        {
+            interrupted = true;
+            Directory.CreateDirectory(outputDirectory);
+            Reports.WriteCheckpointJson(Path.Combine(outputDirectory, "checkpoint.json"),
+                name, timestamp, events.Count);
+        }
+
+        Report("reporting");
+        Reports.WriteEventsJson(Path.Combine(outputDirectory, "events.json"), events);
+        Reports.WriteEventsCsv(Path.Combine(outputDirectory, "events.csv"), events);
+        var segments = SegmentBuilder.Build(events, configuration.Clips, video.DurationSeconds);
+        Reports.WriteSegmentsJson(Path.Combine(outputDirectory, "segments.json"), segments);
+        IReadOnlyList<string> clips = [];
+        if (exportClips && segments.Count > 0)
+        {
+            Report("exporting");
+            clips = (await new ClipExporter(configuration.Clips).ExportAsync(video.Path, segments,
+                Path.Combine(outputDirectory, "clips"), null, CancellationToken.None)).Written;
+        }
+        var elapsed = started.Elapsed.TotalSeconds;
+        var summary = new AnalysisSummary(name, Math.Round(video.DurationSeconds, 3), sampled, calls,
+            checks, events.Count, clips.Count, Math.Round(elapsed, 3),
+            elapsed > 0 ? Math.Round(sampled / elapsed, 2) : 0, interrupted);
+        Reports.WriteSummaryJson(Path.Combine(outputDirectory, "summary.json"), summary);
+        Report("done");
+        return new(video, events, segments, summary, interrupted) { Clips = clips };
+    }
+
+    private static async Task<(SampledFrame Frame, IReadOnlyList<OcrLine> Lines)> Take(
+        Queue<(SampledFrame Frame, Task<IReadOnlyList<OcrLine>> Ocr)> pending)
+    {
+        var (frame, ocr) = pending.Dequeue();
+        try { return (frame, await ocr); }
+        catch { frame.Dispose(); throw; }
+    }
+}

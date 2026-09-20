@@ -1,0 +1,17 @@
+<Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="Bf6Highlights.Desktop.MainWindow" Title="BF6 Highlights · C#-Vorschau"
+        Width="820" Height="540" MinWidth="500" MinHeight="360">
+  <ScrollViewer>
+    <StackPanel Margin="32" Spacing="18">
+      <TextBlock Text="BF6 Highlights" FontSize="30" FontWeight="Bold" />
+      <TextBlock Text="C#-Migration · Video-Prototyp" FontSize="20" />
+      <TextBlock TextWrapping="Wrap" Text="Die Analyseoberfläche folgt in Etappe 5. Der erste Videoablauf und das Sammeln weiterer Prüfdaten sind bereits über die C#-CLI möglich." />
+      <TextBlock Text="Trainings- und Prüfdaten sammeln" FontSize="20" FontWeight="Bold" />
+      <TextBlock TextWrapping="Wrap" Text="1. Zeitmarke in deiner Aufnahme suchen. Auch eigene Tode, fremde Kills und Situationen ohne Ereignis aufnehmen." />
+      <TextBlock TextWrapping="Wrap" Text="2. Mit dem sample-Befehl einen kurzen Ausschnitt, ein Bild und eine Beschriftungsdatei speichern. Beispiel aus dem Projektordner:" />
+      <SelectableTextBlock TextWrapping="Wrap" FontFamily="Consolas" Text="csharp\Cli\bin\Release\net10.0\bf6-highlights.exe sample &quot;samples\2026-09-13 14-36-06.mp4&quot; 17 23 20 own_kill &quot;training-data\fall-001&quot;" />
+      <TextBlock TextWrapping="Wrap" Text="3. Clip ansehen, Label und Ereigniszeit in sample.json prüfen. Erst bestätigte Fälle verwenden; separate Abnahmefälle nicht zum Einstellen verwenden." />
+      <TextBlock TextWrapping="Wrap" Text="Anleitung: docs/TRAINING_DATA.md. Keine automatische Modellschulung, kein Upload. Bestehende Samples werden nicht überschrieben." />
+    </StackPanel>
+  </ScrollViewer>
+</Window>

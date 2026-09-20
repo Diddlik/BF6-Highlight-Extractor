@@ -1,0 +1,6 @@
+{
+  "ch_PP-LCNet_x0_25_textline_ori_cls_mobile.onnx": "54379ae5174d026780215fc748a7f31910dee36818e63d49e17dc598ecc82df7",
+  "ch_PP-OCRv5_mobile_det.onnx": "4d97c44a20d30a81aad087d6a396b08f786c4635742afc391f6621f5c6ae78ae",
+  "latin_PP-OCRv5_rec_mobile_infer.onnx": "b20bd37c168a570f583afbc8cd7925603890efbcdc000a59e22c269d160b5f5a",
+  "ppocrv5_latin_dict.txt": "7629ffd77277fd4093b556769752ee9f7c881754a8544c79a7c438cd9a93d1e6"
+}
