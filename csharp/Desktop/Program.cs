@@ -1,7 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
-using Avalonia.Markup.Xaml;
 using Avalonia.Themes.Fluent;
 
 namespace Bf6Highlights.Desktop;
@@ -22,9 +21,4 @@ public sealed class App : Application
             desktop.MainWindow = new MainWindow();
         base.OnFrameworkInitializationCompleted();
     }
-}
-
-public sealed partial class MainWindow : Window
-{
-    public MainWindow() => AvaloniaXamlLoader.Load(this);
 }

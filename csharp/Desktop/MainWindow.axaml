@@ -1,17 +1,275 @@
 <Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        x:Class="Bf6Highlights.Desktop.MainWindow" Title="BF6 Highlights · C#-Vorschau"
-        Width="820" Height="540" MinWidth="500" MinHeight="360">
-  <ScrollViewer>
-    <StackPanel Margin="32" Spacing="18">
-      <TextBlock Text="BF6 Highlights" FontSize="30" FontWeight="Bold" />
-      <TextBlock Text="C#-Migration · Video-Prototyp" FontSize="20" />
-      <TextBlock TextWrapping="Wrap" Text="Die Analyseoberfläche folgt in Etappe 5. Der erste Videoablauf und das Sammeln weiterer Prüfdaten sind bereits über die C#-CLI möglich." />
-      <TextBlock Text="Trainings- und Prüfdaten sammeln" FontSize="20" FontWeight="Bold" />
-      <TextBlock TextWrapping="Wrap" Text="1. Zeitmarke in deiner Aufnahme suchen. Auch eigene Tode, fremde Kills und Situationen ohne Ereignis aufnehmen." />
-      <TextBlock TextWrapping="Wrap" Text="2. Mit dem sample-Befehl einen kurzen Ausschnitt, ein Bild und eine Beschriftungsdatei speichern. Beispiel aus dem Projektordner:" />
-      <SelectableTextBlock TextWrapping="Wrap" FontFamily="Consolas" Text="csharp\Cli\bin\Release\net10.0\bf6-highlights.exe sample &quot;samples\2026-09-13 14-36-06.mp4&quot; 17 23 20 own_kill &quot;training-data\fall-001&quot;" />
-      <TextBlock TextWrapping="Wrap" Text="3. Clip ansehen, Label und Ereigniszeit in sample.json prüfen. Erst bestätigte Fälle verwenden; separate Abnahmefälle nicht zum Einstellen verwenden." />
-      <TextBlock TextWrapping="Wrap" Text="Anleitung: docs/TRAINING_DATA.md. Keine automatische Modellschulung, kein Upload. Bestehende Samples werden nicht überschrieben." />
-    </StackPanel>
-  </ScrollViewer>
+        x:Class="Bf6Highlights.Desktop.MainWindow" Title="BF6 Highlights"
+        Width="1180" Height="760" MinWidth="1024" MinHeight="640"
+        x:CompileBindings="False" Background="#1B1D20">
+  <Window.Styles>
+    <Style Selector="TextBlock.h">
+      <Setter Property="FontSize" Value="17" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="#F2F3F5" />
+    </Style>
+    <Style Selector="TextBlock">
+      <Setter Property="Foreground" Value="#D6D8DC" />
+    </Style>
+    <Style Selector="TextBlock.dim">
+      <Setter Property="Foreground" Value="#9AA0A6" />
+      <Setter Property="FontSize" Value="12" />
+    </Style>
+    <Style Selector="TextBlock.mono">
+      <Setter Property="FontFamily" Value="Consolas,monospace" />
+    </Style>
+    <Style Selector="Border.card">
+      <Setter Property="Background" Value="#23262A" />
+      <Setter Property="BorderBrush" Value="#33373C" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="6" />
+      <Setter Property="Padding" Value="16" />
+    </Style>
+    <Style Selector="Button.primary">
+      <Setter Property="Background" Value="#C2600F" />
+      <Setter Property="Foreground" Value="#FFFFFF" />
+      <Setter Property="Padding" Value="16,9" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="TextBox">
+      <Setter Property="MinWidth" Value="90" />
+    </Style>
+  </Window.Styles>
+
+  <DockPanel LastChildFill="True">
+    <!-- Status bar -->
+    <Border DockPanel.Dock="Bottom" Background="#17191C" BorderBrush="#33373C" BorderThickness="0,1,0,0"
+            Padding="16,10">
+      <StackPanel Spacing="6">
+        <Grid ColumnDefinitions="*,Auto">
+          <TextBlock Text="{Binding Status}" TextWrapping="Wrap" />
+          <TextBlock Grid.Column="1" Classes="dim" Text="{Binding Stage}" />
+        </Grid>
+        <ProgressBar Height="4" Minimum="0" Maximum="100" Value="{Binding Progress}"
+                     IsVisible="{Binding Busy}" Foreground="#C2600F" />
+        <SelectableTextBlock Text="{Binding Problem}" IsVisible="{Binding HasProblem}"
+                             Foreground="#E4735F" TextWrapping="Wrap" />
+      </StackPanel>
+    </Border>
+
+    <TabControl Margin="12">
+      <!-- 1. Videos -->
+      <TabItem Header="Videos">
+        <Grid RowDefinitions="Auto,*,Auto" Margin="4">
+          <Border Name="DropZone" Classes="card" Background="#20242A" BorderBrush="#4A5056"
+                  Padding="24" Margin="0,0,0,12">
+            <StackPanel Spacing="8" HorizontalAlignment="Center">
+              <TextBlock Classes="h" Text="Aufnahmen hierher ziehen" HorizontalAlignment="Center" />
+              <TextBlock Classes="dim" HorizontalAlignment="Center"
+                         Text="MP4, MKV, MOV und AVI. Ordner werden durchsucht." />
+              <Button Content="Videos auswählen" Click="ChooseVideos" HorizontalAlignment="Center"
+                      IsEnabled="{Binding Idle}" />
+            </StackPanel>
+          </Border>
+
+          <Border Grid.Row="1" Classes="card">
+            <Grid RowDefinitions="Auto,*">
+              <TextBlock Classes="h" Text="Warteschlange" Margin="0,0,0,10" />
+              <TextBlock Grid.Row="1" Classes="dim" TextWrapping="Wrap" VerticalAlignment="Center"
+                         HorizontalAlignment="Center" IsVisible="{Binding !Videos.Count}"
+                         Text="Noch keine Aufnahme. Ziehe eine Datei hierher oder wähle sie aus." />
+              <ItemsControl Grid.Row="1" ItemsSource="{Binding Videos}"
+                            IsVisible="{Binding Videos.Count}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate>
+                    <Border Background="#1E2124" CornerRadius="4" Padding="12,10" Margin="0,0,0,8">
+                      <Grid ColumnDefinitions="*,Auto">
+                        <StackPanel Spacing="3">
+                          <TextBlock Text="{Binding FileName}" FontWeight="SemiBold" />
+                          <TextBlock Classes="dim mono" Text="{Binding Details}" TextWrapping="Wrap" />
+                        </StackPanel>
+                        <Button Grid.Column="1" Content="Entfernen" Click="RemoveVideo"
+                                VerticalAlignment="Center" />
+                      </Grid>
+                    </Border>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </Grid>
+          </Border>
+
+          <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="10" Margin="0,12,0,0">
+            <Button Content="Liste leeren" Click="ClearVideos" IsEnabled="{Binding Idle}" />
+            <TextBlock VerticalAlignment="Center" Classes="dim" Text="{Binding StartHint}" />
+          </StackPanel>
+        </Grid>
+      </TabItem>
+
+      <!-- 2. Einstellungen -->
+      <TabItem Header="Einstellungen">
+        <ScrollViewer>
+          <StackPanel Spacing="12" Margin="4">
+            <Border Classes="card">
+              <StackPanel Spacing="10">
+                <TextBlock Classes="h" Text="Konfigurationsdatei" />
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                  <Button Content="Laden …" Click="LoadConfig" IsEnabled="{Binding Idle}" />
+                  <Button Content="Python-Konfiguration übernehmen …" Click="ImportConfig"
+                          IsEnabled="{Binding Idle}" />
+                  <Button Content="Speichern unter …" Click="SaveConfig" IsEnabled="{Binding Idle}" />
+                </StackPanel>
+                <TextBlock Classes="dim mono" Text="{Binding Settings.ConfigPath}" TextWrapping="Wrap" />
+              </StackPanel>
+            </Border>
+
+            <Border Classes="card">
+              <StackPanel Spacing="10">
+                <TextBlock Classes="h" Text="Erkennung" />
+                <StackPanel Spacing="4">
+                  <TextBlock Text="Spielernamen, mit Komma getrennt" />
+                  <TextBox Text="{Binding Settings.PlayerNames}" MinWidth="320" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Spacing="16">
+                  <RadioButton GroupName="mode" Content="Killfeed-OCR"
+                               IsChecked="{Binding Settings.OcrMode}" />
+                  <RadioButton GroupName="mode" Content="Persönliche Kill-Anzeige (Vorlagen)"
+                               IsChecked="{Binding Settings.TemplateMode}" />
+                </StackPanel>
+                <TextBlock Classes="dim" TextWrapping="Wrap"
+                           Text="Der Vorlagenmodus braucht detection.region und Vorlagenbilder in der Konfigurationsdatei." />
+                <TextBlock Text="Killfeed-Bereich in Pixeln" Margin="0,6,0,0" />
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <TextBlock Text="x" VerticalAlignment="Center" />
+                  <TextBox Text="{Binding Settings.RegionX}" Width="90" />
+                  <TextBlock Text="y" VerticalAlignment="Center" />
+                  <TextBox Text="{Binding Settings.RegionY}" Width="90" />
+                  <TextBlock Text="Breite" VerticalAlignment="Center" />
+                  <TextBox Text="{Binding Settings.RegionWidth}" Width="90" />
+                  <TextBlock Text="Höhe" VerticalAlignment="Center" />
+                  <TextBox Text="{Binding Settings.RegionHeight}" Width="90" />
+                </StackPanel>
+                <TextBlock Classes="dim" TextWrapping="Wrap"
+                           Text="Bereich mit der Maus markieren: bf6-highlights.exe configure-region VIDEO KONFIG.yaml. Der Editor in der Oberfläche folgt." />
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <TextBlock Text="Namensähnlichkeit" VerticalAlignment="Center" />
+                  <TextBox Text="{Binding Settings.NameThreshold}" Width="70" />
+                  <TextBlock Text="Zeilenähnlichkeit" VerticalAlignment="Center" />
+                  <TextBox Text="{Binding Settings.TextThreshold}" Width="70" />
+                  <TextBlock Text="Gegnerähnlichkeit" VerticalAlignment="Center" />
+                  <TextBox Text="{Binding Settings.OpponentThreshold}" Width="70" />
+                </StackPanel>
+              </StackPanel>
+            </Border>
+
+            <Border Classes="card">
+              <StackPanel Spacing="10">
+                <TextBlock Classes="h" Text="Leistung" />
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <TextBlock Text="Bilder pro Sekunde" VerticalAlignment="Center" />
+                  <TextBox Text="{Binding Settings.SamplesPerSecond}" Width="70" />
+                  <TextBlock Text="Parallele OCR" VerticalAlignment="Center" />
+                  <TextBox Text="{Binding Settings.MaxWorkers}" Width="70" />
+                  <CheckBox Content="Änderungserkennung" IsChecked="{Binding Settings.ChangeDetection}" />
+                </StackPanel>
+              </StackPanel>
+            </Border>
+
+            <Border Classes="card">
+              <StackPanel Spacing="10">
+                <TextBlock Classes="h" Text="Clips und Ausgabe" />
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <TextBlock Text="Vorlauf s" VerticalAlignment="Center" />
+                  <TextBox Text="{Binding Settings.SecondsBefore}" Width="70" />
+                  <TextBlock Text="Nachlauf s" VerticalAlignment="Center" />
+                  <TextBox Text="{Binding Settings.SecondsAfter}" Width="70" />
+                  <TextBlock Text="Zusammenführen ab s" VerticalAlignment="Center" />
+                  <TextBox Text="{Binding Settings.MergeGap}" Width="70" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Spacing="16">
+                  <RadioButton GroupName="export" Content="Genau (neu kodieren)"
+                               IsChecked="{Binding Settings.AccurateExport}" />
+                  <RadioButton GroupName="export" Content="Schnell (Stream kopieren)"
+                               IsChecked="{Binding Settings.FastExport}" />
+                </StackPanel>
+                <StackPanel Spacing="4">
+                  <TextBlock Text="Ausgabeordner" />
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBox Text="{Binding Settings.OutputDirectory}" MinWidth="360" />
+                    <Button Content="Wählen …" Click="ChooseOutput" IsEnabled="{Binding Idle}" />
+                  </StackPanel>
+                </StackPanel>
+              </StackPanel>
+            </Border>
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
+
+      <!-- 3. Analyse -->
+      <TabItem Header="Analyse">
+        <Border Classes="card" Margin="4">
+          <StackPanel Spacing="14">
+            <TextBlock Classes="h" Text="Analyse" />
+            <TextBlock TextWrapping="Wrap"
+                       Text="Die Analyse erzeugt Kandidaten und Berichte, keine Clips. Clips schreibt erst der Export der Auswahl." />
+            <StackPanel Orientation="Horizontal" Spacing="10">
+              <Button Classes="primary" Content="Analyse starten" Click="StartAnalysis"
+                      IsEnabled="{Binding CanStart}" />
+              <Button Content="Abbrechen" Click="CancelWork" IsEnabled="{Binding Busy}" />
+              <TextBlock VerticalAlignment="Center" Classes="dim" Text="{Binding StartHint}" />
+            </StackPanel>
+            <ProgressBar Height="8" Minimum="0" Maximum="100" Value="{Binding Progress}"
+                         Foreground="#C2600F" />
+            <TextBlock Classes="mono" Text="{Binding Stage}" />
+            <TextBlock Classes="dim" TextWrapping="Wrap"
+                       Text="Berichte je Aufnahme: events.json, events.csv, segments.json und summary.json im Unterordner des Ausgabeziels." />
+          </StackPanel>
+        </Border>
+      </TabItem>
+
+      <!-- 4. Highlights -->
+      <TabItem Header="Highlights">
+        <Grid RowDefinitions="Auto,*,Auto" Margin="4">
+          <TextBlock Classes="h" Text="Kandidaten prüfen" Margin="0,0,0,10" />
+          <Border Grid.Row="1" Classes="card">
+            <Grid RowDefinitions="*">
+              <TextBlock Classes="dim" TextWrapping="Wrap" VerticalAlignment="Center"
+                         HorizontalAlignment="Center" IsVisible="{Binding !Highlights.Count}"
+                         Text="Noch keine Kandidaten. Erst die Analyse starten." />
+              <ScrollViewer IsVisible="{Binding Highlights.Count}">
+                <ItemsControl ItemsSource="{Binding Highlights}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                      <Border Background="#1E2124" CornerRadius="4" Padding="12,10" Margin="0,0,0,8">
+                        <Grid ColumnDefinitions="Auto,*,Auto">
+                          <CheckBox IsChecked="{Binding Selected}" Click="SelectionChanged"
+                                    VerticalAlignment="Center" Margin="0,0,10,0" />
+                          <StackPanel Grid.Column="1" Spacing="3">
+                            <StackPanel Orientation="Horizontal" Spacing="10">
+                              <TextBlock Text="{Binding Kind}" FontWeight="SemiBold" />
+                              <TextBlock Classes="mono" Text="{Binding Range}" />
+                            </StackPanel>
+                            <TextBlock Classes="dim" Text="{Binding SourceName}" />
+                            <TextBlock Classes="dim" Text="{Binding Opponents}" />
+                          </StackPanel>
+                          <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6"
+                                      VerticalAlignment="Center">
+                            <TextBlock Text="Start" VerticalAlignment="Center" Classes="dim" />
+                            <TextBox Text="{Binding StartText}" Width="90" />
+                            <TextBlock Text="Ende" VerticalAlignment="Center" Classes="dim" />
+                            <TextBox Text="{Binding EndText}" Width="90" />
+                          </StackPanel>
+                        </Grid>
+                      </Border>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </ScrollViewer>
+            </Grid>
+          </Border>
+          <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="10" Margin="0,12,0,0">
+            <Button Classes="primary" Content="Auswahl exportieren" Click="ExportSelection"
+                    IsEnabled="{Binding CanExport}" />
+            <Button Content="Abbrechen" Click="CancelWork" IsEnabled="{Binding Busy}" />
+            <TextBlock VerticalAlignment="Center" Classes="dim"
+                       Text="Zeiten in Sekunden mit Dezimalpunkt. Vorhandene Clips werden nie überschrieben." />
+          </StackPanel>
+        </Grid>
+      </TabItem>
+    </TabControl>
+  </DockPanel>
 </Window>
