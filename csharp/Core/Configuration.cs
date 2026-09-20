@@ -233,6 +233,15 @@ public static class ConfigurationFile
 {
     private static readonly string[] LogLevels = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"];
 
+    /// <summary>
+    /// Where a packaged application keeps its own configuration: a writable user folder, never
+    /// the installation directory.
+    /// </summary>
+    public static string DefaultUserConfigPath => Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData,
+            Environment.SpecialFolderOption.DoNotVerify),
+        "BF6-Highlight-Extractor", "config.yaml");
+
     public static Configuration Load(string path)
     {
         if (!File.Exists(path)) throw new ConfigurationException("Konfigurationsdatei nicht gefunden: " + path);

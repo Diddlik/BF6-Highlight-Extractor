@@ -115,6 +115,7 @@
                   <Button Content="Laden …" Click="LoadConfig" IsEnabled="{Binding Idle}" />
                   <Button Content="Python-Konfiguration übernehmen …" Click="ImportConfig"
                           IsEnabled="{Binding Idle}" />
+                  <Button Content="Speichern" Click="SaveConfigHere" IsEnabled="{Binding Idle}" />
                   <Button Content="Speichern unter …" Click="SaveConfig" IsEnabled="{Binding Idle}" />
                 </StackPanel>
                 <TextBlock Classes="dim mono" Text="{Binding Settings.ConfigPath}" TextWrapping="Wrap" />

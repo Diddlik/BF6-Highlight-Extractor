@@ -401,6 +401,22 @@ public sealed class MainViewModel : Observable
             + $"{video.Width}×{video.Height} übernommen. Zum Behalten die Konfiguration speichern.";
     }
 
+    /// <summary>
+    /// Loads the configuration of this installation from the user folder. On a first start there
+    /// is none; the path is kept so that saving needs no dialog.
+    /// </summary>
+    public void LoadUserSettings()
+    {
+        var path = ConfigurationFile.DefaultUserConfigPath;
+        if (File.Exists(path)) { LoadSettings(path); return; }
+        Settings.ConfigPath = path;
+        Status = "Noch keine gespeicherte Konfiguration. Einstellungen prüfen und speichern.";
+    }
+
+    /// <summary>Saves to the loaded file, or to the user folder when none was opened yet.</summary>
+    public void SaveUserSettings() => SaveSettings(string.IsNullOrWhiteSpace(Settings.ConfigPath)
+        ? ConfigurationFile.DefaultUserConfigPath : Settings.ConfigPath);
+
     public void LoadSettings(string path)
     {
         try

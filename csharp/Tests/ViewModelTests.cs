@@ -171,6 +171,29 @@ public sealed class ViewModelTests : IDisposable
     }
 
     [Fact]
+    public void TheUserConfigurationLivesInAWritableUserFolder()
+    {
+        var path = ConfigurationFile.DefaultUserConfigPath;
+        Assert.StartsWith(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData,
+            Environment.SpecialFolderOption.DoNotVerify), path);
+        Assert.EndsWith(Path.Combine("BF6-Highlight-Extractor", "config.yaml"), path);
+        Assert.False(path.StartsWith(AppContext.BaseDirectory, StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public void SavingWithoutADialogUsesTheLoadedFile()
+    {
+        var path = Path.Combine(folder, "eigene.yaml");
+        var model = new MainViewModel();
+        model.Settings.ConfigPath = path;
+        model.Settings.PlayerNames = "BulletWaltz";
+        model.SaveUserSettings();
+        Assert.True(File.Exists(path));
+        Assert.Contains("gespeichert", model.Status);
+        Assert.Equal(["BulletWaltz"], ConfigurationFile.Load(path).Player.Names);
+    }
+
+    [Fact]
     public void AnInvalidConfigurationFileIsReportedNotThrown()
     {
         var model = new MainViewModel();

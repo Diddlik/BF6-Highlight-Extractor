@@ -16,6 +16,7 @@ public sealed partial class MainWindow : Window
     {
         AvaloniaXamlLoader.Load(this);
         DataContext = model;
+        model.LoadUserSettings();
         var zone = this.FindControl<Border>("DropZone")!;
         DragDrop.SetAllowDrop(zone, true);
         zone.AddHandler(DragDrop.DragOverEvent, (_, e) => e.DragEffects =
@@ -124,6 +125,8 @@ public sealed partial class MainWindow : Window
         try { if (await PickConfig("Python-Konfiguration übernehmen") is { } path) model.ImportSettings(path); }
         finally { dialogOpen = false; }
     }
+
+    private void SaveConfigHere(object? sender, RoutedEventArgs e) => model.SaveUserSettings();
 
     private async void SaveConfig(object? sender, RoutedEventArgs e)
     {
