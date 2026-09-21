@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Wortmarke für Startseite und Dokumentation. Dunkle Fläche, damit sie in hellen und
+     dunklen Ansichten gleich gut sitzt. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1420 300" width="1420" height="300">
+  <defs>
+    <linearGradient id="surface" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1B1E23" />
+      <stop offset="1" stop-color="#121417" />
+    </linearGradient>
+  </defs>
+
+  <rect x="0" y="0" width="1420" height="300" rx="28" fill="url(#surface)" />
+
+  <g transform="translate(72 54) scale(0.75)">
+    <rect x="4" y="4" width="248" height="248" rx="56" fill="#22252A" stroke="#33373C" stroke-width="5" />
+    <g fill="none" stroke="#767E88" stroke-width="15" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M62 102 V70 a8 8 0 0 1 8 -8 h32" />
+      <path d="M194 154 v32 a8 8 0 0 1 -8 8 h-32" />
+    </g>
+    <path d="M106 84 L178 128 L106 172 Z" fill="#E07B24" stroke="#E07B24" stroke-width="14"
+          stroke-linejoin="round" />
+  </g>
+
+  <text x="300" y="148" font-family="Segoe UI, Arial, Helvetica, sans-serif" font-size="82"
+        font-weight="600" fill="#ECEEF1">BF6 Highlight Extractor</text>
+  <text x="304" y="206" font-family="Segoe UI, Arial, Helvetica, sans-serif" font-size="34"
+        fill="#A3A9B2">Eigene Kills finden, Clips schneiden — alles lokal</text>
+  <rect x="304" y="228" width="120" height="6" rx="3" fill="#E07B24" />
+</svg>

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Fassung für kleine Größen: ohne Klammern, größere Szene, damit 16 px lesbar bleibt. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <rect x="4" y="4" width="248" height="248" rx="56" fill="#1D2025" stroke="#3A3F45" stroke-width="6" />
+  <path d="M92 64 L196 128 L92 192 Z" fill="#E07B24" stroke="#E07B24" stroke-width="20"
+        stroke-linejoin="round" />
+</svg>

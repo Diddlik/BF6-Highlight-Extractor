@@ -1,3 +1,5 @@
+![BF6 Highlight Extractor](.github/media/logo.png)
+
 # BF6 Highlight Extractor
 
 Findet in langen Battlefield-6-Aufnahmen die eigenen Kills und schneidet daraus Clips.
@@ -145,7 +147,7 @@ Nötig sind das .NET-10-SDK sowie FFmpeg und ffprobe auf dem PATH.
 ```powershell
 cd src
 dotnet build -m:1
-dotnet test -m:1                # 211 Tests
+dotnet test -m:1                # 227 Tests
 dotnet run --project BFHE.UI    # Oberfläche starten
 ```
 

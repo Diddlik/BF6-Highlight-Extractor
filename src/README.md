@@ -95,12 +95,29 @@ Format der Python-Referenz, dazu `clips/` beim Export. Vorhandene Clips werden n
 
 ## Aufbau
 
+## Bildmarke
+
+`Assets/icon.svg` ist die Vorlage, `Assets/icon-small.svg` die vereinfachte Fassung für
+kleine Größen. Daraus entstehen `icon.ico` für die Programmdateien und den Installer,
+`icon-256.png` für Fenster und Seitenleiste sowie `logo.png` als Wortmarke:
+
+```powershell
+cd Assets
+magick -background none icon-small.svg -resize 32x32 icon-32.png   # 16, 24, 32
+magick -background none icon.svg -resize 256x256 icon-256.png      # 48, 64, 128, 256
+magick icon-16.png icon-24.png icon-32.png icon-48.png icon-64.png icon-128.png icon-256.png icon.ico
+magick -background none logo.svg -resize 1420x300 logo.png
+```
+
+Gebraucht wird ImageMagick mit librsvg. Die kleinen Größen verzichten auf die Klammern,
+weil sie unter 48 Pixeln zu einer grauen Fläche verschmelzen.
+
 | Projekt | Inhalt |
 | --- | --- |
 | `Core` | Konfiguration, Frame-Strom, Änderungserkennung, OCR, Erkennung, Deduplizierung, Clips, Berichte |
 | `Cli` | Kommandozeile |
 | `BFHE.UI` | Avalonia-Oberfläche |
-| `Tests` | 212 xUnit-Tests einschließlich echter Video-, OCR- und Windows-Fensterprüfungen |
+| `Tests` | 227 xUnit-Tests einschließlich echter Video-, OCR- und Windows-Fensterprüfungen |
 
 ## Stand
 

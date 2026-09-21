@@ -65,6 +65,7 @@ try {
         --packVersion $Version `
         --packDir $payload `
         --mainExe BFHE.UI.exe `
+        --icon (Join-Path $PSScriptRoot 'Assets/icon.ico') `
         --channel $Channel `
         --outputDir $releases
     if ($LASTEXITCODE) { throw 'vpk pack fehlgeschlagen.' }

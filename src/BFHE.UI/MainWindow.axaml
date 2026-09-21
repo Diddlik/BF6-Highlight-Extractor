@@ -1,5 +1,5 @@
 <Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        x:Class="Bf6Highlights.Ui.MainWindow" Title="BF6 Highlights"
+        x:Class="Bf6Highlights.Ui.MainWindow" Icon="/Assets/icon-256.png" Title="BF6 Highlights"
         Width="1280" Height="820" MinWidth="1024" MinHeight="640"
         x:CompileBindings="False" Background="#15171A">
   <Window.Resources>
@@ -120,9 +120,13 @@
     <!-- Navigation with the state of every area -->
     <Border Background="{StaticResource Rail}" BorderBrush="{StaticResource Line}" BorderThickness="0,0,1,0">
       <DockPanel LastChildFill="True">
-        <StackPanel DockPanel.Dock="Top" Margin="20,22,20,18" Spacing="2">
-          <TextBlock Text="BF6 Highlights" FontSize="17" FontWeight="SemiBold" />
-          <TextBlock Classes="dim" Text="Lokale Analyse, ohne Cloud" />
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="18,22,20,18" Spacing="12">
+          <Image Source="/Assets/icon-256.png" Width="38" Height="38"
+                 VerticalAlignment="Center" />
+          <StackPanel Spacing="2" VerticalAlignment="Center">
+            <TextBlock Text="BF6 Highlights" FontSize="17" FontWeight="SemiBold" />
+            <TextBlock Classes="dim" Text="Lokale Analyse, ohne Cloud" />
+          </StackPanel>
         </StackPanel>
 
         <StackPanel DockPanel.Dock="Bottom" Margin="20,10,20,18">

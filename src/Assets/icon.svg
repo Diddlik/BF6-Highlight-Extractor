@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Programmsymbol. Bildsprache wie die Oberfläche: Anthrazit, ein warmes Orange als einziger
+  Akzent, feine Kanten, kein Leuchten. Die Klammern stehen für den herausgeschnittenen
+  Ausschnitt, das Dreieck für die Szene.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <linearGradient id="surface" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#24272C" />
+      <stop offset="1" stop-color="#15171A" />
+    </linearGradient>
+  </defs>
+
+  <rect x="4" y="4" width="248" height="248" rx="56" fill="url(#surface)"
+        stroke="#33373C" stroke-width="5" />
+
+  <!-- Ausschnittklammern -->
+  <g fill="none" stroke="#767E88" stroke-width="15" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M62 102 V70 a8 8 0 0 1 8 -8 h32" />
+    <path d="M194 154 v32 a8 8 0 0 1 -8 8 h-32" />
+  </g>
+
+  <!-- Szene -->
+  <path d="M106 84 L178 128 L106 172 Z" fill="#E07B24" stroke="#E07B24" stroke-width="14"
+        stroke-linejoin="round" />
+</svg>

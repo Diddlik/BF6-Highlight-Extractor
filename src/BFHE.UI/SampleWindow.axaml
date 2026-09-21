@@ -1,7 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vlc="clr-namespace:LibVLCSharp.Avalonia;assembly=LibVLCSharp.Avalonia"
-        x:Class="Bf6Highlights.Ui.SampleWindow" Title="Samples markieren"
+        x:Class="Bf6Highlights.Ui.SampleWindow" Icon="/Assets/icon-256.png" Title="Samples markieren"
         Width="1180" Height="760" MinWidth="820" MinHeight="560"
         WindowStartupLocation="CenterOwner" x:CompileBindings="False" Background="#111315">
   <Window.Styles>
