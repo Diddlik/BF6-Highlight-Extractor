@@ -3,7 +3,7 @@ using System.ComponentModel;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 
-namespace Bf6Highlights.Desktop;
+namespace Bf6Highlights.Ui;
 
 public sealed record RegionFrame(byte[] Png, VideoMetadata Video, double Timestamp);
 

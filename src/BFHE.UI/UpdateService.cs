@@ -1,7 +1,7 @@
 using Velopack;
 using Velopack.Sources;
 
-namespace Bf6Highlights.Desktop;
+namespace Bf6Highlights.Ui;
 
 /// <summary>What the window shows about updates after a check.</summary>
 public sealed record UpdateState(string Message, string? AvailableVersion = null)

@@ -30,7 +30,7 @@ try {
         $tool
     }
 
-    foreach ($project in @('Cli', 'Desktop')) {
+    foreach ($project in @('Cli', 'BFHE.UI')) {
         $target = Join-Path $publishRoot $project
         $toolDirectory = Join-Path $target 'tools'
         New-Item -ItemType Directory -Force -Path $toolDirectory | Out-Null
@@ -49,7 +49,7 @@ try {
     }
 
     if ($Zip) {
-        foreach ($project in @('Cli', 'Desktop')) {
+        foreach ($project in @('Cli', 'BFHE.UI')) {
             $target = Join-Path $publishRoot $project
             $archive = Join-Path $publishRoot "bf6-highlights-$($project.ToLowerInvariant())-win-x64.zip"
             if (Test-Path -LiteralPath $archive) { Remove-Item -LiteralPath $archive -Force }

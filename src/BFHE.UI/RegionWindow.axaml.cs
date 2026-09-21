@@ -7,7 +7,7 @@ using Avalonia.Markup.Xaml;
 using Avalonia.Media.Imaging;
 using System.Globalization;
 
-namespace Bf6Highlights.Desktop;
+namespace Bf6Highlights.Ui;
 
 /// <summary>Maps between the displayed frame and the pixels of the recording.</summary>
 public static class RegionMath

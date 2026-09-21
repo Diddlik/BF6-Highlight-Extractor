@@ -8,7 +8,7 @@ using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
 using LibVLCSharp.Shared;
 
-namespace Bf6Highlights.Desktop;
+namespace Bf6Highlights.Ui;
 
 public sealed partial class PreviewWindow : Window
 {

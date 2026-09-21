@@ -6,7 +6,7 @@ using Avalonia.Themes.Fluent;
 using LibVLCSharp.Shared;
 using Velopack;
 
-namespace Bf6Highlights.Desktop;
+namespace Bf6Highlights.Ui;
 
 internal static class Program
 {

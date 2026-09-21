@@ -1,5 +1,5 @@
 <Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        x:Class="Bf6Highlights.Desktop.MainWindow" Title="BF6 Highlights"
+        x:Class="Bf6Highlights.Ui.MainWindow" Title="BF6 Highlights"
         Width="1280" Height="820" MinWidth="1024" MinHeight="640"
         x:CompileBindings="False" Background="#15171A">
   <Window.Resources>

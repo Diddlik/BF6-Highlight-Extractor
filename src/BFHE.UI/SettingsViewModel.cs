@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace Bf6Highlights.Desktop;
+namespace Bf6Highlights.Ui;
 
 /// <summary>
 /// The settings a run needs, as editable text. <see cref="ToConfiguration"/> builds a validated

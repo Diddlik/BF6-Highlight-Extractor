@@ -1,6 +1,6 @@
 <Solution>
   <Project Path="Core/Core.csproj" />
   <Project Path="Cli/Cli.csproj" />
-  <Project Path="Desktop/Desktop.csproj" />
+  <Project Path="BFHE.UI/BFHE.UI.csproj" />
   <Project Path="Tests/Tests.csproj" />
 </Solution>

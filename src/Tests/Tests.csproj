@@ -3,7 +3,7 @@
   <ItemGroup>
     <Content Include="reference/**/*" CopyToOutputDirectory="PreserveNewest" />
     <ProjectReference Include="../Core/Core.csproj" />
-    <ProjectReference Include="../Desktop/Desktop.csproj" />
+    <ProjectReference Include="../BFHE.UI/BFHE.UI.csproj" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.9.0" />
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5" PrivateAssets="all" />

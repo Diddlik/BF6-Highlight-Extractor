@@ -1,4 +1,4 @@
-using Bf6Highlights.Desktop;
+using Bf6Highlights.Ui;
 using Xunit;
 
 namespace Bf6Highlights.Tests;

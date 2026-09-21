@@ -4,7 +4,7 @@ using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.Platform.Storage;
 
-namespace Bf6Highlights.Desktop;
+namespace Bf6Highlights.Ui;
 
 public sealed partial class MainWindow : Window
 {

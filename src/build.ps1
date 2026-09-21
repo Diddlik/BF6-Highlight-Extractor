@@ -11,7 +11,7 @@ try {
     if ($LASTEXITCODE) { throw 'Tests fehlgeschlagen (FFmpeg/ffprobe auf PATH erforderlich).' }
     if ($Publish) {
         $publishRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../output/csharp-publish'))
-        foreach ($project in @('Cli', 'Desktop')) {
+        foreach ($project in @('Cli', 'BFHE.UI')) {
             $publishDirectory = [IO.Path]::GetFullPath((Join-Path $publishRoot $project))
             if (-not $publishDirectory.StartsWith($publishRoot + [IO.Path]::DirectorySeparatorChar,
                     [StringComparison]::OrdinalIgnoreCase)) {

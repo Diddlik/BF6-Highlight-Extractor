@@ -49,7 +49,7 @@ Einzelheiten in [docs/CSHARP_DEPLOYMENT.md](../docs/CSHARP_DEPLOYMENT.md).
 ## Oberfläche
 
 ```powershell
-dotnet run --project Desktop
+dotnet run --project BFHE.UI
 ```
 
 Vier Bereiche: Videos hinzufügen, Einstellungen, Analyse, Highlights prüfen und

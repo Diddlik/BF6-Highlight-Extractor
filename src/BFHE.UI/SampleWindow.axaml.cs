@@ -5,7 +5,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 
-namespace Bf6Highlights.Desktop;
+namespace Bf6Highlights.Ui;
 
 public sealed record SampleRequest(
     double Start, double End, double Timestamp, string Label, string Destination,

@@ -37,6 +37,6 @@ NVIDIA-Hardware verwendet, sofern der Build sie unterstützt.
 .\bf6-highlights.exe analyze "D:\Aufnahmen\match.mkv" config.yaml "D:\Aufnahmen\Highlights"
 ```
 
-Die Oberfläche startet mit `Desktop.exe`. Konfiguration, Berichte und Clips werden dorthin
+Die Oberfläche startet mit `BFHE.UI.exe`. Konfiguration, Berichte und Clips werden dorthin
 geschrieben, wo sie angegeben werden; das Installationsverzeichnis muss nicht beschreibbar
 sein. Es gibt keine Netzwerkverbindung, keinen Download und keine Telemetrie.

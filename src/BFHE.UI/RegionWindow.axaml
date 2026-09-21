@@ -1,5 +1,5 @@
 <Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        x:Class="Bf6Highlights.Desktop.RegionWindow" Title="Erkennungsbereich markieren"
+        x:Class="Bf6Highlights.Ui.RegionWindow" Title="Erkennungsbereich markieren"
         Width="1100" Height="740" MinWidth="720" MinHeight="520"
         WindowStartupLocation="CenterOwner" x:CompileBindings="False" Background="#1B1D20">
   <DockPanel LastChildFill="True">

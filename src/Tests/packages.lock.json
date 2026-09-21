@@ -353,16 +353,7 @@
         "resolved": "18.1.0",
         "contentHash": "5K+9KFg2TdTl7VXv88Qzi/0lqK6JFoNP3lRuImPYGRV7K/QYklDyTrj4+A+KAki1JsQi6qKY+hDyY7d6WRqjrw=="
       },
-      "core": {
-        "type": "Project",
-        "dependencies": {
-          "OpenCvSharp4": "[4.13.0.20260627, )",
-          "OpenCvSharp4.runtime.win": "[4.13.0.20260627, )",
-          "RapidOcrNet": "[4.2.0, )",
-          "YamlDotNet": "[18.1.0, )"
-        }
-      },
-      "desktop": {
+      "bfhe.ui": {
         "type": "Project",
         "dependencies": {
           "Avalonia.Desktop": "[12.1.2, )",
@@ -371,6 +362,15 @@
           "LibVLCSharp.Avalonia": "[3.10.1, )",
           "Velopack": "[1.2.0, )",
           "VideoLAN.LibVLC.Windows": "[3.0.23.1, )"
+        }
+      },
+      "core": {
+        "type": "Project",
+        "dependencies": {
+          "OpenCvSharp4": "[4.13.0.20260627, )",
+          "OpenCvSharp4.runtime.win": "[4.13.0.20260627, )",
+          "RapidOcrNet": "[4.2.0, )",
+          "YamlDotNet": "[18.1.0, )"
         }
       }
     },

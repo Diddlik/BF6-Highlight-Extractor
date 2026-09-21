@@ -38,9 +38,9 @@ try {
     & "$PSScriptRoot/package.ps1" -FfmpegDirectory $FfmpegDirectory -Version $Version
 
     $publishRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../output/csharp-publish'))
-    $payload = Join-Path $publishRoot 'Desktop'
-    if (-not (Test-Path -LiteralPath (Join-Path $payload 'Desktop.exe'))) {
-        throw "Desktop.exe fehlt in $payload"
+    $payload = Join-Path $publishRoot 'BFHE.UI'
+    if (-not (Test-Path -LiteralPath (Join-Path $payload 'BFHE.UI.exe'))) {
+        throw "BFHE.UI.exe fehlt in $payload"
     }
     $releases = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../output/velopack'))
     New-Item -ItemType Directory -Force -Path $releases | Out-Null
@@ -64,7 +64,7 @@ try {
         --packAuthors 'BF6 Highlight Extractor' `
         --packVersion $Version `
         --packDir $payload `
-        --mainExe Desktop.exe `
+        --mainExe BFHE.UI.exe `
         --channel $Channel `
         --outputDir $releases
     if ($LASTEXITCODE) { throw 'vpk pack fehlgeschlagen.' }

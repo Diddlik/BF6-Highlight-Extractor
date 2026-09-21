@@ -80,7 +80,7 @@ jobs:
             $arguments.Merge = $true
           }
           if ('${{ inputs.prerelease }}' -eq 'true') { $arguments.Prerelease = $true }
-          ./csharp/release.ps1 @arguments
+          ./src/release.ps1 @arguments
 
       - name: Paket als Artefakt sichern
         uses: actions/upload-artifact@v4
