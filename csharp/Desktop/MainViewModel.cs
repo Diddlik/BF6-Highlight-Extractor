@@ -79,8 +79,16 @@ public sealed class SegmentItem : Observable
     };
     public string Range => $"{Reports.FormatTimestamp(Segment.StartSeconds)} – "
         + $"{Reports.FormatTimestamp(Segment.EndSeconds)} ({Segment.DurationSeconds:0.0} s)";
-    public string Opponents => string.Join(", ", Segment.Events
-        .Select(e => e.OpponentName ?? "?").Distinct());
+    public string Opponents => Segment.Events.Count == 0 ? "" : "Gegner: " + string.Join(", ",
+        Segment.Events.Select(e => e.OpponentName ?? "unbekannt").Distinct());
+
+    /// <summary>
+    /// How sure the detection was. This is the measured quality of the recognition, not a
+    /// rating of the scene; a scoring system is deliberately not part of the migration.
+    /// </summary>
+    public string Quality => Segment.Events.Count == 0 ? ""
+        : $"Erkennung {Segment.Events.Average(e => e.SimilarityScore):0} % · "
+          + $"OCR {Segment.Events.Average(e => e.Confidence) * 100:0} %";
 
     public string StartText
     {
@@ -117,6 +125,9 @@ public sealed class SegmentItem : Observable
     }
 }
 
+/// <summary>One line of the live event stream in the analysis view.</summary>
+public sealed record StreamEntry(string Time, string Kind, string Detail);
+
 /// <summary>
 /// The window's state. Every action runs through the same Core services the CLI uses; the
 /// analysis and the export run off the UI thread and can be cancelled.
@@ -127,7 +138,102 @@ public sealed class MainViewModel : Observable
 
     public ObservableCollection<VideoItem> Videos { get; } = [];
     public ObservableCollection<SegmentItem> Highlights { get; } = [];
+    /// <summary>The candidates as the list shows them: filtered and sorted.</summary>
+    public ObservableCollection<SegmentItem> VisibleHighlights { get; } = [];
+    public ObservableCollection<StreamEntry> Events { get; } = [];
     public SettingsViewModel Settings { get; } = new();
+
+    // Which of the four areas is on screen.
+    private int area;
+    public int Area
+    {
+        get => area;
+        set
+        {
+            Set(ref area, value);
+            foreach (var name in new[]
+            {
+                nameof(ShowVideos), nameof(ShowSettings), nameof(ShowAnalysis),
+                nameof(ShowHighlights), nameof(AreaTitle), nameof(AreaSubtitle),
+            }) Raise(name);
+        }
+    }
+    public bool ShowVideos => area == 0;
+    public bool ShowSettings => area == 1;
+    public bool ShowAnalysis => area == 2;
+    public bool ShowHighlights => area == 3;
+
+    public string AreaTitle => area switch
+    {
+        0 => "Neues Projekt", 1 => "Einstellungen", 2 => "Analyse", _ => "Highlights",
+    };
+    public string AreaSubtitle => area switch
+    {
+        0 => "Aufnahmen auswählen und die Analyse vorbereiten",
+        1 => "Erkennung, Leistung und Ausgabe festlegen",
+        2 => "Laufenden Vorgang beobachten",
+        _ => "Kandidaten prüfen, Grenzen anpassen und exportieren",
+    };
+
+    /// <summary>State of each area for the navigation: not started, ready, active, done, failed.</summary>
+    public string VideosState => Videos.Count == 0 ? "offen"
+        : Videos.Any(video => !video.Valid) ? "Hinweis" : "bereit";
+    public string SettingsState => string.IsNullOrWhiteSpace(Settings.OutputDirectory) ? "offen"
+        : Settings.RegionForEditor() is null ? "Bereich fehlt" : "bereit";
+    public string AnalysisState => Busy && !Exporting ? "läuft"
+        : analysisFailed ? "Fehler"
+        : analysisDone ? (interruptedRun ? "abgebrochen" : "fertig")
+        : CanStart ? "bereit" : "offen";
+    public string HighlightsState => Highlights.Count == 0
+        ? (analysisDone ? "keine Treffer" : "offen")
+        : $"{SelectedCount} von {Highlights.Count} gewählt";
+
+    private bool analysisDone;
+    private bool analysisFailed;
+    private bool interruptedRun;
+
+    private bool exporting;
+    public bool Exporting { get => exporting; private set => Set(ref exporting, value); }
+
+    // Analysis detail, shown while a run is in progress.
+    private string currentVideo = "Keine Analyse gestartet";
+    public string CurrentVideo { get => currentVideo; private set => Set(ref currentVideo, value); }
+    private string queuePosition = "Aufnahmen hinzufügen, dann die Analyse starten";
+    public string QueuePosition { get => queuePosition; private set => Set(ref queuePosition, value); }
+    private string position = "00:00:00.000 / 00:00:00.000";
+    public string Position { get => position; private set => Set(ref position, value); }
+    private string elapsed = "00:00";
+    public string Elapsed { get => elapsed; private set => Set(ref elapsed, value); }
+    private string remaining = "unbekannt";
+    public string Remaining { get => remaining; private set => Set(ref remaining, value); }
+    private int framesSampled;
+    public int FramesSampled { get => framesSampled; private set => Set(ref framesSampled, value); }
+    private int ocrCalls;
+    public int OcrCalls { get => ocrCalls; private set => Set(ref ocrCalls, value); }
+    private int templateChecks;
+    public int TemplateChecks { get => templateChecks; private set => Set(ref templateChecks, value); }
+    private int killsDetected;
+    public int KillsDetected { get => killsDetected; private set => Set(ref killsDetected, value); }
+    private string step = "bereit";
+    public string Step { get => step; private set => Set(ref step, value); }
+
+    // Sorting and filtering of the candidate list.
+    private string sortBy = "time";
+    public string SortBy { get => sortBy; private set { Set(ref sortBy, value); RefreshHighlights(); } }
+    public bool SortByTime { get => sortBy == "time"; set { if (value) SortBy = "time"; } }
+    public bool SortByKills { get => sortBy == "kills"; set { if (value) SortBy = "kills"; } }
+    public bool SortByDuration { get => sortBy == "duration"; set { if (value) SortBy = "duration"; } }
+
+    private string filter = "all";
+    public string Filter { get => filter; private set { Set(ref filter, value); RefreshHighlights(); } }
+    public bool FilterAll { get => filter == "all"; set { if (value) Filter = "all"; } }
+    public bool FilterSingle { get => filter == "single"; set { if (value) Filter = "single"; } }
+    public bool FilterMulti { get => filter == "multi"; set { if (value) Filter = "multi"; } }
+
+    public int SelectedCount => Highlights.Count(item => item.Selected);
+    public string SelectionSummary => Highlights.Count == 0 ? "Keine Kandidaten"
+        : $"{SelectedCount} von {Highlights.Count} gewählt · "
+          + $"{Highlights.Where(item => item.Selected).Sum(item => item.Segment.DurationSeconds):0.0} s";
 
     private string status = "Videos hinzufügen, um zu beginnen.";
     public string Status { get => status; private set => Set(ref status, value); }
@@ -170,12 +276,66 @@ public sealed class MainViewModel : Observable
 
     public MainViewModel()
     {
-        Videos.CollectionChanged += (_, _) => { Raise(nameof(CanStart)); Raise(nameof(StartHint)); };
-        Highlights.CollectionChanged += (_, _) => Raise(nameof(CanExport));
-        Settings.PropertyChanged += (_, _) => { Raise(nameof(CanStart)); Raise(nameof(StartHint)); };
+        Videos.CollectionChanged += (_, _) => RaiseAll();
+        Highlights.CollectionChanged += (_, _) => { RefreshHighlights(); RaiseAll(); };
+        Settings.PropertyChanged += (_, _) => RaiseAll();
     }
 
-    public void SelectionChanged() => Raise(nameof(CanExport));
+    private void RaiseAll()
+    {
+        foreach (var name in new[]
+        {
+            nameof(CanStart), nameof(StartHint), nameof(CanExport), nameof(VideosState),
+            nameof(SettingsState), nameof(AnalysisState), nameof(HighlightsState),
+            nameof(SelectedCount), nameof(SelectionSummary),
+        }) Raise(name);
+    }
+
+    public void Note(string message) => Status = message;
+
+    public void SelectionChanged() => RaiseAll();
+
+    /// <summary>Applies filter and sort order to the list the window shows.</summary>
+    private void RefreshHighlights()
+    {
+        foreach (var name in new[] { nameof(SortByTime), nameof(SortByKills), nameof(SortByDuration),
+            nameof(FilterAll), nameof(FilterSingle), nameof(FilterMulti) }) Raise(name);
+        var visible = Highlights.Where(item => filter switch
+        {
+            "single" => item.Segment.Events.Count <= 1,
+            "multi" => item.Segment.Events.Count > 1,
+            _ => true,
+        });
+        visible = sortBy switch
+        {
+            "kills" => visible.OrderByDescending(item => item.Segment.Events.Count)
+                .ThenBy(item => item.Segment.StartSeconds),
+            "duration" => visible.OrderByDescending(item => item.Segment.DurationSeconds)
+                .ThenBy(item => item.Segment.StartSeconds),
+            _ => visible.OrderBy(item => item.SourceName, StringComparer.OrdinalIgnoreCase)
+                .ThenBy(item => item.Segment.StartSeconds),
+        };
+        VisibleHighlights.Clear();
+        foreach (var item in visible) VisibleHighlights.Add(item);
+        Raise(nameof(HasHighlights));
+        Raise(nameof(VisibleEmpty));
+    }
+
+    public bool HasHighlights => VisibleHighlights.Count > 0;
+    public bool VisibleEmpty => VisibleHighlights.Count == 0;
+
+    public void SelectAll(bool selected)
+    {
+        foreach (var item in VisibleHighlights) item.Selected = selected;
+        RaiseAll();
+    }
+
+    public void RemoveHighlight(SegmentItem item)
+    {
+        Highlights.Remove(item);
+        RefreshHighlights();
+        RaiseAll();
+    }
 
     /// <summary>Adds files, skips duplicates silently and explains unreadable ones in their row.</summary>
     public async Task AddVideosAsync(IEnumerable<string> paths)
@@ -215,21 +375,41 @@ public sealed class MainViewModel : Observable
         Status = "Abbruch angefordert …";
     }
 
+    private static string Clock(TimeSpan span) => span.TotalHours >= 1
+        ? $"{(int)span.TotalHours:00}:{span.Minutes:00}:{span.Seconds:00}"
+        : $"{span.Minutes:00}:{span.Seconds:00}";
+
+    private static string StepName(string stage) => stage switch
+    {
+        "analyzing" => "Erkennung", "reporting" => "Berichte", "exporting" => "Clips schneiden",
+        "done" => "fertig", _ => stage,
+    };
+
     public async Task AnalyzeAsync()
     {
         if (!CanStart) return;
         Problem = null;
         Highlights.Clear();
+        Events.Clear();
+        analysisDone = false;
+        analysisFailed = false;
+        interruptedRun = false;
+        Area = 2;
         Busy = true;
         using var cancel = new CancellationTokenSource();
         cancellation = cancel;
         var kills = 0;
+        var watch = System.Diagnostics.Stopwatch.StartNew();
         try
         {
             var configuration = Settings.ToConfiguration();
             var service = new AnalysisService(configuration, () => new OnnxOcrEngine());
-            foreach (var video in Videos.Where(item => item.Valid).ToArray())
+            var queue = Videos.Where(item => item.Valid).ToArray();
+            for (var index = 0; index < queue.Length; index++)
             {
+                var video = queue[index];
+                CurrentVideo = video.FileName;
+                QueuePosition = $"Video {index + 1} von {queue.Length}";
                 Stage = "Analyse: " + video.FileName;
                 var target = System.IO.Path.Combine(Settings.OutputDirectory,
                     System.IO.Path.GetFileNameWithoutExtension(video.Path));
@@ -237,7 +417,23 @@ public sealed class MainViewModel : Observable
                     new Progress<AnalysisProgress>(update =>
                     {
                         Progress = update.Percent;
-                        Stage = $"{video.FileName}: {update.Stage} · {update.KillsDetected} Kills";
+                        Stage = $"{video.FileName}: {StepName(update.Stage)}";
+                        Step = StepName(update.Stage);
+                        Position = $"{Reports.FormatTimestamp(update.TimestampSeconds)} / "
+                            + Reports.FormatTimestamp(update.DurationSeconds);
+                        FramesSampled = update.FramesSampled;
+                        OcrCalls = update.OcrCalls;
+                        TemplateChecks = update.TemplateChecks;
+                        KillsDetected = kills + update.KillsDetected;
+                        Elapsed = Clock(watch.Elapsed);
+                        Remaining = update.Percent > 1
+                            ? Clock(TimeSpan.FromSeconds(watch.Elapsed.TotalSeconds
+                                * (100 - update.Percent) / update.Percent))
+                            : "wird geschätzt";
+                        if (update.LastEvent is { } kill)
+                            Events.Insert(0, new(Reports.FormatTimestamp(kill.TimestampSeconds),
+                                kill.EventType == "headshot" ? "Headshot bestätigt" : "Kill bestätigt",
+                                $"{kill.SimilarityScore:0} % · {kill.OpponentName ?? "Gegner unbekannt"}"));
                     }), cancel.Token), cancel.Token);
                 foreach (var segment in result.Segments)
                     Highlights.Add(new SegmentItem
@@ -246,8 +442,9 @@ public sealed class MainViewModel : Observable
                         VideoDurationSeconds = result.Video.DurationSeconds,
                     });
                 kills += result.Events.Count;
-                if (result.Interrupted) break;
+                if (result.Interrupted) { interruptedRun = true; break; }
             }
+            analysisDone = true;
             Status = Highlights.Count == 0
                 ? kills == 0
                     ? "Keine Kills gefunden. Bereich und Schwellwerte prüfen."
@@ -257,12 +454,15 @@ public sealed class MainViewModel : Observable
         }
         catch (OperationCanceledException)
         {
+            interruptedRun = true;
+            analysisDone = true;
             Status = $"Abgebrochen. {Highlights.Count} Abschnitte bleiben erhalten.";
         }
         catch (Exception error) when (error is ConfigurationException or IOException
             or ArgumentException or TimeoutException or System.ComponentModel.Win32Exception
             or Microsoft.ML.OnnxRuntime.OnnxRuntimeException or OpenCvSharp.OpenCVException)
         {
+            analysisFailed = true;
             Problem = error.Message;
             Status = "Analyse fehlgeschlagen.";
         }
@@ -271,8 +471,10 @@ public sealed class MainViewModel : Observable
             cancellation = null;
             Busy = false;
             Stage = "";
+            Step = analysisFailed ? "abgebrochen" : "fertig";
             Progress = 0;
-            Raise(nameof(CanExport));
+            if (Highlights.Count > 0) Area = 3;
+            RaiseAll();
         }
     }
 
@@ -299,8 +501,12 @@ public sealed class MainViewModel : Observable
                 written += result.Written.Count;
                 failures.AddRange(result.Failures);
             }
-            Problem = failures.Count == 0 ? null : string.Join("\n", failures);
-            Status = $"{written} Clip(s) in {directory}.";
+            Problem = failures.Count == 0 ? null
+                : $"{failures.Count} Clip(s) fehlgeschlagen:\n" + string.Join("\n", failures);
+            Status = failures.Count == 0
+                ? $"{written} Clip(s) geschrieben nach {directory}."
+                : $"{written} Clip(s) geschrieben, {failures.Count} fehlgeschlagen. Ziel: {directory}.";
+            LastExportDirectory = directory;
         }
         catch (OperationCanceledException)
         {
@@ -316,9 +522,14 @@ public sealed class MainViewModel : Observable
         {
             cancellation = null;
             Busy = false;
+            Exporting = false;
             Stage = "";
+            RaiseAll();
         }
     }
+
+    /// <summary>The clips folder of the last export, for the action that opens it.</summary>
+    public string? LastExportDirectory { get; private set; }
 
     public async Task ExportSampleAsync(VideoItem video, SampleRequest request)
     {

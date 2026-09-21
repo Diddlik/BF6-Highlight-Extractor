@@ -1,67 +1,201 @@
 <Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="Bf6Highlights.Desktop.MainWindow" Title="BF6 Highlights"
-        Width="1180" Height="760" MinWidth="1024" MinHeight="640"
-        x:CompileBindings="False" Background="#1B1D20">
+        Width="1280" Height="820" MinWidth="1024" MinHeight="640"
+        x:CompileBindings="False" Background="#15171A">
+  <Window.Resources>
+    <!-- Anthracite surfaces, one warm accent, blue only for neutral analysis values. -->
+    <SolidColorBrush x:Key="Rail" Color="#111316" />
+    <SolidColorBrush x:Key="Card" Color="#1E2126" />
+    <SolidColorBrush x:Key="Inset" Color="#181B1F" />
+    <SolidColorBrush x:Key="Line" Color="#2E3339" />
+    <SolidColorBrush x:Key="Accent" Color="#E07B24" />
+    <SolidColorBrush x:Key="AccentSoft" Color="#3A2A18" />
+    <SolidColorBrush x:Key="Info" Color="#5AAFD4" />
+    <SolidColorBrush x:Key="Bad" Color="#E4695A" />
+    <SolidColorBrush x:Key="Text" Color="#ECEEF1" />
+    <SolidColorBrush x:Key="Muted" Color="#A3A9B2" />
+  </Window.Resources>
+
   <Window.Styles>
-    <Style Selector="TextBlock.h">
-      <Setter Property="FontSize" Value="17" />
+    <Style Selector="TextBlock"><Setter Property="Foreground" Value="{StaticResource Text}" /></Style>
+    <Style Selector="TextBlock.title">
+      <Setter Property="FontSize" Value="21" />
       <Setter Property="FontWeight" Value="SemiBold" />
-      <Setter Property="Foreground" Value="#F2F3F5" />
     </Style>
-    <Style Selector="TextBlock">
-      <Setter Property="Foreground" Value="#D6D8DC" />
+    <Style Selector="TextBlock.h">
+      <Setter Property="FontSize" Value="15" />
+      <Setter Property="FontWeight" Value="SemiBold" />
     </Style>
     <Style Selector="TextBlock.dim">
-      <Setter Property="Foreground" Value="#9AA0A6" />
+      <Setter Property="Foreground" Value="{StaticResource Muted}" />
       <Setter Property="FontSize" Value="12" />
     </Style>
     <Style Selector="TextBlock.mono">
-      <Setter Property="FontFamily" Value="Consolas,monospace" />
+      <Setter Property="FontFamily" Value="Consolas,Cascadia Mono,monospace" />
+    </Style>
+    <Style Selector="TextBlock.metric">
+      <Setter Property="FontFamily" Value="Consolas,Cascadia Mono,monospace" />
+      <Setter Property="FontSize" Value="20" />
+      <Setter Property="Foreground" Value="{StaticResource Info}" />
     </Style>
     <Style Selector="Border.card">
-      <Setter Property="Background" Value="#23262A" />
-      <Setter Property="BorderBrush" Value="#33373C" />
+      <Setter Property="Background" Value="{StaticResource Card}" />
+      <Setter Property="BorderBrush" Value="{StaticResource Line}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="8" />
+      <Setter Property="Padding" Value="18" />
+    </Style>
+    <Style Selector="Border.row">
+      <Setter Property="Background" Value="{StaticResource Inset}" />
+      <Setter Property="BorderBrush" Value="{StaticResource Line}" />
       <Setter Property="BorderThickness" Value="1" />
       <Setter Property="CornerRadius" Value="6" />
-      <Setter Property="Padding" Value="16" />
+      <Setter Property="Padding" Value="14,12" />
+      <Setter Property="Margin" Value="0,0,0,8" />
+    </Style>
+
+    <!-- Navigation entries carry their state as text, so colour is never the only signal. -->
+    <Style Selector="RadioButton.nav">
+      <Setter Property="MinHeight" Value="54" />
+      <Setter Property="Padding" Value="14,8" />
+      <Setter Property="Margin" Value="8,2" />
+      <Setter Property="Template">
+        <ControlTemplate>
+          <Border Name="Shell" Background="Transparent" CornerRadius="6" BorderThickness="1"
+                  BorderBrush="Transparent" Padding="{TemplateBinding Padding}"
+                  MinHeight="{TemplateBinding MinHeight}">
+            <ContentPresenter Content="{TemplateBinding Content}" VerticalAlignment="Center" />
+          </Border>
+        </ControlTemplate>
+      </Setter>
+    </Style>
+    <Style Selector="RadioButton.nav:pointerover /template/ Border#Shell">
+      <Setter Property="Background" Value="#1B1E22" />
+    </Style>
+    <Style Selector="RadioButton.nav:checked /template/ Border#Shell">
+      <Setter Property="Background" Value="{StaticResource AccentSoft}" />
+    </Style>
+    <Style Selector="RadioButton.nav:focus-visible /template/ Border#Shell">
+      <Setter Property="BorderBrush" Value="{StaticResource Accent}" />
+    </Style>
+
+    <Style Selector="Button">
+      <Setter Property="MinHeight" Value="40" />
+      <Setter Property="Padding" Value="14,8" />
+      <Setter Property="Background" Value="#262A30" />
+      <Setter Property="Foreground" Value="{StaticResource Text}" />
+      <Setter Property="BorderBrush" Value="{StaticResource Line}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="6" />
     </Style>
     <Style Selector="Button.primary">
-      <Setter Property="Background" Value="#C2600F" />
-      <Setter Property="Foreground" Value="#FFFFFF" />
-      <Setter Property="Padding" Value="16,9" />
+      <Setter Property="Background" Value="{StaticResource Accent}" />
+      <Setter Property="Foreground" Value="#17120C" />
       <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Padding" Value="20,10" />
     </Style>
+    <Style Selector="Button.quiet">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="MinHeight" Value="34" />
+      <Setter Property="Padding" Value="10,6" />
+    </Style>
+    <Style Selector="Button:disabled"><Setter Property="Opacity" Value="0.45" /></Style>
     <Style Selector="TextBox">
-      <Setter Property="MinWidth" Value="90" />
+      <Setter Property="MinHeight" Value="40" />
+      <Setter Property="Background" Value="{StaticResource Inset}" />
+      <Setter Property="BorderBrush" Value="{StaticResource Line}" />
+      <Setter Property="CornerRadius" Value="6" />
+    </Style>
+    <Style Selector="CheckBox, RadioButton">
+      <Setter Property="MinHeight" Value="40" />
+      <Setter Property="Foreground" Value="{StaticResource Text}" />
+    </Style>
+    <Style Selector="ProgressBar">
+      <Setter Property="Foreground" Value="{StaticResource Accent}" />
+      <Setter Property="Background" Value="#23272C" />
     </Style>
   </Window.Styles>
 
-  <DockPanel LastChildFill="True">
-    <!-- Status bar -->
-    <Border DockPanel.Dock="Bottom" Background="#17191C" BorderBrush="#33373C" BorderThickness="0,1,0,0"
-            Padding="16,10">
-      <StackPanel Spacing="6">
-        <Grid ColumnDefinitions="*,Auto">
-          <TextBlock Text="{Binding Status}" TextWrapping="Wrap" />
-          <TextBlock Grid.Column="1" Classes="dim" Text="{Binding Stage}" />
-        </Grid>
-        <ProgressBar Height="4" Minimum="0" Maximum="100" Value="{Binding Progress}"
-                     IsVisible="{Binding Busy}" Foreground="#C2600F" />
-        <SelectableTextBlock Text="{Binding Problem}" IsVisible="{Binding HasProblem}"
-                             Foreground="#E4735F" TextWrapping="Wrap" />
-      </StackPanel>
+  <Grid ColumnDefinitions="248,*">
+    <!-- Navigation with the state of every area -->
+    <Border Background="{StaticResource Rail}" BorderBrush="{StaticResource Line}" BorderThickness="0,0,1,0">
+      <DockPanel LastChildFill="True">
+        <StackPanel DockPanel.Dock="Top" Margin="20,22,20,18" Spacing="2">
+          <TextBlock Text="BF6 Highlights" FontSize="17" FontWeight="SemiBold" />
+          <TextBlock Classes="dim" Text="Lokale Analyse, ohne Cloud" />
+        </StackPanel>
+
+        <StackPanel DockPanel.Dock="Bottom" Margin="20,10,20,18">
+          <TextBlock Classes="dim" Text="{Binding Settings.ConfigPath}" TextWrapping="Wrap" />
+        </StackPanel>
+
+        <StackPanel Spacing="2">
+          <RadioButton Classes="nav" GroupName="area" IsChecked="{Binding ShowVideos, Mode=OneWay}"
+                       Click="GoVideos" AutomationProperties.Name="Neues Projekt">
+            <StackPanel Spacing="2">
+              <TextBlock Text="1 · Neues Projekt" />
+              <TextBlock Classes="dim" Text="{Binding VideosState}" />
+            </StackPanel>
+          </RadioButton>
+          <RadioButton Classes="nav" GroupName="area" IsChecked="{Binding ShowSettings, Mode=OneWay}"
+                       Click="GoSettings" AutomationProperties.Name="Einstellungen">
+            <StackPanel Spacing="2">
+              <TextBlock Text="2 · Einstellungen" />
+              <TextBlock Classes="dim" Text="{Binding SettingsState}" />
+            </StackPanel>
+          </RadioButton>
+          <RadioButton Classes="nav" GroupName="area" IsChecked="{Binding ShowAnalysis, Mode=OneWay}"
+                       Click="GoAnalysis" AutomationProperties.Name="Analyse">
+            <StackPanel Spacing="2">
+              <TextBlock Text="3 · Analyse" />
+              <TextBlock Classes="dim" Text="{Binding AnalysisState}" />
+            </StackPanel>
+          </RadioButton>
+          <RadioButton Classes="nav" GroupName="area" IsChecked="{Binding ShowHighlights, Mode=OneWay}"
+                       Click="GoHighlights" AutomationProperties.Name="Highlights">
+            <StackPanel Spacing="2">
+              <TextBlock Text="4 · Highlights" />
+              <TextBlock Classes="dim" Text="{Binding HighlightsState}" />
+            </StackPanel>
+          </RadioButton>
+        </StackPanel>
+      </DockPanel>
     </Border>
 
-    <TabControl Margin="12">
-      <!-- 1. Videos -->
-      <TabItem Header="Videos">
-        <Grid RowDefinitions="Auto,*,Auto" Margin="4">
-          <Border Name="DropZone" Classes="card" Background="#20242A" BorderBrush="#4A5056"
-                  Padding="24" Margin="0,0,0,12">
-            <StackPanel Spacing="8" HorizontalAlignment="Center">
+    <DockPanel Grid.Column="1" LastChildFill="True">
+      <Border DockPanel.Dock="Top" Padding="28,20,28,14">
+        <StackPanel Spacing="3">
+          <TextBlock Classes="title" Text="{Binding AreaTitle}" />
+          <TextBlock Classes="dim" Text="{Binding AreaSubtitle}" />
+        </StackPanel>
+      </Border>
+
+      <Border DockPanel.Dock="Bottom" Background="{StaticResource Rail}" BorderBrush="{StaticResource Line}"
+              BorderThickness="0,1,0,0" Padding="28,12">
+        <StackPanel Spacing="8">
+          <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Text="{Binding Status}" TextWrapping="Wrap" />
+            <TextBlock Grid.Column="1" Classes="dim mono" Text="{Binding Stage}" />
+          </Grid>
+          <ProgressBar Height="4" Minimum="0" Maximum="100" Value="{Binding Progress}"
+                       IsVisible="{Binding Busy}" />
+          <Border IsVisible="{Binding HasProblem}" Background="#2A1C1A" BorderBrush="{StaticResource Bad}"
+                  BorderThickness="1" CornerRadius="6" Padding="12,10">
+            <SelectableTextBlock Text="{Binding Problem}" Foreground="{StaticResource Bad}"
+                                 TextWrapping="Wrap" />
+          </Border>
+        </StackPanel>
+      </Border>
+
+      <Panel Margin="28,0,28,16">
+        <!-- 1 · Neues Projekt -->
+        <Grid IsVisible="{Binding ShowVideos}" RowDefinitions="Auto,*,Auto">
+          <Border Name="DropZone" Classes="card" Background="#1A1E23" BorderBrush="#3D444C"
+                  Padding="28" Margin="0,0,0,14">
+            <StackPanel Spacing="10" HorizontalAlignment="Center">
               <TextBlock Classes="h" Text="Aufnahmen hierher ziehen" HorizontalAlignment="Center" />
               <TextBlock Classes="dim" HorizontalAlignment="Center"
-                         Text="MP4, MKV, MOV und AVI. Ordner werden durchsucht." />
+                         Text="MP4, MKV, MOV und AVI · Ordner werden durchsucht · Duplikate übersprungen" />
               <Button Content="Videos auswählen" Click="ChooseVideos" HorizontalAlignment="Center"
                       IsEnabled="{Binding Idle}" />
             </StackPanel>
@@ -69,47 +203,77 @@
 
           <Border Grid.Row="1" Classes="card">
             <Grid RowDefinitions="Auto,*">
-              <TextBlock Classes="h" Text="Warteschlange" Margin="0,0,0,10" />
+              <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,12">
+                <TextBlock Classes="h" Text="Warteschlange" />
+                <Button Grid.Column="1" Classes="quiet" Content="Liste leeren" Click="ClearVideos"
+                        IsEnabled="{Binding Idle}" />
+              </Grid>
               <TextBlock Grid.Row="1" Classes="dim" TextWrapping="Wrap" VerticalAlignment="Center"
-                         HorizontalAlignment="Center" IsVisible="{Binding !Videos.Count}"
-                         Text="Noch keine Aufnahme. Ziehe eine Datei hierher oder wähle sie aus." />
-              <ItemsControl Grid.Row="1" ItemsSource="{Binding Videos}"
-                            IsVisible="{Binding Videos.Count}">
-                <ItemsControl.ItemTemplate>
-                  <DataTemplate>
-                    <Border Background="#1E2124" CornerRadius="4" Padding="12,10" Margin="0,0,0,8">
-                      <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="8">
-                        <StackPanel Spacing="3">
-                          <TextBlock Text="{Binding FileName}" FontWeight="SemiBold" />
-                          <TextBlock Classes="dim mono" Text="{Binding Details}" TextWrapping="Wrap" />
-                        </StackPanel>
-                        <Button Grid.Column="1" Content="Entfernen" Click="RemoveVideo"
-                                VerticalAlignment="Center" />
-                        <Button Grid.Column="2" Content="Prüfsample …" Click="CreateSample"
-                                IsEnabled="{Binding Valid}" VerticalAlignment="Center" />
-                        <Button Grid.Column="3" Content="Bereich …" Click="PickRegion"
-                                IsEnabled="{Binding Valid}" VerticalAlignment="Center" />
-                      </Grid>
-                    </Border>
-                  </DataTemplate>
-                </ItemsControl.ItemTemplate>
-              </ItemsControl>
+                         HorizontalAlignment="Center" IsVisible="{Binding !Videos.Count}" MaxWidth="440"
+                         TextAlignment="Center"
+                         Text="Noch keine Aufnahme. Ziehe eine Datei in die Fläche oben oder wähle sie aus. Danach den Killfeed-Bereich prüfen und die Analyse starten." />
+              <ScrollViewer Grid.Row="1" IsVisible="{Binding Videos.Count}">
+                <ItemsControl ItemsSource="{Binding Videos}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                      <Border Classes="row">
+                        <Grid ColumnDefinitions="*,Auto,Auto">
+                          <StackPanel Spacing="4">
+                            <TextBlock Text="{Binding FileName}" FontWeight="SemiBold" />
+                            <TextBlock Classes="dim mono" Text="{Binding Details}" TextWrapping="Wrap" />
+                          </StackPanel>
+                          <Button Grid.Column="1" Classes="quiet" Content="Prüfdaten sammeln …"
+                                  Click="CreateSample" VerticalAlignment="Center" Margin="0,0,8,0" />
+                          <Button Grid.Column="2" Classes="quiet" Content="Entfernen" Click="RemoveVideo"
+                                  VerticalAlignment="Center" />
+                        </Grid>
+                      </Border>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </ScrollViewer>
             </Grid>
           </Border>
 
-          <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="10" Margin="0,12,0,0">
-            <Button Content="Liste leeren" Click="ClearVideos" IsEnabled="{Binding Idle}" />
-            <TextBlock VerticalAlignment="Center" Classes="dim" Text="{Binding StartHint}" />
-          </StackPanel>
-        </Grid>
-      </TabItem>
-
-      <!-- 2. Einstellungen -->
-      <TabItem Header="Einstellungen">
-        <ScrollViewer>
-          <StackPanel Spacing="12" Margin="4">
-            <Border Classes="card">
+          <Border Grid.Row="2" Classes="card" Margin="0,14,0,0">
+            <Grid ColumnDefinitions="*,Auto">
               <StackPanel Spacing="10">
+                <TextBlock Classes="h" Text="Schnellkonfiguration" />
+                <StackPanel Orientation="Horizontal" Spacing="18">
+                  <StackPanel Spacing="4">
+                    <TextBlock Classes="dim" Text="Vorlauf in Sekunden" />
+                    <TextBox Text="{Binding Settings.SecondsBefore}" Width="92"
+                             AutomationProperties.Name="Vorlauf in Sekunden" />
+                  </StackPanel>
+                  <StackPanel Spacing="4">
+                    <TextBlock Classes="dim" Text="Nachlauf in Sekunden" />
+                    <TextBox Text="{Binding Settings.SecondsAfter}" Width="92"
+                             AutomationProperties.Name="Nachlauf in Sekunden" />
+                  </StackPanel>
+                  <StackPanel Spacing="4">
+                    <TextBlock Classes="dim" Text="Ausgabeordner" />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                      <TextBox Text="{Binding Settings.OutputDirectory}" Width="300"
+                               AutomationProperties.Name="Ausgabeordner" />
+                      <Button Content="Wählen …" Click="ChooseOutput" IsEnabled="{Binding Idle}" />
+                    </StackPanel>
+                  </StackPanel>
+                </StackPanel>
+                <TextBlock Classes="dim" Text="{Binding StartHint}" />
+              </StackPanel>
+              <StackPanel Grid.Column="1" VerticalAlignment="Bottom">
+                <Button Classes="primary" Content="Analyse starten" Click="StartAnalysis"
+                        IsEnabled="{Binding CanStart}" />
+              </StackPanel>
+            </Grid>
+          </Border>
+        </Grid>
+
+        <!-- 2 · Einstellungen -->
+        <ScrollViewer IsVisible="{Binding ShowSettings}">
+          <StackPanel Spacing="14">
+            <Border Classes="card">
+              <StackPanel Spacing="12">
                 <TextBlock Classes="h" Text="Konfigurationsdatei" />
                 <StackPanel Orientation="Horizontal" Spacing="10">
                   <Button Content="Laden …" Click="LoadConfig" IsEnabled="{Binding Idle}" />
@@ -123,82 +287,117 @@
             </Border>
 
             <Border Classes="card">
-              <StackPanel Spacing="10">
+              <StackPanel Spacing="12">
                 <TextBlock Classes="h" Text="Erkennung" />
                 <StackPanel Spacing="4">
-                  <TextBlock Text="Spielernamen, mit Komma getrennt" />
-                  <TextBox Text="{Binding Settings.PlayerNames}" MinWidth="320" />
-                </StackPanel>
-                <StackPanel Orientation="Horizontal" Spacing="16">
-                  <RadioButton GroupName="mode" Content="Killfeed-OCR"
-                               IsChecked="{Binding Settings.OcrMode}" />
-                  <RadioButton GroupName="mode" Content="Persönliche Kill-Anzeige (Vorlagen)"
-                               IsChecked="{Binding Settings.TemplateMode}" />
-                </StackPanel>
-                <TextBlock Classes="dim" TextWrapping="Wrap"
-                           Text="Der Vorlagenmodus braucht detection.region und Vorlagenbilder in der Konfigurationsdatei." />
-                <TextBlock Text="Killfeed-Bereich in Pixeln" Margin="0,6,0,0" />
-                <StackPanel Orientation="Horizontal" Spacing="8">
-                  <TextBlock Text="x" VerticalAlignment="Center" />
-                  <TextBox Text="{Binding Settings.RegionX}" Width="90" />
-                  <TextBlock Text="y" VerticalAlignment="Center" />
-                  <TextBox Text="{Binding Settings.RegionY}" Width="90" />
-                  <TextBlock Text="Breite" VerticalAlignment="Center" />
-                  <TextBox Text="{Binding Settings.RegionWidth}" Width="90" />
-                  <TextBlock Text="Höhe" VerticalAlignment="Center" />
-                  <TextBox Text="{Binding Settings.RegionHeight}" Width="90" />
-                </StackPanel>
-                <StackPanel Orientation="Horizontal" Spacing="10">
-                  <Button Content="Bereich im Video markieren …" Click="PickRegion"
-                          IsEnabled="{Binding Idle}" />
-                  <TextBlock Classes="dim" VerticalAlignment="Center"
-                             Text="Nimmt ein Bild der ersten lesbaren Aufnahme." />
-                </StackPanel>
-                <StackPanel Orientation="Horizontal" Spacing="8">
-                  <TextBlock Text="Namensähnlichkeit" VerticalAlignment="Center" />
-                  <TextBox Text="{Binding Settings.NameThreshold}" Width="70" />
-                  <TextBlock Text="Zeilenähnlichkeit" VerticalAlignment="Center" />
-                  <TextBox Text="{Binding Settings.TextThreshold}" Width="70" />
-                  <TextBlock Text="Gegnerähnlichkeit" VerticalAlignment="Center" />
-                  <TextBox Text="{Binding Settings.OpponentThreshold}" Width="70" />
-                </StackPanel>
-              </StackPanel>
-            </Border>
-
-            <Border Classes="card">
-              <StackPanel Spacing="10">
-                <TextBlock Classes="h" Text="Leistung" />
-                <StackPanel Orientation="Horizontal" Spacing="8">
-                  <TextBlock Text="Bilder pro Sekunde" VerticalAlignment="Center" />
-                  <TextBox Text="{Binding Settings.SamplesPerSecond}" Width="70" />
-                  <TextBlock Text="Parallele OCR" VerticalAlignment="Center" />
-                  <TextBox Text="{Binding Settings.MaxWorkers}" Width="70" />
-                  <CheckBox Content="Änderungserkennung" IsChecked="{Binding Settings.ChangeDetection}" />
-                </StackPanel>
-              </StackPanel>
-            </Border>
-
-            <Border Classes="card">
-              <StackPanel Spacing="10">
-                <TextBlock Classes="h" Text="Clips und Ausgabe" />
-                <StackPanel Orientation="Horizontal" Spacing="8">
-                  <TextBlock Text="Vorlauf s" VerticalAlignment="Center" />
-                  <TextBox Text="{Binding Settings.SecondsBefore}" Width="70" />
-                  <TextBlock Text="Nachlauf s" VerticalAlignment="Center" />
-                  <TextBox Text="{Binding Settings.SecondsAfter}" Width="70" />
-                  <TextBlock Text="Zusammenführen ab s" VerticalAlignment="Center" />
-                  <TextBox Text="{Binding Settings.MergeGap}" Width="70" />
-                </StackPanel>
-                <StackPanel Orientation="Horizontal" Spacing="16">
-                  <RadioButton GroupName="export" Content="Genau (neu kodieren)"
-                               IsChecked="{Binding Settings.AccurateExport}" />
-                  <RadioButton GroupName="export" Content="Schnell (Stream kopieren)"
-                               IsChecked="{Binding Settings.FastExport}" />
+                  <TextBlock Classes="dim" Text="Spielernamen, mit Komma getrennt" />
+                  <TextBox Text="{Binding Settings.PlayerNames}" MinWidth="360"
+                           AutomationProperties.Name="Spielernamen" />
                 </StackPanel>
                 <StackPanel Spacing="4">
-                  <TextBlock Text="Ausgabeordner" />
+                  <TextBlock Classes="dim" Text="Erkennungsmodus" />
+                  <StackPanel Orientation="Horizontal" Spacing="20">
+                    <RadioButton GroupName="mode" Content="Killfeed-OCR"
+                                 IsChecked="{Binding Settings.OcrMode}" />
+                    <RadioButton GroupName="mode" Content="Persönliche Kill-Anzeige (Vorlagen)"
+                                 IsChecked="{Binding Settings.TemplateMode}" />
+                  </StackPanel>
+                  <TextBlock Classes="dim" TextWrapping="Wrap"
+                             Text="Der Vorlagenmodus braucht detection.region und Vorlagenbilder in der Konfigurationsdatei." />
+                </StackPanel>
+                <StackPanel Spacing="6">
+                  <TextBlock Classes="dim" Text="Killfeed-Bereich in Pixeln" />
                   <StackPanel Orientation="Horizontal" Spacing="8">
-                    <TextBox Text="{Binding Settings.OutputDirectory}" MinWidth="360" />
+                    <TextBlock Text="x" VerticalAlignment="Center" Classes="dim" />
+                    <TextBox Text="{Binding Settings.RegionX}" Width="84" AutomationProperties.Name="Bereich x" />
+                    <TextBlock Text="y" VerticalAlignment="Center" Classes="dim" />
+                    <TextBox Text="{Binding Settings.RegionY}" Width="84" AutomationProperties.Name="Bereich y" />
+                    <TextBlock Text="Breite" VerticalAlignment="Center" Classes="dim" />
+                    <TextBox Text="{Binding Settings.RegionWidth}" Width="84" AutomationProperties.Name="Bereich Breite" />
+                    <TextBlock Text="Höhe" VerticalAlignment="Center" Classes="dim" />
+                    <TextBox Text="{Binding Settings.RegionHeight}" Width="84" AutomationProperties.Name="Bereich Höhe" />
+                    <Button Content="Im Video markieren …" Click="PickRegion" IsEnabled="{Binding Idle}" />
+                  </StackPanel>
+                </StackPanel>
+                <StackPanel Spacing="6">
+                  <TextBlock Classes="dim" Text="Ähnlichkeitsschwellen" />
+                  <StackPanel Orientation="Horizontal" Spacing="12">
+                    <StackPanel Spacing="4">
+                      <TextBlock Classes="dim" Text="Name" />
+                      <TextBox Text="{Binding Settings.NameThreshold}" Width="80"
+                               AutomationProperties.Name="Namensähnlichkeit" />
+                    </StackPanel>
+                    <StackPanel Spacing="4">
+                      <TextBlock Classes="dim" Text="Zeile" />
+                      <TextBox Text="{Binding Settings.TextThreshold}" Width="80"
+                               AutomationProperties.Name="Zeilenähnlichkeit" />
+                    </StackPanel>
+                    <StackPanel Spacing="4">
+                      <TextBlock Classes="dim" Text="Gegner" />
+                      <TextBox Text="{Binding Settings.OpponentThreshold}" Width="80"
+                               AutomationProperties.Name="Gegnerähnlichkeit" />
+                    </StackPanel>
+                  </StackPanel>
+                </StackPanel>
+              </StackPanel>
+            </Border>
+
+            <Border Classes="card">
+              <StackPanel Spacing="12">
+                <TextBlock Classes="h" Text="Leistung" />
+                <StackPanel Orientation="Horizontal" Spacing="18">
+                  <StackPanel Spacing="4">
+                    <TextBlock Classes="dim" Text="Bilder pro Sekunde" />
+                    <TextBox Text="{Binding Settings.SamplesPerSecond}" Width="84"
+                             AutomationProperties.Name="Bilder pro Sekunde" />
+                  </StackPanel>
+                  <StackPanel Spacing="4">
+                    <TextBlock Classes="dim" Text="Parallele OCR" />
+                    <TextBox Text="{Binding Settings.MaxWorkers}" Width="84"
+                             AutomationProperties.Name="Parallele OCR-Aufrufe" />
+                  </StackPanel>
+                  <CheckBox Content="Änderungserkennung" IsChecked="{Binding Settings.ChangeDetection}"
+                            VerticalAlignment="Bottom" />
+                </StackPanel>
+                <TextBlock Classes="dim" TextWrapping="Wrap"
+                           Text="Jeder parallele OCR-Aufruf hält eine eigene Modellsitzung von gut 100 MB. Mehr Parallelität kostet Speicher." />
+              </StackPanel>
+            </Border>
+
+            <Border Classes="card">
+              <StackPanel Spacing="12">
+                <TextBlock Classes="h" Text="Clips und Ausgabe" />
+                <StackPanel Orientation="Horizontal" Spacing="18">
+                  <StackPanel Spacing="4">
+                    <TextBlock Classes="dim" Text="Vorlauf s" />
+                    <TextBox Text="{Binding Settings.SecondsBefore}" Width="84"
+                             AutomationProperties.Name="Vorlauf" />
+                  </StackPanel>
+                  <StackPanel Spacing="4">
+                    <TextBlock Classes="dim" Text="Nachlauf s" />
+                    <TextBox Text="{Binding Settings.SecondsAfter}" Width="84"
+                             AutomationProperties.Name="Nachlauf" />
+                  </StackPanel>
+                  <StackPanel Spacing="4">
+                    <TextBlock Classes="dim" Text="Zusammenführen ab s" />
+                    <TextBox Text="{Binding Settings.MergeGap}" Width="84"
+                             AutomationProperties.Name="Zusammenführungsabstand" />
+                  </StackPanel>
+                </StackPanel>
+                <StackPanel Spacing="4">
+                  <TextBlock Classes="dim" Text="Schnittart" />
+                  <StackPanel Orientation="Horizontal" Spacing="20">
+                    <RadioButton GroupName="export" Content="Präziser Schnitt (neu kodieren)"
+                                 IsChecked="{Binding Settings.AccurateExport}" />
+                    <RadioButton GroupName="export" Content="Schnell (Stream kopieren)"
+                                 IsChecked="{Binding Settings.FastExport}" />
+                  </StackPanel>
+                </StackPanel>
+                <StackPanel Spacing="4">
+                  <TextBlock Classes="dim" Text="Ausgabeordner" />
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBox Text="{Binding Settings.OutputDirectory}" MinWidth="380"
+                             AutomationProperties.Name="Ausgabeordner" />
                     <Button Content="Wählen …" Click="ChooseOutput" IsEnabled="{Binding Idle}" />
                   </StackPanel>
                 </StackPanel>
@@ -206,62 +405,169 @@
             </Border>
           </StackPanel>
         </ScrollViewer>
-      </TabItem>
 
-      <!-- 3. Analyse -->
-      <TabItem Header="Analyse">
-        <Border Classes="card" Margin="4">
-          <StackPanel Spacing="14">
-            <TextBlock Classes="h" Text="Analyse" />
-            <TextBlock TextWrapping="Wrap"
-                       Text="Die Analyse erzeugt Kandidaten und Berichte, keine Clips. Clips schreibt erst der Export der Auswahl." />
-            <StackPanel Orientation="Horizontal" Spacing="10">
-              <Button Classes="primary" Content="Analyse starten" Click="StartAnalysis"
-                      IsEnabled="{Binding CanStart}" />
-              <Button Content="Abbrechen" Click="CancelWork" IsEnabled="{Binding Busy}" />
-              <TextBlock VerticalAlignment="Center" Classes="dim" Text="{Binding StartHint}" />
+        <!-- 3 · Analyse -->
+        <Grid IsVisible="{Binding ShowAnalysis}" RowDefinitions="Auto,Auto,*">
+          <Border Classes="card">
+            <StackPanel Spacing="14">
+              <Grid ColumnDefinitions="*,Auto">
+                <StackPanel Spacing="4">
+                  <TextBlock Classes="h" Text="{Binding CurrentVideo}" />
+                  <TextBlock Classes="dim" Text="{Binding QueuePosition}" />
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10">
+                  <Button Classes="primary" Content="Analyse starten" Click="StartAnalysis"
+                          IsEnabled="{Binding CanStart}" />
+                  <Button Content="Analyse abbrechen" Click="CancelWork" IsEnabled="{Binding Busy}" />
+                </StackPanel>
+              </Grid>
+              <ProgressBar Height="10" Minimum="0" Maximum="100" Value="{Binding Progress}" />
+              <Grid ColumnDefinitions="*,*,*,*">
+                <StackPanel Spacing="2">
+                  <TextBlock Classes="dim" Text="Position im Video" />
+                  <TextBlock Classes="mono" Text="{Binding Position}" />
+                </StackPanel>
+                <StackPanel Grid.Column="1" Spacing="2">
+                  <TextBlock Classes="dim" Text="Verstrichen" />
+                  <TextBlock Classes="mono" Text="{Binding Elapsed}" />
+                </StackPanel>
+                <StackPanel Grid.Column="2" Spacing="2">
+                  <TextBlock Classes="dim" Text="Restzeit geschätzt" />
+                  <TextBlock Classes="mono" Text="{Binding Remaining}" />
+                </StackPanel>
+                <StackPanel Grid.Column="3" Spacing="2">
+                  <TextBlock Classes="dim" Text="Schritt" />
+                  <TextBlock Text="{Binding Step}" />
+                </StackPanel>
+              </Grid>
             </StackPanel>
-            <ProgressBar Height="8" Minimum="0" Maximum="100" Value="{Binding Progress}"
-                         Foreground="#C2600F" />
-            <TextBlock Classes="mono" Text="{Binding Stage}" />
-            <TextBlock Classes="dim" TextWrapping="Wrap"
-                       Text="Berichte je Aufnahme: events.json, events.csv, segments.json und summary.json im Unterordner des Ausgabeziels." />
-          </StackPanel>
-        </Border>
-      </TabItem>
+          </Border>
 
-      <!-- 4. Highlights -->
-      <TabItem Header="Highlights">
-        <Grid RowDefinitions="Auto,*,Auto" Margin="4">
-          <TextBlock Classes="h" Text="Kandidaten prüfen" Margin="0,0,0,10" />
-          <Border Grid.Row="1" Classes="card">
-            <Grid RowDefinitions="*">
-              <TextBlock Classes="dim" TextWrapping="Wrap" VerticalAlignment="Center"
-                         HorizontalAlignment="Center" IsVisible="{Binding !Highlights.Count}"
-                         Text="Noch keine Kandidaten. Erst die Analyse starten." />
-              <ScrollViewer IsVisible="{Binding Highlights.Count}">
-                <ItemsControl ItemsSource="{Binding Highlights}">
+          <Grid Grid.Row="1" ColumnDefinitions="*,*,*,*" Margin="0,14,0,14">
+            <Border Classes="card" Margin="0,0,7,0">
+              <StackPanel Spacing="4">
+                <TextBlock Classes="dim" Text="Geprüfte Frames" />
+                <TextBlock Classes="metric" Text="{Binding FramesSampled}" />
+              </StackPanel>
+            </Border>
+            <Border Grid.Column="1" Classes="card" Margin="7,0">
+              <StackPanel Spacing="4">
+                <TextBlock Classes="dim" Text="OCR-Aufrufe" />
+                <TextBlock Classes="metric" Text="{Binding OcrCalls}" />
+              </StackPanel>
+            </Border>
+            <Border Grid.Column="2" Classes="card" Margin="7,0">
+              <StackPanel Spacing="4">
+                <TextBlock Classes="dim" Text="Vorlagen-Prüfungen" />
+                <TextBlock Classes="metric" Text="{Binding TemplateChecks}" />
+              </StackPanel>
+            </Border>
+            <Border Grid.Column="3" Classes="card" Margin="7,0,0,0">
+              <StackPanel Spacing="4">
+                <TextBlock Classes="dim" Text="Bestätigte Kills" />
+                <TextBlock Classes="metric" Foreground="{StaticResource Accent}"
+                           Text="{Binding KillsDetected}" />
+              </StackPanel>
+            </Border>
+          </Grid>
+
+          <Border Grid.Row="2" Classes="card">
+            <Grid RowDefinitions="Auto,*">
+              <TextBlock Classes="h" Text="Ereignisse" Margin="0,0,0,12" />
+              <TextBlock Grid.Row="1" Classes="dim" VerticalAlignment="Center" HorizontalAlignment="Center"
+                         IsVisible="{Binding !Events.Count}" TextAlignment="Center" MaxWidth="440"
+                         TextWrapping="Wrap"
+                         Text="Noch keine Ereignisse. Bestätigte Kills erscheinen hier, sobald sie erkannt werden." />
+              <ScrollViewer Grid.Row="1" IsVisible="{Binding Events.Count}">
+                <ItemsControl ItemsSource="{Binding Events}">
                   <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                      <Border Background="#1E2124" CornerRadius="4" Padding="12,10" Margin="0,0,0,8">
+                      <Grid ColumnDefinitions="130,190,*" Margin="0,0,0,6">
+                        <TextBlock Classes="mono" Foreground="{StaticResource Info}" Text="{Binding Time}" />
+                        <TextBlock Grid.Column="1" Text="{Binding Kind}" />
+                        <TextBlock Grid.Column="2" Classes="dim" Text="{Binding Detail}" />
+                      </Grid>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </ScrollViewer>
+            </Grid>
+          </Border>
+        </Grid>
+
+        <!-- 4 · Highlights -->
+        <Grid IsVisible="{Binding ShowHighlights}" RowDefinitions="Auto,*,Auto">
+          <Border Classes="card" Padding="14" Margin="0,0,0,14">
+            <StackPanel Orientation="Horizontal" Spacing="22">
+              <StackPanel Spacing="4">
+                <TextBlock Classes="dim" Text="Sortierung" />
+                <StackPanel Orientation="Horizontal" Spacing="14">
+                  <RadioButton GroupName="sort" Content="Zeit" IsChecked="{Binding SortByTime}" />
+                  <RadioButton GroupName="sort" Content="Kills" IsChecked="{Binding SortByKills}" />
+                  <RadioButton GroupName="sort" Content="Dauer" IsChecked="{Binding SortByDuration}" />
+                </StackPanel>
+              </StackPanel>
+              <StackPanel Spacing="4">
+                <TextBlock Classes="dim" Text="Filter" />
+                <StackPanel Orientation="Horizontal" Spacing="14">
+                  <RadioButton GroupName="filter" Content="Alle" IsChecked="{Binding FilterAll}" />
+                  <RadioButton GroupName="filter" Content="Einzelkill" IsChecked="{Binding FilterSingle}" />
+                  <RadioButton GroupName="filter" Content="Mehrfachkill" IsChecked="{Binding FilterMulti}" />
+                </StackPanel>
+              </StackPanel>
+              <StackPanel Spacing="4">
+                <TextBlock Classes="dim" Text="Auswahl" />
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <Button Classes="quiet" Content="Alle auswählen" Click="SelectAll" />
+                  <Button Classes="quiet" Content="Auswahl aufheben" Click="SelectNone" />
+                </StackPanel>
+              </StackPanel>
+            </StackPanel>
+          </Border>
+
+          <Border Grid.Row="1" Classes="card">
+            <Grid>
+              <TextBlock Classes="dim" TextWrapping="Wrap" VerticalAlignment="Center" MaxWidth="460"
+                         HorizontalAlignment="Center" TextAlignment="Center"
+                         IsVisible="{Binding VisibleEmpty}"
+                         Text="Keine Kandidaten in dieser Ansicht. Entweder wurde noch nicht analysiert, der Filter passt nicht, oder die Erkennung hat nichts gefunden." />
+              <ScrollViewer IsVisible="{Binding HasHighlights}">
+                <ItemsControl ItemsSource="{Binding VisibleHighlights}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                      <Border Classes="row">
                         <Grid ColumnDefinitions="Auto,*,Auto">
                           <CheckBox IsChecked="{Binding Selected}" Click="SelectionChanged"
-                                    VerticalAlignment="Center" Margin="0,0,10,0" />
-                          <StackPanel Grid.Column="1" Spacing="3">
-                            <StackPanel Orientation="Horizontal" Spacing="10">
-                              <TextBlock Text="{Binding Kind}" FontWeight="SemiBold" />
-                              <TextBlock Classes="mono" Text="{Binding Range}" />
+                                    VerticalAlignment="Center" Margin="0,0,12,0"
+                                    AutomationProperties.Name="Kandidat auswählen" />
+                          <StackPanel Grid.Column="1" Spacing="5">
+                            <StackPanel Orientation="Horizontal" Spacing="12">
+                              <Border Background="{StaticResource AccentSoft}" CornerRadius="4" Padding="8,3">
+                                <TextBlock Text="{Binding Kind}" Foreground="{StaticResource Accent}"
+                                           FontWeight="SemiBold" FontSize="12" />
+                              </Border>
+                              <TextBlock Classes="mono" Text="{Binding Range}" VerticalAlignment="Center" />
+                              <TextBlock Classes="dim" Text="{Binding Quality}" VerticalAlignment="Center" />
                             </StackPanel>
                             <TextBlock Classes="dim" Text="{Binding SourceName}" />
                             <TextBlock Classes="dim" Text="{Binding Opponents}" />
                           </StackPanel>
-                          <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6"
+                          <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8"
                                       VerticalAlignment="Center">
-                            <TextBlock Text="Start" VerticalAlignment="Center" Classes="dim" />
-                            <TextBox Text="{Binding StartText}" Width="90" />
-                            <TextBlock Text="Ende" VerticalAlignment="Center" Classes="dim" />
-                            <TextBox Text="{Binding EndText}" Width="90" />
-                            <Button Content="Vorschau …" Click="PreviewHighlight" />
+                            <StackPanel Spacing="3">
+                              <TextBlock Classes="dim" Text="Start" />
+                              <TextBox Text="{Binding StartText}" Width="92"
+                                       AutomationProperties.Name="Clipbeginn in Sekunden" />
+                            </StackPanel>
+                            <StackPanel Spacing="3">
+                              <TextBlock Classes="dim" Text="Ende" />
+                              <TextBox Text="{Binding EndText}" Width="92"
+                                       AutomationProperties.Name="Clipende in Sekunden" />
+                            </StackPanel>
+                            <Button Classes="quiet" Content="Abspielen" Click="PreviewHighlight"
+                                    VerticalAlignment="Bottom" />
+                            <Button Classes="quiet" Content="Entfernen" Click="RemoveHighlight"
+                                    VerticalAlignment="Bottom" />
                           </StackPanel>
                         </Grid>
                       </Border>
@@ -271,15 +577,20 @@
               </ScrollViewer>
             </Grid>
           </Border>
-          <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="10" Margin="0,12,0,0">
-            <Button Classes="primary" Content="Auswahl exportieren" Click="ExportSelection"
-                    IsEnabled="{Binding CanExport}" />
-            <Button Content="Abbrechen" Click="CancelWork" IsEnabled="{Binding Busy}" />
-            <TextBlock VerticalAlignment="Center" Classes="dim"
-                       Text="Zeiten in Sekunden mit Dezimalpunkt. Vorhandene Clips werden nie überschrieben." />
-          </StackPanel>
+
+          <Border Grid.Row="2" Classes="card" Padding="14" Margin="0,14,0,0">
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBlock Text="{Binding SelectionSummary}" VerticalAlignment="Center" />
+              <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10">
+                <Button Content="Ordner öffnen" Click="OpenExportFolder" />
+                <Button Content="Abbrechen" Click="CancelWork" IsEnabled="{Binding Busy}" />
+                <Button Classes="primary" Content="Auswahl exportieren" Click="ExportSelection"
+                        IsEnabled="{Binding CanExport}" />
+              </StackPanel>
+            </Grid>
+          </Border>
         </Grid>
-      </TabItem>
-    </TabControl>
-  </DockPanel>
+      </Panel>
+    </DockPanel>
+  </Grid>
 </Window>

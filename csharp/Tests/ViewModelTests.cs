@@ -170,6 +170,99 @@ public sealed class ViewModelTests : IDisposable
         Assert.False(model.CanExport);
     }
 
+    private static MainViewModel WithHighlights()
+    {
+        var model = new MainViewModel();
+        foreach (var (start, end, kills, type) in new[]
+        {
+            (100.0, 105.0, 1, "single_kill"), (10.0, 30.0, 3, "triple_kill"),
+            (200.0, 204.0, 1, "single_kill"), (300.0, 312.0, 4, "multi_kill"),
+        })
+            model.Highlights.Add(new SegmentItem
+            {
+                SourcePath = @"D:\Streams\match.mkv",
+                VideoDurationSeconds = 600,
+                Segment = new(start, end, [.. Enumerable.Range(0, kills).Select(index =>
+                    new KillCandidate(start + index, "BulletWaltz", "BulletWaltz", "Gegner" + index,
+                        null, "x", 0.9, 100, 0, "match.mkv", 0))], type),
+            });
+        return model;
+    }
+
+    [Fact]
+    public void TheAreasReportTheirOwnState()
+    {
+        var model = new MainViewModel();
+        Assert.Equal("offen", model.VideosState);
+        Assert.Equal("offen", model.HighlightsState);
+        Assert.Equal("Neues Projekt", model.AreaTitle);
+
+        model.Area = 3;
+        Assert.True(model.ShowHighlights);
+        Assert.False(model.ShowVideos);
+        Assert.Equal("Highlights", model.AreaTitle);
+
+        var full = WithHighlights();
+        Assert.Equal("4 von 4 gewählt", full.HighlightsState);
+        full.Highlights[0].Selected = false;
+        full.SelectionChanged();
+        Assert.Equal("3 von 4 gewählt", full.HighlightsState);
+    }
+
+    [Fact]
+    public void TheCandidateListIsSortedAndFiltered()
+    {
+        var model = WithHighlights();
+        Assert.Equal(4, model.VisibleHighlights.Count);
+        Assert.Equal([10.0, 100.0, 200.0, 300.0],
+            model.VisibleHighlights.Select(item => item.Segment.StartSeconds));
+
+        model.SortByKills = true;
+        Assert.Equal([4, 3, 1, 1], model.VisibleHighlights.Select(item => item.Segment.Events.Count));
+
+        model.SortByDuration = true;
+        Assert.Equal([20.0, 12.0, 5.0, 4.0],
+            model.VisibleHighlights.Select(item => Math.Round(item.Segment.DurationSeconds, 1)));
+
+        model.FilterMulti = true;
+        Assert.Equal(2, model.VisibleHighlights.Count);
+        Assert.All(model.VisibleHighlights, item => Assert.True(item.Segment.Events.Count > 1));
+
+        model.FilterSingle = true;
+        Assert.Equal(2, model.VisibleHighlights.Count);
+        Assert.All(model.VisibleHighlights, item => Assert.Single(item.Segment.Events));
+
+        model.FilterAll = true;
+        Assert.Equal(4, model.VisibleHighlights.Count);
+    }
+
+    [Fact]
+    public void SelectAllAndRemoveWorkOnTheVisibleList()
+    {
+        var model = WithHighlights();
+        model.SelectAll(false);
+        Assert.Equal(0, model.SelectedCount);
+        Assert.False(model.CanExport);
+
+        model.FilterMulti = true;
+        model.SelectAll(true);
+        Assert.Equal(2, model.SelectedCount);
+        Assert.Contains("2 von 4 gewählt", model.SelectionSummary);
+
+        model.RemoveHighlight(model.VisibleHighlights[0]);
+        Assert.Equal(3, model.Highlights.Count);
+        Assert.Single(model.VisibleHighlights);
+    }
+
+    [Fact]
+    public void TheCandidateShowsItsDetectionQualityNotAScore()
+    {
+        var item = WithHighlights().Highlights[0];
+        Assert.Contains("Erkennung 100 %", item.Quality);
+        Assert.Contains("OCR 90 %", item.Quality);
+        Assert.Contains("Gegner", item.Opponents);
+    }
+
     [Fact]
     public void TheUserConfigurationLivesInAWritableUserFolder()
     {

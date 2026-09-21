@@ -188,6 +188,37 @@ public sealed partial class MainWindow : Window
         return true;
     }
 
+    private void GoVideos(object? sender, RoutedEventArgs e) => model.Area = 0;
+
+    private void GoSettings(object? sender, RoutedEventArgs e) => model.Area = 1;
+
+    private void GoAnalysis(object? sender, RoutedEventArgs e) => model.Area = 2;
+
+    private void GoHighlights(object? sender, RoutedEventArgs e) => model.Area = 3;
+
+    private void SelectAll(object? sender, RoutedEventArgs e) => model.SelectAll(true);
+
+    private void SelectNone(object? sender, RoutedEventArgs e) => model.SelectAll(false);
+
+    private void RemoveHighlight(object? sender, RoutedEventArgs e)
+    {
+        if (!model.Busy && (sender as Control)?.DataContext is SegmentItem item)
+            model.RemoveHighlight(item);
+    }
+
+    /// <summary>Opens the clips folder of the last export in the file manager.</summary>
+    private void OpenExportFolder(object? sender, RoutedEventArgs e)
+    {
+        var directory = model.LastExportDirectory ?? model.Settings.OutputDirectory;
+        if (!Directory.Exists(directory))
+        {
+            model.Note("Der Ordner existiert noch nicht: " + directory);
+            return;
+        }
+        using var explorer = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(
+            Path.GetFullPath(directory)) { UseShellExecute = true });
+    }
+
     private void CancelWork(object? sender, RoutedEventArgs e) => model.Cancel();
 
     private void SelectionChanged(object? sender, RoutedEventArgs e) => model.SelectionChanged();

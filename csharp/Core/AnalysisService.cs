@@ -13,6 +13,9 @@ public interface IOcrEngine : IDisposable
 public sealed record AnalysisProgress(double TimestampSeconds, double DurationSeconds,
     int FramesSampled, int OcrCalls, int TemplateChecks, int KillsDetected, string Stage)
 {
+    /// <summary>The event accepted in this step, so a caller can show a live list.</summary>
+    public KillCandidate? LastEvent { get; init; }
+
     public double Percent => DurationSeconds <= 0
         ? 0 : Math.Min(100, 100 * TimestampSeconds / DurationSeconds);
 }
@@ -51,8 +54,10 @@ public sealed class AnalysisService(Configuration configuration, Func<IOcrEngine
         var timestamp = 0.0;
         var interrupted = false;
 
+        KillCandidate? lastEvent = null;
         void Report(string stage) => progress?.Report(
-            new(timestamp, video.DurationSeconds, sampled, calls, checks, events.Count, stage));
+            new(timestamp, video.DurationSeconds, sampled, calls, checks, events.Count, stage)
+            { LastEvent = lastEvent });
 
         async Task AnalyzeWithOcr()
         {
@@ -66,10 +71,15 @@ public sealed class AnalysisService(Configuration configuration, Func<IOcrEngine
 
             void Consume((SampledFrame Frame, IReadOnlyList<OcrLine> Lines) sample)
             {
+                lastEvent = null;
                 using (sample.Frame)
                     foreach (var candidate in detector.Detect(sample.Lines, region,
                         sample.Frame.TimestampSeconds, sample.Frame.Number, name).Candidates)
-                        if (deduplicator.Accept(candidate)) events.Add(candidate);
+                        if (deduplicator.Accept(candidate))
+                        {
+                            events.Add(candidate);
+                            lastEvent = candidate;
+                        }
                 Report("analyzing");
             }
 
@@ -126,6 +136,7 @@ public sealed class AnalysisService(Configuration configuration, Func<IOcrEngine
                     timestamp = frame.TimestampSeconds;
                     var grouped = grouper.Feed(matcher.Match(frame.Image, frame.TimestampSeconds,
                         frame.Number), frame.TimestampSeconds);
+                    lastEvent = grouped;
                     if (grouped is not null) events.Add(grouped);
                     Report("analyzing");
                 }
