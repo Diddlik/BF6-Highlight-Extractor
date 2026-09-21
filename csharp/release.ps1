@@ -12,6 +12,8 @@ param(
     [string]$Token = $env:GITHUB_TOKEN,
     [string]$Channel = 'win',
     [switch]$Prerelease,
+    [switch]$Merge,
+    [switch]$Force,
     [switch]$Publish
 )
 $ErrorActionPreference = 'Stop'
@@ -43,6 +45,19 @@ try {
     $releases = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../output/velopack'))
     New-Item -ItemType Directory -Force -Path $releases | Out-Null
 
+    # vpk refuses to pack a version that already lies in the releases directory. That guard is
+    # right for a real release; -Force is for rebuilding one that was never published.
+    $existing = Get-ChildItem $releases -Filter "*-$Version-*.nupkg" -ErrorAction SilentlyContinue
+    if ($existing) {
+        if (-not $Force) {
+            throw "Version $Version liegt bereits in $releases. Version erhöhen oder -Force angeben."
+        }
+        Write-Host "Vorhandene Dateien der Version $Version werden ersetzt."
+        $existing | Remove-Item -Force
+        Get-ChildItem $releases -Filter "*Setup.exe" -ErrorAction SilentlyContinue | Remove-Item -Force
+        Get-ChildItem $releases -Filter "*Portable.zip" -ErrorAction SilentlyContinue | Remove-Item -Force
+    }
+
     & $vpk pack `
         --packId BF6HighlightExtractor `
         --packTitle 'BF6 Highlight Extractor' `
@@ -67,6 +82,8 @@ try {
             '--publish'
         )
         if ($Prerelease) { $arguments += '--pre' }
+        # Allows uploading into a release that the pushed tag already created.
+        if ($Merge) { $arguments += '--merge' }
         & $vpk @arguments
         if ($LASTEXITCODE) { throw 'vpk upload fehlgeschlagen.' }
         Write-Host "Release v$Version veröffentlicht: $RepoUrl/releases"

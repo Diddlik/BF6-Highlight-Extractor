@@ -1,0 +1,73 @@
+name: Release
+
+# Builds the Windows package and publishes it as a GitHub release.
+# Automatic on a tag like v0.2.0, or by hand from the Actions tab.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version, zum Beispiel 0.2.1'
+        required: true
+      prerelease:
+        description: 'Als Vorabversion veröffentlichen'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      # FFmpeg is needed for the tests and is shipped inside the package.
+      - name: FFmpeg bereitstellen
+        run: choco install ffmpeg -y --no-progress
+
+      - name: vpk installieren
+        run: dotnet tool install -g vpk
+
+      - name: Version bestimmen
+        id: version
+        shell: pwsh
+        run: |
+          $version = if ('${{ github.event_name }}' -eq 'push') {
+            '${{ github.ref_name }}'.TrimStart('v')
+          } else {
+            '${{ inputs.version }}'
+          }
+          if ($version -notmatch '^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$') {
+            throw "Unerwartete Version: $version"
+          }
+          "value=$version" >> $env:GITHUB_OUTPUT
+
+      - name: Bauen, testen, paketieren und veröffentlichen
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $arguments = @{
+            Version = '${{ steps.version.outputs.value }}'
+            RepoUrl = '${{ github.server_url }}/${{ github.repository }}'
+            Token   = $env:GITHUB_TOKEN
+            Publish = $true
+            Merge   = $true
+          }
+          if ('${{ inputs.prerelease }}' -eq 'true') { $arguments.Prerelease = $true }
+          ./csharp/release.ps1 @arguments
+
+      - name: Paket als Artefakt sichern
+        uses: actions/upload-artifact@v4
+        with:
+          name: velopack-${{ steps.version.outputs.value }}
+          path: output/velopack
+          retention-days: 14
