@@ -50,6 +50,21 @@ jobs:
           }
           "value=$version" >> $env:GITHUB_OUTPUT
 
+      # A local run with -Publish creates the tag, which starts this workflow. Without this
+      # check the run would upload the same assets into the finished release a second time.
+      - name: Vorhandenes Release prüfen
+        id: existing
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $tag = 'v${{ steps.version.outputs.value }}'
+          $assets = gh release view $tag --repo '${{ github.repository }}' --json assets `
+            --jq '[.assets[].name] | join(",")' 2>$null
+          $done = $assets -and $assets.Contains('releases.win.json')
+          if ($done) { Write-Host "Release $tag ist bereits vollständig; es wird nur gebaut." }
+          "publish=$(-not $done)".ToLowerInvariant() >> $env:GITHUB_OUTPUT
+
       - name: Bauen, testen, paketieren und veröffentlichen
         shell: pwsh
         env:
@@ -59,8 +74,10 @@ jobs:
             Version = '${{ steps.version.outputs.value }}'
             RepoUrl = '${{ github.server_url }}/${{ github.repository }}'
             Token   = $env:GITHUB_TOKEN
-            Publish = $true
-            Merge   = $true
+          }
+          if ('${{ steps.existing.outputs.publish }}' -eq 'true') {
+            $arguments.Publish = $true
+            $arguments.Merge = $true
           }
           if ('${{ inputs.prerelease }}' -eq 'true') { $arguments.Prerelease = $true }
           ./csharp/release.ps1 @arguments
