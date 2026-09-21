@@ -598,20 +598,41 @@ public sealed class MainViewModel : Observable
     /// <summary>The clips folder of the last export, for the action that opens it.</summary>
     public string? LastExportDirectory { get; private set; }
 
-    public async Task ExportSampleAsync(VideoItem video, SampleRequest request)
+    public async Task ExportSamplesAsync(VideoItem video, IReadOnlyList<SampleRequest> requests,
+        string draftDestination = "")
     {
-        if (Busy || !video.Valid) return;
+        if (Busy || !video.Valid || requests.Count == 0) return;
         Problem = null;
         Busy = true;
         using var cancel = new CancellationTokenSource();
         cancellation = cancel;
         try
         {
-            Stage = "Prüfsample: " + video.FileName;
-            await Task.Run(() => SampleExporter.ExportAsync(video.Path, request.Start, request.End,
-                request.Timestamp, request.Label, request.Destination, cancel.Token,
-                request.Player, request.Split), cancel.Token);
-            Status = "Prüfsample erstellt: " + request.Destination;
+            var failures = new List<string>();
+            var written = 0;
+            foreach (var request in requests)
+            {
+                Stage = $"Prüfsample {written + failures.Count + 1}/{requests.Count}: {video.FileName}";
+                try
+                {
+                    await Task.Run(() => SampleExporter.ExportAsync(video.Path, request.Start, request.End,
+                        request.Timestamp, request.Label, request.Destination, cancel.Token,
+                        request.Player, request.Split), cancel.Token);
+                    written++;
+                }
+                catch (Exception error) when (error is IOException or ArgumentException or TimeoutException
+                    or System.ComponentModel.Win32Exception)
+                {
+                    failures.Add(Path.GetFileName(request.Destination) + ": " + error.Message);
+                }
+            }
+            Problem = failures.Count == 0 ? null : string.Join("\n", failures);
+            Status = failures.Count == 0
+                ? $"{written} Prüfsample(s) erstellt: {Path.GetDirectoryName(requests[0].Destination)}"
+                : $"{written} Prüfsample(s) erstellt, {failures.Count} fehlgeschlagen.";
+            // The drafts have become samples; only a clean run drops them.
+            if (failures.Count == 0 && draftDestination.Length > 0)
+                SampleSession.DiscardDrafts(draftDestination);
         }
         catch (OperationCanceledException)
         {

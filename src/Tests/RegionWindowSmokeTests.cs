@@ -10,12 +10,14 @@ namespace Bf6Highlights.Tests;
 public sealed class RegionWindowSmokeTests
 {
     [Fact]
-    public async Task RegionWindowOpensWithoutANativeChildWindow()
+    public async Task VideoEditingWindowsOpenWithoutANativeChildWindow()
     {
         if (!OperatingSystem.IsWindows()) return;
 
         var video = Path.Combine(RepositoryRoot(), "samples", "2026-09-13 14-36-06.mp4");
         var metadata = await new VideoService().ProbeAsync(video);
+        var videoItem = new VideoItem { Path = video };
+        await videoItem.ProbeAsync(CancellationToken.None);
         var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var thread = new Thread(() =>
         {
@@ -43,6 +45,13 @@ public sealed class RegionWindowSmokeTests
                 }
                 Assert.NotSame(firstFrame, frame.Source);
                 window.Close();
+
+                var sample = new SampleWindow(videoItem, Path.Combine(Path.GetTempPath(), "bfhe-smoke-sample"));
+                sample.Show();
+                Dispatcher.UIThread.RunJobs();
+                Assert.NotNull(sample.FindControl<LibVLCSharp.Avalonia.VideoView>("Video")!.MediaPlayer);
+                Assert.True(sample.FindControl<Slider>("Seek")!.Maximum > 0);
+                sample.Close();
                 completion.SetResult();
             }
             catch (Exception error)

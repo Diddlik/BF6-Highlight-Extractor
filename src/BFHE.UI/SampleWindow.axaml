@@ -1,71 +1,92 @@
-<Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        x:Class="Bf6Highlights.Ui.SampleWindow" Title="Prüfsample erstellen"
-        Width="560" Height="500" MinWidth="500" MinHeight="440"
-        WindowStartupLocation="CenterOwner" x:CompileBindings="False" Background="#1B1D20">
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vlc="clr-namespace:LibVLCSharp.Avalonia;assembly=LibVLCSharp.Avalonia"
+        x:Class="Bf6Highlights.Ui.SampleWindow" Title="Samples markieren"
+        Width="1180" Height="760" MinWidth="820" MinHeight="560"
+        WindowStartupLocation="CenterOwner" x:CompileBindings="False" Background="#111315">
   <Window.Styles>
-    <Style Selector="TextBlock.h">
-      <Setter Property="FontSize" Value="17" />
-      <Setter Property="FontWeight" Value="SemiBold" />
-      <Setter Property="Foreground" Value="#F2F3F5" />
-    </Style>
-    <Style Selector="TextBlock">
-      <Setter Property="Foreground" Value="#D6D8DC" />
-    </Style>
-    <Style Selector="TextBlock.dim">
-      <Setter Property="Foreground" Value="#9AA0A6" />
-      <Setter Property="FontSize" Value="12" />
-    </Style>
-    <Style Selector="TextBox">
-      <Setter Property="MinWidth" Value="120" />
-    </Style>
+    <Style Selector="TextBlock"><Setter Property="Foreground" Value="#D6D8DC" /></Style>
+    <Style Selector="TextBlock.dim"><Setter Property="Foreground" Value="#9AA0A6" /><Setter Property="FontSize" Value="12" /></Style>
+    <Style Selector="Button.label"><Setter Property="Padding" Value="10,7" /></Style>
   </Window.Styles>
 
   <DockPanel LastChildFill="True">
-    <Border DockPanel.Dock="Top" Background="#23262A" Padding="16,12">
-      <StackPanel Spacing="4">
-        <TextBlock Classes="h" Text="Prüfsample erstellen" />
-        <TextBlock Name="VideoHint" Classes="dim" TextWrapping="Wrap" />
-      </StackPanel>
-    </Border>
-
-    <Border DockPanel.Dock="Bottom" Background="#17191C" Padding="16,12"
-            BorderBrush="#33373C" BorderThickness="0,1,0,0">
-      <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
-        <TextBlock Name="Error" Grid.Row="0" Foreground="#E4735F" TextWrapping="Wrap"
-                   IsVisible="False" Margin="0,0,12,8" />
-        <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Spacing="10">
-          <Button Content="Abbrechen" Click="CancelClick" IsCancel="True" />
-          <Button Name="Accept" Content="Übernehmen" Click="AcceptClick" IsDefault="True"
-                  Background="#C2600F" Foreground="#FFFFFF" Padding="16,8"
-                  FontWeight="SemiBold" />
+    <Border DockPanel.Dock="Top" Background="#23262A" Padding="14,10">
+      <Grid ColumnDefinitions="*,Auto,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="12" RowSpacing="5">
+        <TextBlock Name="TitleText" FontSize="17" FontWeight="SemiBold" />
+        <TextBlock Grid.Row="1" Name="StatusText" Classes="dim" TextWrapping="Wrap" />
+        <StackPanel Grid.Column="1" Grid.RowSpan="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+          <TextBlock Text="Spieler" VerticalAlignment="Center" />
+          <TextBox Name="Player" Width="150" AutomationProperties.Name="Eigener Spielername" />
+        </StackPanel>
+        <StackPanel Grid.Column="2" Grid.RowSpan="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+          <TextBlock Text="Datensatz" VerticalAlignment="Center" />
+          <ComboBox Name="Split" Width="130" AutomationProperties.Name="Datensatz-Aufteilung" />
         </StackPanel>
       </Grid>
     </Border>
 
-    <ScrollViewer>
-      <StackPanel Margin="16" Spacing="12">
-        <TextBlock Text="Zeiten in Sekunden (Dezimalpunkt)" Classes="dim" />
-        <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto"
-              ColumnSpacing="12" RowSpacing="10">
-          <TextBlock Grid.Row="0" Text="Start" VerticalAlignment="Center" />
-          <TextBox Name="Start" Grid.Row="0" Grid.Column="1" AutomationProperties.Name="Startzeit in Sekunden" />
-          <TextBlock Grid.Row="1" Text="Zeitmarke" VerticalAlignment="Center" />
-          <TextBox Name="Timestamp" Grid.Row="1" Grid.Column="1" AutomationProperties.Name="Screenshot-Zeit in Sekunden" />
-          <TextBlock Grid.Row="2" Text="Ende" VerticalAlignment="Center" />
-          <TextBox Name="End" Grid.Row="2" Grid.Column="1" AutomationProperties.Name="Endzeit in Sekunden" />
-          <TextBlock Grid.Row="3" Text="Label" VerticalAlignment="Center" />
-          <ComboBox Name="Label" Grid.Row="3" Grid.Column="1" AutomationProperties.Name="Label" />
-          <TextBlock Grid.Row="4" Text="Spieler" VerticalAlignment="Center" />
-          <TextBox Name="Player" Grid.Row="4" Grid.Column="1" AutomationProperties.Name="Eigener Spielername" />
-          <TextBlock Grid.Row="5" Text="Datensatz" VerticalAlignment="Center" />
-          <ComboBox Name="Split" Grid.Row="5" Grid.Column="1" AutomationProperties.Name="Datensatz-Aufteilung" />
-          <TextBlock Grid.Row="6" Text="Zielordner" VerticalAlignment="Center" />
-          <TextBox Name="Destination" Grid.Row="6" Grid.Column="1" IsReadOnly="True"
-                   AutomationProperties.Name="Zielordner" />
+    <Border DockPanel.Dock="Bottom" Background="#17191C" Padding="12,10" BorderBrush="#33373C" BorderThickness="0,1,0,0">
+      <StackPanel Spacing="8">
+        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+          <TextBlock Name="CurrentText" Text="00:00.000" VerticalAlignment="Center" />
+          <Grid Grid.Column="1" RowDefinitions="10,Auto">
+            <!-- Point markers; the list on the right stays the readable form. -->
+            <Canvas Name="MarkerTrack" Height="10" Background="Transparent"
+                    ToolTip.Tip="Markierungen auf der Zeitleiste" />
+            <Slider Name="Seek" Grid.Row="1" Minimum="0" Maximum="1" SmallChange="1" LargeChange="5"
+                    ToolTip.Tip="Ziehen, um eine Videoposition auszuwählen" AutomationProperties.Name="Videoposition" />
+          </Grid>
+          <TextBlock Name="DurationText" Grid.Column="2" Text="00:00.000" VerticalAlignment="Center" />
         </Grid>
-        <TextBlock Classes="dim" TextWrapping="Wrap"
-                   Text="Die Zeitmarke muss innerhalb des Ausschnitts liegen. Das Sample-Ziel darf noch nicht existieren." />
+        <WrapPanel Orientation="Horizontal">
+          <Button Name="PlayPause" Content="Abspielen" Click="PlayPauseClick" MinWidth="100" Margin="0,0,8,6" />
+          <Button Classes="label" Content="K  Eigener Kill" Tag="own_kill" Click="MarkClick" Margin="0,0,6,6" />
+          <Button Classes="label" Content="F  Fremder Kill" Tag="foreign_kill" Click="MarkClick" Margin="0,0,6,6" />
+          <Button Classes="label" Content="D  Eigener Tod" Tag="own_death" Click="MarkClick" Margin="0,0,6,6" />
+          <Button Classes="label" Content="H  Headshot" Tag="headshot" Click="MarkClick" Margin="0,0,6,6" />
+          <Button Classes="label" Content="M  Markierung" Tag="no_event_marker" Click="MarkClick" Margin="0,0,6,6" />
+          <Button Classes="label" Content="N  Kein Ereignis" Tag="no_event" Click="MarkClick" Margin="0,0,6,6" />
+          <Button Classes="label" Content="X  Mehrere Kills" Tag="multiple_kills" Click="MarkClick" Margin="0,0,6,6" />
+        </WrapPanel>
+        <TextBlock Classes="dim" Text="Leertaste: Play/Pause · ←/→: 1 Sekunde · Alt+←/→: 5 Sekunden · Umschalt+←/→: ein Bild · Strg+Z: letzte Markierung zurücknehmen" />
       </StackPanel>
-    </ScrollViewer>
+    </Border>
+
+    <Grid ColumnDefinitions="*,310" Margin="12" ColumnSpacing="12">
+      <Border Background="#000000" CornerRadius="3"><vlc:VideoView Name="Video" /></Border>
+      <Border Grid.Column="1" Background="#1B1D20" BorderBrush="#33373C" BorderThickness="1" CornerRadius="3" Padding="12">
+        <DockPanel LastChildFill="True">
+          <StackPanel DockPanel.Dock="Top" Spacing="3" Margin="0,0,0,10">
+            <TextBlock Text="Markierungen" FontWeight="SemiBold" FontSize="16" />
+            <TextBlock Name="QueueHint" Classes="dim" Text="Noch keine Markierung" />
+          </StackPanel>
+          <StackPanel DockPanel.Dock="Bottom" Spacing="8" Margin="0,10,0,0">
+            <Border Name="EditPanel" Background="#20242A" BorderBrush="#33373C" BorderThickness="1"
+                    CornerRadius="3" Padding="10,8" IsVisible="False">
+              <StackPanel Spacing="6">
+                <TextBlock Text="Ausgewählte Markierung" FontWeight="SemiBold" />
+                <ComboBox Name="EditLabel" HorizontalAlignment="Stretch"
+                          AutomationProperties.Name="Label der Markierung"
+                          SelectionChanged="EditLabelChanged" />
+                <Button Content="Auf aktuelle Position setzen" Click="MoveMarkerClick"
+                        HorizontalAlignment="Stretch" />
+              </StackPanel>
+            </Border>
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+              <Button Content="Entfernen" Click="RemoveClick" />
+              <Button Grid.Column="1" Content="Letzte zurück" Click="UndoClick" />
+            </Grid>
+            <TextBlock Name="Error" Foreground="#E4735F" TextWrapping="Wrap" IsVisible="False" />
+            <Button Name="Export" Content="Alle exportieren" Click="ExportClick" IsDefault="True"
+                    IsEnabled="False" Background="#C2600F" Foreground="#FFFFFF" Padding="16,9" FontWeight="SemiBold" />
+            <Button Content="Abbrechen" Click="CancelClick" IsCancel="True" />
+          </StackPanel>
+          <ListBox Name="MarkerList" AutomationProperties.Name="Markierungen" SelectionChanged="MarkerSelected">
+            <ListBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Display}" Margin="4,6" /></DataTemplate></ListBox.ItemTemplate>
+          </ListBox>
+        </DockPanel>
+      </Border>
+    </Grid>
   </DockPanel>
 </Window>

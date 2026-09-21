@@ -85,7 +85,8 @@ public sealed partial class MainWindow : Window
                 .FirstOrDefault() ?? "";
             var dialog = new SampleWindow(video, destination, player);
             await dialog.ShowDialog(this);
-            if (dialog.Request is { } request) await model.ExportSampleAsync(video, request);
+            if (dialog.Requests.Count > 0)
+                await model.ExportSamplesAsync(video, dialog.Requests, dialog.DraftDestination);
         }
         finally { dialogOpen = false; }
     }
