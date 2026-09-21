@@ -93,6 +93,137 @@ Wichtige Invarianten:
 Geprüft von `Tests/SampleSessionTests.cs`: Verschieben, Umbenennen, abgelehnte Doppelungen,
 Wiederherstellung, Zuordnung zur richtigen Quelle und Löschen nach dem Export.
 
+## Persönliches Erkennungsprofil
+
+Der nächste Entwicklungsschritt ist ein vollständig lokales Trainingsverfahren. Nutzer
+sollen ihre geprüften Samples auswählen, daraus ein persönliches Erkennungsprofil erzeugen
+und dieses Profil für spätere Analysen aktivieren können. Video, Samples, Profil und
+Auswertung verlassen den Rechner nicht.
+
+### Umfang der ersten Version
+
+Version 1 trainiert noch kein neuronales Netz und verändert die mitgelieferten OCR-Modelle
+nicht. Sie kalibriert die vorhandene Erkennung auf das Material des Nutzers:
+
+- Namensähnlichkeit und OCR-Konfidenz
+- notwendige Bestätigungen und Gruppierungsabstand
+- Schwellenwerte des Vorlagenmodus, falls dieser verwendet wird
+- getrennte Profile für abweichende Auflösungen oder HUD-Anordnungen
+
+Die Kalibrierung durchsucht einen begrenzten Satz zulässiger Parameterkombinationen und
+wählt die beste Kombination anhand der bestätigten Entwicklungsdaten. Das Ergebnis ist ein
+kleines, versioniertes Profil, kein verändertes globales Modell. Die normale
+Standarderkennung bleibt jederzeit verfügbar.
+
+Positive Klassen sind `own_kill`, `headshot` und `multiple_kills`. `own_death`,
+`foreign_kill`, `no_event` und `no_event_marker` dienen als wichtige Negativbeispiele.
+Langfristig zählt `expected_events` als Wahrheit. Ein bloßes `label_hint` darf nur nach
+einer ausdrücklichen Bestätigung im Trainingsdialog verwendet werden.
+
+### Nutzerablauf
+
+1. **Persönliches Profil trainieren** öffnen und einen lokalen Sample-Sammelordner wählen.
+2. Die Anwendung prüft Schema, Dateien, Labels, Quellzuordnung und Datensatz-Split.
+3. Ungültige oder ungeprüfte Fälle werden mit einem konkreten Grund angezeigt und nicht
+   stillschweigend verwendet.
+4. Die Anwendung kalibriert ausschließlich mit `development`-Fällen.
+5. `holdout`-Fälle werden erst danach einmalig zur unabhängigen Bewertung verwendet.
+6. Der Ergebnisdialog zeigt Fallzahlen, Fehlklassifikationen und Qualitätswerte im Vergleich
+   zur Standardkonfiguration.
+7. Der Nutzer kann das neue Profil aktivieren, verwerfen oder später wieder deaktivieren.
+
+Die Analyse zeigt sichtbar, ob die Standarderkennung oder ein persönliches Profil aktiv
+ist. Fehlt das Profil, ist es beschädigt oder passt es nicht zur Videoauflösung, wird mit
+einer verständlichen Meldung auf die Standarderkennung zurückgefallen.
+
+### Profilinhalt und Grenzen
+
+Ein Profil enthält mindestens:
+
+- eindeutige Profil-ID, Anzeigename, Erstellungszeit und Formatversion
+- Version der Anwendung und der zugrunde liegenden OCR-Modelle
+- passende Auflösung und verwendeten Erkennungsbereich
+- kalibrierte Parameter und Erkennungsmodus
+- Prüfsummen der verwendeten Sample-Manifeste
+- Anzahl der Entwicklungs- und Holdout-Fälle je Label
+- gemessene Precision, Recall und F1 für Standard- und persönliche Konfiguration
+
+Profile liegen im lokalen Benutzerprofil und werden atomar geschrieben. Ein neuer Lauf
+überschreibt kein bestehendes Profil, sondern erzeugt eine neue Version. Quelldateien und
+Sample-Ordner bleiben unverändert.
+
+Samples derselben Quellaufnahme dürfen nicht zwischen Entwicklung und Holdout verteilt
+werden. Andernfalls würden fast identische Bilder die Bewertung künstlich verbessern.
+Ebenso dürfen Vorhersagen des gerade trainierten Profils niemals automatisch zu neuen
+Trainingslabels werden.
+
+### Stand der Umsetzung
+
+Umgesetzt in `Core/PersonalProfile.cs`, `Core/PersonalCalibration.cs` und
+`Core/PersonalProfileStore.cs`, geprüft von `Tests/PersonalProfileTests.cs`:
+
+- Einlesen der Samples mit Schema-, Datei-, Label-, Quell- und Splitprüfung; jeder
+  übersprungene Fall nennt seinen Grund.
+- Ablehnung, wenn Entwicklung und Holdout dieselbe Quellaufnahme teilen.
+- Kalibrierung von **Mindestkonfidenz und Namensähnlichkeit** ausschließlich auf
+  Entwicklungsfällen. Die Kandidatenwerte für die Konfidenz stammen aus dem Material selbst,
+  die Namensschwellen aus einer festen Leiter. Gewählt wird nach F1, dann Präzision, dann
+  der strengeren Einstellung — deterministisch und wiederholbar.
+- Messung auf dem Holdout erst nach der Wahl, zusätzlich derselbe Vergleich mit der
+  Standardkonfiguration.
+- Profile im Benutzerordner, atomar geschrieben, versioniert und nie überschrieben.
+- Aktivieren und Deaktivieren über eine eigene Datei neben den Profilen; die Konfiguration
+  des Nutzers bleibt unangetastet.
+- Rückfall auf die Standarderkennung bei fehlendem, unlesbarem oder unpassendem Profil,
+  jeweils mit Begründung. Die Analyse nennt sichtbar, welche Erkennung gilt.
+
+Bedienung über die Oberfläche unter *Einstellungen · Persönliches Erkennungsprofil* oder
+über die Kommandozeile:
+
+```powershell
+bf6-highlights.exe train-profile SAMPLE-ORDNER config.yaml [--allow-hints] [--activate]
+bf6-highlights.exe profiles
+bf6-highlights.exe profile-activate PROFIL.json
+bf6-highlights.exe profile-off
+```
+
+Auf den zwölf vorhandenen Referenzfällen hebt die Kalibrierung die Trefferquote von 78 % auf
+89 % bei unveränderter Präzision von 100 %, also F1 von 0,88 auf 0,94. Das ist ein Wert auf
+denselben Fällen, mit denen kalibriert wurde, und ohne Holdout — er belegt, dass der Ablauf
+funktioniert, nicht dass die Erkennung allgemein besser wird.
+
+### Noch nicht kalibriert
+
+- Notwendige Bestätigungen und Gruppierungsabstand des Vorlagenmodus.
+- Schwellenwerte des Vorlagenmodus selbst.
+- Zeilen- und Gegnerähnlichkeit der Deduplizierung.
+
+Diese Werte bleiben so, wie sie in der Konfiguration stehen. Sie kommen erst dazu, wenn
+genug beschriftetes Material vorliegt, um ihre Wirkung überhaupt zu messen.
+
+### Abnahmekriterien
+
+- Ein Profil lässt sich ohne Netzwerkzugriff aus gültigen lokalen Samples erstellen.
+- Der Trainingslauf lehnt einen Satz ohne positive oder ohne negative Beispiele ab.
+- Ungeprüfte Fälle werden nicht unbemerkt als Wahrheit behandelt.
+- Kein Holdout-Fall beeinflusst die gewählten Parameter.
+- Vor Aktivierung wird der direkte Vergleich zur Standarderkennung angezeigt.
+- Aktivieren und Deaktivieren ändert keine globale Konfiguration und keine Samples.
+- Ein fehlendes, inkompatibles oder beschädigtes Profil verhindert keine Analyse mit der
+  Standarderkennung.
+- Profil und Ergebnisbericht werden reproduzierbar und versioniert gespeichert.
+- Automatisierte Tests decken Split-Leakage, Profilvalidierung, deterministische Auswahl,
+  Fallback und Non-Overwrite ab.
+
+### Später, nicht Teil von Version 1
+
+Ein kleiner Bildklassifikator kann später lokal trainiert und als ONNX-Modell geladen
+werden. Er soll relevante Killfeed-Änderungen vorsortieren; OCR und bestehende Regeln
+bestimmen weiterhin Spielername und Richtung. Erst reale Messungen mit ausreichend vielen
+Nutzersamples sollen entscheiden, ob dieser zusätzliche Modelltyp besser als die lokale
+Kalibrierung ist. OCR-Finetuning, Cloud-Training und automatisches Selbstlabeln gehören
+ausdrücklich nicht zum nächsten Ziel.
+
 ## Bewusst noch offen
 
 1. **Manueller UI-Smoke-Test:** lange Aufnahme öffnen, mehrfach seeken, alle Kürzel

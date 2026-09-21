@@ -217,6 +217,9 @@ public sealed class MainViewModel : Observable
     private string step = "bereit";
     public string Step { get => step; private set => Set(ref step, value); }
 
+    private string detectionNote = "Standarderkennung";
+    public string DetectionNote { get => detectionNote; private set => Set(ref detectionNote, value); }
+
     // Sorting and filtering of the candidate list.
     private string sortBy = "time";
     public string SortBy { get => sortBy; private set { Set(ref sortBy, value); RefreshHighlights(); } }
@@ -299,6 +302,138 @@ public sealed class MainViewModel : Observable
     }
 
     public void Note(string message) => Status = message;
+
+    // Personal detection profile: trained from reviewed samples, activated on request.
+    private PersonalProfile? trained;
+    private string trainedPath = "";
+
+    public string ProfileState
+    {
+        get
+        {
+            var path = PersonalProfileStore.ActivePath;
+            if (path is null) return "Standarderkennung";
+            try
+            {
+                var profile = PersonalProfileStore.Load(path);
+                return $"„{profile.Name}“ für {profile.SourceWidth}×{profile.SourceHeight}";
+            }
+            catch (ConfigurationException) { return "Profil nicht lesbar, es gilt die Standarderkennung"; }
+        }
+    }
+
+    public bool ProfileActive => PersonalProfileStore.ActivePath is not null;
+
+    private string trainingResult = "";
+    public string TrainingResult
+    {
+        get => trainingResult;
+        private set { Set(ref trainingResult, value); Raise(nameof(HasTrainingResult)); }
+    }
+    public bool HasTrainingResult => trainingResult.Length > 0;
+
+    /// <summary>
+    /// Calibrates the detection on reviewed samples. Only development cases decide the values;
+    /// the holdout is measured afterwards and never influences the choice.
+    /// </summary>
+    public async Task TrainProfileAsync(string sampleFolder, bool allowLabelHints, string name)
+    {
+        if (Busy) return;
+        Problem = null;
+        TrainingResult = "";
+        trained = null;
+        Busy = true;
+        using var cancel = new CancellationTokenSource();
+        cancellation = cancel;
+        try
+        {
+            var configuration = Settings.ToConfiguration();
+            Stage = "Prüfdaten lesen";
+            var dataset = await Task.Run(
+                () => PersonalProfileTrainer.LoadDataset(sampleFolder, allowLabelHints), cancel.Token);
+            var samples = dataset.Development.Concat(dataset.Holdout).ToArray();
+            if (samples.Length == 0)
+                throw new ConfigurationException("In diesem Ordner liegen keine verwendbaren Samples.");
+            var cases = await Task.Run(() => PersonalProfileTrainer.BuildCasesAsync(configuration,
+                samples, () => new OnnxOcrEngine(),
+                new Progress<string>(id => Stage = "Erkennung auf " + id), cancel.Token), cancel.Token);
+            trained = PersonalProfileTrainer.Calibrate(configuration, cases,
+                name.Trim().Length == 0 ? "Persönliches Profil" : name.Trim());
+            TrainingResult =
+                $"Mindestkonfidenz {trained.MinimumConfidence:0.###}, "
+                + $"Namensähnlichkeit {trained.NameThreshold:0.#}\n"
+                + $"Entwicklung · persönlich: {trained.DevelopmentMetrics.Summary}\n"
+                + $"Entwicklung · Standard:   {trained.BaselineDevelopmentMetrics.Summary}\n"
+                + $"Holdout · persönlich:     {trained.HoldoutMetrics.Summary}\n"
+                + $"Holdout · Standard:       {trained.BaselineHoldoutMetrics.Summary}";
+            Problem = dataset.Issues.Count == 0 ? null
+                : $"{dataset.Issues.Count} Sample(s) übersprungen:\n"
+                  + string.Join("\n", dataset.Issues);
+            Status = "Profil berechnet. Vergleich prüfen, dann aktivieren oder verwerfen.";
+        }
+        catch (OperationCanceledException) { Status = "Training abgebrochen."; }
+        catch (Exception error) when (error is ConfigurationException or IOException
+            or DirectoryNotFoundException or ArgumentException
+            or Microsoft.ML.OnnxRuntime.OnnxRuntimeException or OpenCvSharp.OpenCVException)
+        {
+            Problem = error.Message;
+            Status = "Training fehlgeschlagen.";
+        }
+        finally
+        {
+            cancellation = null;
+            Busy = false;
+            Stage = "";
+            RaiseAll();
+        }
+    }
+
+    /// <summary>Stores the calculated profile as a new version and switches to it.</summary>
+    public void ActivateTrainedProfile()
+    {
+        if (trained is null) return;
+        try
+        {
+            trainedPath = PersonalProfileStore.Save(trained);
+            PersonalProfileStore.Activate(trainedPath);
+            Status = "Profil aktiv: " + trainedPath;
+            TrainingResult = "";
+            trained = null;
+            RaiseProfile();
+        }
+        catch (Exception error) when (error is IOException or ConfigurationException
+            or UnauthorizedAccessException)
+        {
+            Problem = error.Message;
+        }
+    }
+
+    public void DiscardTrainedProfile()
+    {
+        trained = null;
+        TrainingResult = "";
+        Status = "Profil verworfen. Es bleibt bei der bisherigen Erkennung.";
+    }
+
+    public void UseStandardDetection()
+    {
+        try
+        {
+            PersonalProfileStore.Activate(null);
+            Status = "Standarderkennung aktiv.";
+            RaiseProfile();
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+        {
+            Problem = error.Message;
+        }
+    }
+
+    private void RaiseProfile()
+    {
+        Raise(nameof(ProfileState));
+        Raise(nameof(ProfileActive));
+    }
 
     // Updates: the check runs on demand, and on start only when it is switched on.
     private readonly UpdateService updates;
@@ -470,7 +605,10 @@ public sealed class MainViewModel : Observable
         try
         {
             var configuration = Settings.ToConfiguration();
-            var service = new AnalysisService(configuration, () => new OnnxOcrEngine());
+            var service = new AnalysisService(configuration, () => new OnnxOcrEngine())
+            {
+                ProfilePath = PersonalProfileStore.ActivePath,
+            };
             var queue = Videos.Where(item => item.Valid).ToArray();
             for (var index = 0; index < queue.Length; index++)
             {
@@ -480,6 +618,7 @@ public sealed class MainViewModel : Observable
                 Stage = "Analyse: " + video.FileName;
                 var target = System.IO.Path.Combine(Settings.OutputDirectory,
                     System.IO.Path.GetFileNameWithoutExtension(video.Path));
+                DetectionNote = service.DetectionNote;
                 var result = await Task.Run(() => service.RunAsync(video.Path, target,
                     new Progress<AnalysisProgress>(update =>
                     {

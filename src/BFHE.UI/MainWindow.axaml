@@ -374,6 +374,44 @@
 
             <Border Classes="card">
               <StackPanel Spacing="12">
+                <Grid ColumnDefinitions="*,Auto">
+                  <StackPanel Spacing="3">
+                    <TextBlock Classes="h" Text="Persönliches Erkennungsprofil" />
+                    <TextBlock Classes="dim" Text="{Binding ProfileState}" />
+                  </StackPanel>
+                  <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10">
+                    <Button Content="Profil trainieren …" Click="TrainProfile"
+                            IsEnabled="{Binding Idle}" />
+                    <Button Content="Standarderkennung" Click="UseStandardDetection"
+                            IsEnabled="{Binding ProfileActive}" />
+                  </StackPanel>
+                </Grid>
+                <TextBlock Classes="dim" TextWrapping="Wrap"
+                           Text="Das Training kalibriert Schwellenwerte auf geprüfte Samples. Es verändert die mitgelieferten Modelle nicht, läuft lokal und nutzt für die Wahl nur Entwicklungsfälle." />
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                  <TextBlock Text="Name" VerticalAlignment="Center" Classes="dim" />
+                  <TextBox Name="ProfileName" Width="220" Text="Persönliches Profil"
+                           AutomationProperties.Name="Name des Profils" />
+                  <CheckBox Name="AllowHints" Content="Ungeprüfte Labels verwenden"
+                            ToolTip.Tip="Nur setzen, wenn die Labels der Samples stimmen." />
+                </StackPanel>
+                <Border IsVisible="{Binding HasTrainingResult}" Background="#181B1F"
+                        BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="6"
+                        Padding="12,10">
+                  <StackPanel Spacing="10">
+                    <SelectableTextBlock Classes="mono" Text="{Binding TrainingResult}"
+                                         TextWrapping="Wrap" />
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                      <Button Classes="primary" Content="Profil aktivieren" Click="ActivateProfile" />
+                      <Button Content="Verwerfen" Click="DiscardProfile" />
+                    </StackPanel>
+                  </StackPanel>
+                </Border>
+              </StackPanel>
+            </Border>
+
+            <Border Classes="card">
+              <StackPanel Spacing="12">
                 <TextBlock Classes="h" Text="Leistung" />
                 <StackPanel Orientation="Horizontal" Spacing="18">
                   <StackPanel Spacing="4">
@@ -469,6 +507,10 @@
                   <TextBlock Classes="dim" Text="Schritt" />
                   <TextBlock Text="{Binding Step}" />
                 </StackPanel>
+              </Grid>
+              <Grid ColumnDefinitions="Auto,*">
+                <TextBlock Classes="dim" Text="Erkennung: " />
+                <TextBlock Grid.Column="1" Text="{Binding DetectionNote}" TextWrapping="Wrap" />
               </Grid>
             </StackPanel>
           </Border>

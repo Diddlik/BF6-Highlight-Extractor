@@ -133,6 +133,8 @@ bf6-highlights.exe analyze "D:\Aufnahmen\match.mkv" config.yaml "D:\Highlights" 
 | `configure-region VIDEO KONFIG` | Killfeed-Bereich mit der Maus festlegen |
 | `config-check KONFIG` | Konfiguration prüfen, Fehler je Feld |
 | `sample VIDEO START ENDE ZEIT LABEL ZIEL` | beschriftete Prüfdaten sammeln |
+| `train-profile ORDNER KONFIG` | Erkennung auf eigene geprüfte Samples kalibrieren |
+| `profiles`, `profile-activate`, `profile-off` | Profile auflisten, aktivieren, abschalten |
 
 Ohne Argumente zeigt die Anwendung die vollständige Liste.
 

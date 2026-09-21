@@ -47,8 +47,13 @@ try
             when options.Length == 0 || options is ["--export"]:
             var settings = ConfigurationFile.Load(configuration);
             var withClips = options.Length == 1;
-            var analysis = await new AnalysisService(settings, () => new OnnxOcrEngine()).RunAsync(
+            var analysisService = new AnalysisService(settings, () => new OnnxOcrEngine())
+            {
+                ProfilePath = PersonalProfileStore.ActivePath,
+            };
+            var analysis = await analysisService.RunAsync(
                 input, destination, new ConsoleProgress(), cancel.Token, withClips);
+            Console.WriteLine("Erkennung: " + analysisService.DetectionNote);
             Console.WriteLine($"{analysis.Events.Count} Kill-Kandidaten, "
                 + $"{analysis.Segments.Count} Clip-Abschnitte, Berichte in {Path.GetFullPath(destination)}");
             Console.WriteLine(withClips
@@ -128,6 +133,48 @@ try
                     + $"{picked.X},{picked.Y} {picked.Width}x{picked.Height}");
             }
             break;
+        case ["train-profile", var samples, var configuration, .. var options]
+            when options.All(option => option is "--allow-hints" or "--activate"):
+            var trainingConfig = ConfigurationFile.Load(configuration);
+            var dataset = PersonalProfileTrainer.LoadDataset(samples,
+                options.Contains("--allow-hints"));
+            foreach (var issue in dataset.Issues) Console.Error.WriteLine("Übersprungen: " + issue);
+            Console.WriteLine($"{dataset.Development.Count} Entwicklungsfälle, "
+                + $"{dataset.Holdout.Count} Holdout-Fälle.");
+            var trainingCases = await PersonalProfileTrainer.BuildCasesAsync(trainingConfig,
+                dataset.Development.Concat(dataset.Holdout), () => new OnnxOcrEngine(),
+                new Progress<string>(id => Console.Error.WriteLine("OCR: " + id)), cancel.Token);
+            var trained = PersonalProfileTrainer.Calibrate(trainingConfig, trainingCases);
+            var profilePath = PersonalProfileStore.Save(trained);
+            Console.WriteLine($"Mindestkonfidenz {trained.MinimumConfidence:0.###}, "
+                + $"Namensähnlichkeit {trained.NameThreshold:0.#}");
+            Console.WriteLine("Entwicklung · persönlich: " + trained.DevelopmentMetrics.Summary);
+            Console.WriteLine("Entwicklung · Standard:   " + trained.BaselineDevelopmentMetrics.Summary);
+            Console.WriteLine("Holdout · persönlich:     " + trained.HoldoutMetrics.Summary);
+            Console.WriteLine("Holdout · Standard:       " + trained.BaselineHoldoutMetrics.Summary);
+            Console.WriteLine(profilePath);
+            if (options.Contains("--activate"))
+            {
+                PersonalProfileStore.Activate(profilePath);
+                Console.WriteLine("Profil aktiviert.");
+            }
+            break;
+        case ["profiles"]:
+            var active = PersonalProfileStore.ActivePath;
+            foreach (var (path, entry) in PersonalProfileStore.List())
+                Console.WriteLine($"{(path == active ? "*" : " ")} {entry.Name} · "
+                    + $"{entry.SourceWidth}×{entry.SourceHeight} · {entry.CreatedAt:yyyy-MM-dd HH:mm} · "
+                    + $"F1 {entry.DevelopmentMetrics.F1:0.00} · {path}");
+            if (active is null) Console.WriteLine("Aktiv: Standarderkennung");
+            break;
+        case ["profile-activate", var path]:
+            PersonalProfileStore.Activate(path);
+            Console.WriteLine("Profil aktiviert: " + Path.GetFullPath(path));
+            break;
+        case ["profile-off"]:
+            PersonalProfileStore.Activate(null);
+            Console.WriteLine("Standarderkennung aktiv.");
+            break;
         case ["version"]:
             Console.WriteLine("bf6-highlights C# 0.1.0-preview (Video/OCR-Prototyp)");
             break;
@@ -160,6 +207,8 @@ try
                 export VIDEO EVENTS.json KONFIG.yaml ZIELORDNER
                 inspect-frame VIDEO KONFIG.yaml ZEIT [ZIELORDNER]
                 configure-region VIDEO KONFIG.yaml [ZEIT] [PROFILNAME]
+                train-profile SAMPLE-ORDNER KONFIG.yaml [--allow-hints] [--activate]
+                profiles | profile-activate PROFIL.json | profile-off
                 config-check KONFIG.yaml
                 config-import PYTHON-KONFIG.yaml ZIEL-KONFIG.yaml
                 frame-check VIDEO ZEIT

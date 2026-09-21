@@ -32,6 +32,12 @@ public sealed record AnalysisResult(VideoMetadata Video, IReadOnlyList<KillCandi
 /// </summary>
 public sealed class AnalysisService(Configuration configuration, Func<IOcrEngine> ocrEngineFactory)
 {
+    /// <summary>A personal profile to calibrate the detection with, or null for the standard.</summary>
+    public string? ProfilePath { get; init; }
+
+    /// <summary>Which detection the last run used; shown so nobody has to guess.</summary>
+    public string DetectionNote { get; private set; } = "Standarderkennung";
+
     /// <summary>
     /// Analyses the recording and writes the reports. With <paramref name="exportClips"/> the
     /// segments are exported as well; without it the run stays a report-only pass.
@@ -42,10 +48,14 @@ public sealed class AnalysisService(Configuration configuration, Func<IOcrEngine
     {
         var started = Stopwatch.StartNew();
         var video = await new VideoService().ProbeAsync(source, token);
-        var templateMode = configuration.Detection.Mode == "template";
+        // A personal profile only changes thresholds, and only when it fits this recording.
+        var (active, detectionNote) = PersonalProfileStore.Apply(configuration, ProfilePath,
+            video.Width, video.Height);
+        DetectionNote = detectionNote;
+        var templateMode = active.Detection.Mode == "template";
         var region = (templateMode
-            ? configuration.ResolveDetectionRegion(video.Width, video.Height)
-            : configuration.ResolveKillfeedRegion(video.Width, video.Height)).ToPixelRegion();
+            ? active.ResolveDetectionRegion(video.Width, video.Height)
+            : active.ResolveKillfeedRegion(video.Width, video.Height)).ToPixelRegion();
         var name = Path.GetFileName(video.Path);
         var events = new List<KillCandidate>();
         var sampled = 0;
@@ -61,13 +71,13 @@ public sealed class AnalysisService(Configuration configuration, Func<IOcrEngine
 
         async Task AnalyzeWithOcr()
         {
-            var detector = new KillfeedDetector(configuration.ToDetectionSettings());
-            var deduplicator = new EventDeduplicator(configuration.ToDetectionSettings());
+            var detector = new KillfeedDetector(active.ToDetectionSettings());
+            var deduplicator = new EventDeduplicator(active.ToDetectionSettings());
             var engines = new ConcurrentBag<IOcrEngine>();
-            var workers = Math.Max(1, configuration.Analysis.MaxWorkers);
+            var workers = Math.Max(1, active.Analysis.MaxWorkers);
             using var slots = new SemaphoreSlim(workers);
             var pending = new Queue<(SampledFrame Frame, Task<IReadOnlyList<OcrLine>> Ocr)>();
-            using var change = new ChangeDetector(configuration.Analysis.ChangeThreshold);
+            using var change = new ChangeDetector(active.Analysis.ChangeThreshold);
 
             void Consume((SampledFrame Frame, IReadOnlyList<OcrLine> Lines) sample)
             {
@@ -86,11 +96,11 @@ public sealed class AnalysisService(Configuration configuration, Func<IOcrEngine
             try
             {
                 await foreach (var frame in FrameStream.ReadAsync(video, region,
-                    configuration.Analysis.SamplesPerSecond, token))
+                    active.Analysis.SamplesPerSecond, token))
                 {
                     sampled++;
                     timestamp = frame.TimestampSeconds;
-                    if (configuration.Analysis.EnableChangeDetection
+                    if (active.Analysis.EnableChangeDetection
                         && !change.Changed(frame.Image).Changed)
                     {
                         frame.Dispose();
@@ -125,10 +135,10 @@ public sealed class AnalysisService(Configuration configuration, Func<IOcrEngine
 
         async Task AnalyzeWithTemplates()
         {
-            using var matcher = new TemplateMatcher(configuration.Detection, video.Width);
-            var grouper = new TemplateEventGrouper(configuration.Detection, name);
+            using var matcher = new TemplateMatcher(active.Detection, video.Width);
+            var grouper = new TemplateEventGrouper(active.Detection, name);
             await foreach (var frame in FrameStream.ReadAsync(video, region,
-                configuration.Analysis.SamplesPerSecond, token))
+                active.Analysis.SamplesPerSecond, token))
                 using (frame)
                 {
                     sampled++;
@@ -159,13 +169,13 @@ public sealed class AnalysisService(Configuration configuration, Func<IOcrEngine
         Report("reporting");
         Reports.WriteEventsJson(Path.Combine(outputDirectory, "events.json"), events);
         Reports.WriteEventsCsv(Path.Combine(outputDirectory, "events.csv"), events);
-        var segments = SegmentBuilder.Build(events, configuration.Clips, video.DurationSeconds);
+        var segments = SegmentBuilder.Build(events, active.Clips, video.DurationSeconds);
         Reports.WriteSegmentsJson(Path.Combine(outputDirectory, "segments.json"), segments);
         IReadOnlyList<string> clips = [];
         if (exportClips && segments.Count > 0)
         {
             Report("exporting");
-            clips = (await new ClipExporter(configuration.Clips).ExportAsync(video.Path, segments,
+            clips = (await new ClipExporter(active.Clips).ExportAsync(video.Path, segments,
                 Path.Combine(outputDirectory, "clips"), null, CancellationToken.None)).Written;
         }
         var elapsed = started.Elapsed.TotalSeconds;

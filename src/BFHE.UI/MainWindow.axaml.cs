@@ -199,6 +199,31 @@ public sealed partial class MainWindow : Window
     private async void ApplyUpdate(object? sender, RoutedEventArgs e) =>
         await model.ApplyUpdateAsync();
 
+    private async void TrainProfile(object? sender, RoutedEventArgs e)
+    {
+        if (model.Busy || !BeginDialog()) return;
+        string? folder;
+        try
+        {
+            var folders = await StorageProvider.OpenFolderPickerAsync(new()
+            {
+                Title = "Ordner mit geprüften Samples",
+            });
+            folder = folders.FirstOrDefault()?.TryGetLocalPath();
+        }
+        finally { dialogOpen = false; }
+        if (folder is null) return;
+        await model.TrainProfileAsync(folder,
+            this.FindControl<CheckBox>("AllowHints")!.IsChecked == true,
+            this.FindControl<TextBox>("ProfileName")!.Text ?? "");
+    }
+
+    private void ActivateProfile(object? sender, RoutedEventArgs e) => model.ActivateTrainedProfile();
+
+    private void DiscardProfile(object? sender, RoutedEventArgs e) => model.DiscardTrainedProfile();
+
+    private void UseStandardDetection(object? sender, RoutedEventArgs e) => model.UseStandardDetection();
+
     private void GoVideos(object? sender, RoutedEventArgs e) => model.Area = 0;
 
     private void GoSettings(object? sender, RoutedEventArgs e) => model.Area = 1;
