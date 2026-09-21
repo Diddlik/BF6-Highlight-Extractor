@@ -47,17 +47,8 @@ try
             when options.Length == 0 || options is ["--export"]:
             var settings = ConfigurationFile.Load(configuration);
             var withClips = options.Length == 1;
-            var reported = -1;
             var analysis = await new AnalysisService(settings, () => new OnnxOcrEngine()).RunAsync(
-                input, destination, new Progress<AnalysisProgress>(update =>
-                {
-                    if ((int)update.Percent == reported) return;
-                    reported = (int)update.Percent;
-                    Console.Error.Write($"\r{update.Stage} {reported,3} % | "
-                        + $"Frames {update.FramesSampled} | OCR {update.OcrCalls} | "
-                        + $"Kills {update.KillsDetected}   ");
-                }), cancel.Token, withClips);
-            Console.Error.WriteLine();
+                input, destination, new ConsoleProgress(), cancel.Token, withClips);
             Console.WriteLine($"{analysis.Events.Count} Kill-Kandidaten, "
                 + $"{analysis.Segments.Count} Clip-Abschnitte, Berichte in {Path.GetFullPath(destination)}");
             Console.WriteLine(withClips
@@ -206,3 +197,26 @@ static double Seconds(string value) =>
 
 static int Pixels(string value) => int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture,
     out var result) ? result : throw new ArgumentException("Ungültiger Pixelwert: " + value);
+
+/// <summary>
+/// Progress arrives from several worker threads at once. Writing from all of them interleaves
+/// the output and blocks on a redirected stream, so the reports are serialised here and only a
+/// changed percentage is printed.
+/// </summary>
+file sealed class ConsoleProgress : IProgress<AnalysisProgress>
+{
+    private readonly object gate = new();
+    private int reported = -1;
+
+    public void Report(AnalysisProgress update)
+    {
+        lock (gate)
+        {
+            var percent = (int)update.Percent;
+            if (percent == reported) return;
+            reported = percent;
+            Console.Error.WriteLine($"{update.Stage} {percent,3} % | Frames {update.FramesSampled}"
+                + $" | OCR {update.OcrCalls} | Kills {update.KillsDetected}");
+        }
+    }
+}
