@@ -1,4 +1,8 @@
-# BF6 Highlight Extractor (C#)
+# BF6 Highlight Extractor · Quelltext
+
+Diese Datei beschreibt das Bauen und den Aufbau der Projekte. Was die Anwendung tut und wie man sie bedient, steht in der
+[README des Projekts](../README.md).
+
 
 Analysiert lange Battlefield-6-Aufnahmen, erkennt eigene Kills und schneidet daraus Clips.
 Alles läuft lokal: keine Cloud-OCR, kein Download zur Laufzeit, keine Telemetrie.
