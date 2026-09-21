@@ -1,10 +1,11 @@
-param([switch]$Publish)
+param([switch]$Publish, [string]$Version = '')
 $ErrorActionPreference = 'Stop'
 Push-Location $PSScriptRoot
 try {
     dotnet restore --locked-mode --disable-parallel
     if ($LASTEXITCODE) { throw 'Restore fehlgeschlagen.' }
-    dotnet build -c Release -m:1 --no-restore
+    $versionArgument = if ($Version) { "-p:Version=$Version" } else { '' }
+    dotnet build -c Release -m:1 --no-restore $versionArgument
     if ($LASTEXITCODE) { throw 'Build fehlgeschlagen.' }
     dotnet test -c Release -m:1 --no-build --no-restore
     if ($LASTEXITCODE) { throw 'Tests fehlgeschlagen (FFmpeg/ffprobe auf PATH erforderlich).' }
@@ -19,7 +20,7 @@ try {
             if (Test-Path -LiteralPath $publishDirectory) {
                 Remove-Item -LiteralPath $publishDirectory -Recurse -Force
             }
-            dotnet publish "$project/$project.csproj" -c Release -r win-x64 --self-contained true -p:RestoreLockedMode=true -m:1 -o $publishDirectory
+            dotnet publish "$project/$project.csproj" -c Release -r win-x64 --self-contained true -p:RestoreLockedMode=true -m:1 $versionArgument -o $publishDirectory
             if ($LASTEXITCODE) { throw "Publish fehlgeschlagen: $project" }
         }
     }

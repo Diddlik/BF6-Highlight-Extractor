@@ -32,6 +32,16 @@ Alternativ erkennt der Vorlagenmodus die persönliche Kill-Bestätigung per Temp
 dotnet test -m:1            # nur die Tests
 ```
 
+```powershell
+dotnet tool install -g vpk          # einmalig
+.elease.ps1 -Version 0.2.0        # Installer und Portable-ZIP nach ..\outputelopack
+.elease.ps1 -Version 0.2.0 -Publish -Token $env:GITHUB_TOKEN   # als GitHub-Release
+```
+
+Die ausgelieferte Anwendung sucht selbst nach neuen Releases dieses Repositorys. Die Suche
+beim Start lässt sich abschalten, und **Update prüfen** in den Einstellungen sucht sofort.
+Einzelheiten in [docs/CSHARP_DEPLOYMENT.md](../docs/CSHARP_DEPLOYMENT.md).
+
 `package.ps1` kopiert FFmpeg aus einer vorhandenen Installation. Welche Buildoptionen dabei
 übernommen werden, entscheidet über die Weitergabebedingungen des Pakets; das steht in
 [PACKAGE-NOTICE.md](PACKAGE-NOTICE.md).

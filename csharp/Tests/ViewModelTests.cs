@@ -264,6 +264,61 @@ public sealed class ViewModelTests : IDisposable
     }
 
     [Fact]
+    public void UpdateSettingsSurviveTheRoundTrip()
+    {
+        var settings = Settings();
+        Assert.True(settings.AutomaticUpdates);
+        Assert.False(settings.PrereleaseUpdates);
+
+        settings.AutomaticUpdates = false;
+        settings.PrereleaseUpdates = true;
+        settings.RepositoryUrl = " https://github.com/Diddlik/BF6-Highlight-Extractor ";
+        var configuration = settings.ToConfiguration();
+        Assert.False(configuration.Update.Automatic);
+        Assert.True(configuration.Update.Prerelease);
+        Assert.Equal("https://github.com/Diddlik/BF6-Highlight-Extractor",
+            configuration.Update.RepositoryUrl);
+
+        var reloaded = new SettingsViewModel();
+        reloaded.From(configuration, "config.yaml");
+        Assert.False(reloaded.AutomaticUpdates);
+        Assert.True(reloaded.PrereleaseUpdates);
+    }
+
+    [Fact]
+    public void AnAutomaticCheckNeedsAnHttpsRepository()
+    {
+        var settings = Settings();
+        settings.RepositoryUrl = "ftp://example.invalid/repo";
+        Assert.Contains("update.repository_url",
+            Assert.Throws<ConfigurationException>(settings.ToConfiguration).Message);
+
+        // Switched off, the address no longer matters.
+        settings.AutomaticUpdates = false;
+        Assert.Equal("ftp://example.invalid/repo", settings.ToConfiguration().Update.RepositoryUrl);
+    }
+
+    [Fact]
+    public async Task WithoutAnInstalledPackageTheCheckExplainsItself()
+    {
+        var model = new MainViewModel();
+        await model.CheckUpdatesAsync();
+        Assert.Contains("installierten Fassung", model.UpdateStatus);
+        Assert.False(model.UpdateReady);
+        Assert.True(model.CanCheckUpdate);
+    }
+
+    [Fact]
+    public async Task ASwitchedOffAutomaticCheckStaysQuietOnStart()
+    {
+        var model = new MainViewModel();
+        model.Settings.AutomaticUpdates = false;
+        await model.CheckUpdatesOnStartAsync();
+        Assert.DoesNotContain("Suche", model.UpdateStatus);
+        Assert.False(model.UpdateReady);
+    }
+
+    [Fact]
     public void TheUserConfigurationLivesInAWritableUserFolder()
     {
         var path = ConfigurationFile.DefaultUserConfigPath;

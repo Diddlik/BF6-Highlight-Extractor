@@ -34,8 +34,9 @@ public sealed class ConfigurationTests : IDisposable
         Compare(reference.RootElement, actual.RootElement, "", differences);
         differences.Sort(StringComparer.Ordinal);
         // Documented migration changes: the file is versioned, the OCR backend is the bundled
-        // ONNX pipeline, and a player name has no usable default.
-        Assert.Equal(["config_version", "ocr.engine", "player.names"], differences);
+        // ONNX pipeline, a player name has no usable default, and the packaged application
+        // keeps its update settings here.
+        Assert.Equal(["config_version", "ocr.engine", "player.names", "update"], differences);
     }
 
     [Fact]

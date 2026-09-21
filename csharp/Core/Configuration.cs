@@ -158,6 +158,17 @@ public sealed record DebugSettings
     public bool SaveRejectedMatches { get; init; }
 }
 
+/// <summary>
+/// Where the application looks for a newer version. Only used by the installed Windows
+/// package; a build from source never updates itself.
+/// </summary>
+public sealed record UpdateSettings
+{
+    public bool Automatic { get; init; } = true;
+    public bool Prerelease { get; init; }
+    public string RepositoryUrl { get; init; } = "https://github.com/Diddlik/BF6-Highlight-Extractor";
+}
+
 public sealed record Configuration
 {
     public const int CurrentVersion = 1;
@@ -175,6 +186,7 @@ public sealed record Configuration
     public DeduplicationSettings Deduplication { get; init; } = new();
     public ClipSettings Clips { get; init; } = new();
     public DebugSettings Debug { get; init; } = new();
+    public UpdateSettings Update { get; init; } = new();
 
     public DetectionSettings ToDetectionSettings() => new()
     {
@@ -369,6 +381,11 @@ public static class ConfigurationFile
             (settings.Clips.VideoCodec, "clips.video_codec"), (settings.Clips.Preset, "clips.preset"),
             (settings.Clips.AudioCodec, "clips.audio_codec"), (settings.Clips.AudioBitrate, "clips.audio_bitrate"),
         }) Check(!string.IsNullOrWhiteSpace(value), field, "Wert darf nicht leer sein");
+
+        Check(!settings.Update.Automatic || Uri.TryCreate(settings.Update.RepositoryUrl,
+                UriKind.Absolute, out var repository)
+            && repository.Scheme == Uri.UriSchemeHttps, "update.repository_url",
+            "Für die automatische Suche ist eine https-Adresse des Repositorys erforderlich");
 
         if (problems.Count > 0)
             throw new ConfigurationException("Ungültige Konfiguration:\n" + string.Join('\n', problems));

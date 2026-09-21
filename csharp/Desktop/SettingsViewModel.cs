@@ -85,6 +85,19 @@ public sealed class SettingsViewModel : Observable
     private string opponentThreshold = "85";
     public string OpponentThreshold { get => opponentThreshold; set => Set(ref opponentThreshold, value); }
 
+    private bool automaticUpdates = true;
+    public bool AutomaticUpdates { get => automaticUpdates; set => Set(ref automaticUpdates, value); }
+    private bool prereleaseUpdates;
+    public bool PrereleaseUpdates { get => prereleaseUpdates; set => Set(ref prereleaseUpdates, value); }
+    private string repositoryUrl = "https://github.com/Diddlik/BF6-Highlight-Extractor";
+    public string RepositoryUrl { get => repositoryUrl; set => Set(ref repositoryUrl, value); }
+
+    public UpdateSettings UpdateSettings() => new()
+    {
+        Automatic = AutomaticUpdates, Prerelease = PrereleaseUpdates,
+        RepositoryUrl = RepositoryUrl.Trim(),
+    };
+
     public void From(Configuration configuration, string path)
     {
         source = configuration;
@@ -102,6 +115,9 @@ public sealed class SettingsViewModel : Observable
         SecondsAfter = Text(configuration.Clips.SecondsAfter);
         MergeGap = Text(configuration.Clips.MergeGapSeconds);
         ExportMode = configuration.Clips.ExportMode;
+        AutomaticUpdates = configuration.Update.Automatic;
+        PrereleaseUpdates = configuration.Update.Prerelease;
+        RepositoryUrl = configuration.Update.RepositoryUrl;
         NameThreshold = Text(configuration.Ocr.PlayerNameSimilarityThreshold);
         TextThreshold = Text(configuration.Deduplication.TextSimilarityThreshold);
         OpponentThreshold = Text(configuration.Deduplication.OpponentSimilarityThreshold);
@@ -151,6 +167,7 @@ public sealed class SettingsViewModel : Observable
                 OpponentSimilarityThreshold = Number(OpponentThreshold,
                     "deduplication.opponent_similarity_threshold"),
             },
+            Update = UpdateSettings(),
             Clips = source.Clips with
             {
                 SecondsBefore = Number(SecondsBefore, "clips.seconds_before"),

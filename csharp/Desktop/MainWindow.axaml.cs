@@ -17,6 +17,7 @@ public sealed partial class MainWindow : Window
         AvaloniaXamlLoader.Load(this);
         DataContext = model;
         model.LoadUserSettings();
+        Opened += async (_, _) => await model.CheckUpdatesOnStartAsync();
         var zone = this.FindControl<Border>("DropZone")!;
         DragDrop.SetAllowDrop(zone, true);
         zone.AddHandler(DragDrop.DragOverEvent, (_, e) => e.DragEffects =
@@ -187,6 +188,12 @@ public sealed partial class MainWindow : Window
         dialogOpen = true;
         return true;
     }
+
+    private async void CheckUpdates(object? sender, RoutedEventArgs e) =>
+        await model.CheckUpdatesAsync();
+
+    private async void ApplyUpdate(object? sender, RoutedEventArgs e) =>
+        await model.ApplyUpdateAsync();
 
     private void GoVideos(object? sender, RoutedEventArgs e) => model.Area = 0;
 

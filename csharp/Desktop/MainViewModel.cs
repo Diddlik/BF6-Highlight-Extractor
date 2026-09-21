@@ -276,9 +276,15 @@ public sealed class MainViewModel : Observable
 
     public MainViewModel()
     {
+        updates = new UpdateService(() => Settings.UpdateSettings());
         Videos.CollectionChanged += (_, _) => RaiseAll();
         Highlights.CollectionChanged += (_, _) => { RefreshHighlights(); RaiseAll(); };
-        Settings.PropertyChanged += (_, _) => RaiseAll();
+        Settings.PropertyChanged += (_, changed) =>
+        {
+            if (changed.PropertyName is nameof(SettingsViewModel.RepositoryUrl)
+                or nameof(SettingsViewModel.PrereleaseUpdates)) updates.Forget();
+            RaiseAll();
+        };
     }
 
     private void RaiseAll()
@@ -292,6 +298,66 @@ public sealed class MainViewModel : Observable
     }
 
     public void Note(string message) => Status = message;
+
+    // Updates: the check runs on demand, and on start only when it is switched on.
+    private readonly UpdateService updates;
+
+    private string updateStatus = "Noch nicht geprüft.";
+    public string UpdateStatus { get => updateStatus; private set => Set(ref updateStatus, value); }
+    public string VersionText => "Version " + updates.Version;
+
+    private bool updateReady;
+    public bool UpdateReady { get => updateReady; private set => Set(ref updateReady, value); }
+
+    private bool checkingUpdate;
+    public bool CheckingUpdate
+    {
+        get => checkingUpdate;
+        private set { Set(ref checkingUpdate, value); Raise(nameof(CanCheckUpdate)); }
+    }
+    public bool CanCheckUpdate => !checkingUpdate;
+
+    public async Task CheckUpdatesAsync(bool silent = false)
+    {
+        if (CheckingUpdate) return;
+        CheckingUpdate = true;
+        UpdateStatus = "Suche nach Aktualisierung …";
+        try
+        {
+            var state = await updates.CheckAsync();
+            UpdateStatus = state.Message;
+            UpdateReady = state.HasUpdate;
+            if (!silent) Status = state.Message;
+        }
+        finally { CheckingUpdate = false; }
+    }
+
+    /// <summary>Only runs when the user left the automatic check switched on.</summary>
+    public async Task CheckUpdatesOnStartAsync()
+    {
+        if (!Settings.AutomaticUpdates || !updates.Installed)
+        {
+            UpdateStatus = updates.Installed
+                ? "Automatische Suche ist ausgeschaltet."
+                : "Aktualisierung gibt es nur in der installierten Fassung.";
+            return;
+        }
+        await CheckUpdatesAsync(silent: true);
+    }
+
+    public async Task ApplyUpdateAsync()
+    {
+        if (!UpdateReady) return;
+        CheckingUpdate = true;
+        try
+        {
+            var state = await updates.ApplyAsync(new Progress<int>(percent =>
+                UpdateStatus = $"Wird geladen … {percent} %"));
+            UpdateStatus = state.Message;
+            Status = state.Message;
+        }
+        finally { CheckingUpdate = false; }
+    }
 
     public void SelectionChanged() => RaiseAll();
 

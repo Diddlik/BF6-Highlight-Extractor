@@ -288,6 +288,36 @@
 
             <Border Classes="card">
               <StackPanel Spacing="12">
+                <Grid ColumnDefinitions="*,Auto">
+                  <StackPanel Spacing="3">
+                    <TextBlock Classes="h" Text="Aktualisierung" />
+                    <TextBlock Classes="dim" Text="{Binding VersionText}" />
+                  </StackPanel>
+                  <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10">
+                    <Button Content="Update prüfen" Click="CheckUpdates"
+                            IsEnabled="{Binding CanCheckUpdate}" />
+                    <Button Classes="primary" Content="Aktualisieren und neu starten"
+                            Click="ApplyUpdate" IsVisible="{Binding UpdateReady}"
+                            IsEnabled="{Binding CanCheckUpdate}" />
+                  </StackPanel>
+                </Grid>
+                <TextBlock Classes="dim" Text="{Binding UpdateStatus}" TextWrapping="Wrap" />
+                <StackPanel Orientation="Horizontal" Spacing="20">
+                  <CheckBox Content="Beim Start automatisch nach Updates suchen"
+                            IsChecked="{Binding Settings.AutomaticUpdates}" />
+                  <CheckBox Content="Auch Vorabversionen"
+                            IsChecked="{Binding Settings.PrereleaseUpdates}" />
+                </StackPanel>
+                <StackPanel Spacing="4">
+                  <TextBlock Classes="dim" Text="Repository der Releases" />
+                  <TextBox Text="{Binding Settings.RepositoryUrl}" MinWidth="420"
+                           AutomationProperties.Name="Repository für Aktualisierungen" />
+                </StackPanel>
+              </StackPanel>
+            </Border>
+
+            <Border Classes="card">
+              <StackPanel Spacing="12">
                 <TextBlock Classes="h" Text="Erkennung" />
                 <StackPanel Spacing="4">
                   <TextBlock Classes="dim" Text="Spielernamen, mit Komma getrennt" />

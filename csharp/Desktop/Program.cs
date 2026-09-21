@@ -4,6 +4,7 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Media;
 using Avalonia.Themes.Fluent;
 using LibVLCSharp.Shared;
+using Velopack;
 
 namespace Bf6Highlights.Desktop;
 
@@ -12,6 +13,9 @@ internal static class Program
     [STAThread]
     public static void Main(string[] args)
     {
+        // Handles the install, update and uninstall hooks of the packaged application and
+        // exits early for those; it must run before anything else touches the machine.
+        VelopackApp.Build().Run();
         Core.Initialize();
         AppBuilder.Configure<App>().UsePlatformDetect().StartWithClassicDesktopLifetime(args);
     }

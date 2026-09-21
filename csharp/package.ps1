@@ -5,12 +5,13 @@
 #   .\csharp\package.ps1 -FfmpegDirectory "C:\ffmpeg\bin" -Zip
 param(
     [string]$FfmpegDirectory = '',
+    [string]$Version = '',
     [switch]$Zip
 )
 $ErrorActionPreference = 'Stop'
 Push-Location $PSScriptRoot
 try {
-    & "$PSScriptRoot/build.ps1" -Publish
+    & "$PSScriptRoot/build.ps1" -Publish -Version $Version
 
     $publishRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../output/csharp-publish'))
 

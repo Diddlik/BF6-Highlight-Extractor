@@ -298,6 +298,11 @@
         "resolved": "0.94.1",
         "contentHash": "11YMr7FnAbL83bQmVxlhbIKHvSLxjO81D12Ej0QMSGXMDTxNA9MTOa4MQxx43nv5el/efuPHwzyrj6a5ha2gug=="
       },
+      "Velopack": {
+        "type": "Transitive",
+        "resolved": "1.2.0",
+        "contentHash": "Rz67gJL619fSBS6omaSINUxyDuwhIxkm5mmubf7uLd5Qgi6LLKaKCha+QFP6n+Bw/UjA0vutnH4JQfYzn6ANtw=="
+      },
       "VideoLAN.LibVLC.Windows": {
         "type": "Transitive",
         "resolved": "3.0.23.1",
@@ -364,6 +369,7 @@
           "Avalonia.Themes.Fluent": "[12.1.2, )",
           "Core": "[1.0.0, )",
           "LibVLCSharp.Avalonia": "[3.10.1, )",
+          "Velopack": "[1.2.0, )",
           "VideoLAN.LibVLC.Windows": "[3.0.23.1, )"
         }
       }
