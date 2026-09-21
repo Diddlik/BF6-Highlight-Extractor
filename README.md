@@ -72,6 +72,11 @@ ersten Start SmartScreen; über „Weitere Informationen“ lässt es sich trotz
 Die Analyse selbst schreibt nie Videodateien, sondern nur Berichte. Clips entstehen erst
 beim Export. Vorhandene Clips werden nie überschrieben, Quellvideos nie verändert.
 
+Für Trainings- und Prüfdaten besitzt jede importierte Aufnahme außerdem einen
+Keyboard-Player: Mit Pfeiltasten navigieren, Ereignisse per Kürzel markieren, rechts
+prüfen und anschließend gesammelt exportieren. Details stehen unter
+[Sample-Player: Bedienung und Weiterentwicklung](src/SAMPLE_PLAYER.md).
+
 ## Was dabei herauskommt
 
 Je Aufnahme entsteht ein Ordner im gewählten Ausgabeziel:
