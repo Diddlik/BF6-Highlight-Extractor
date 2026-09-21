@@ -1,5 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup><IsTestProject>true</IsTestProject><IsPackable>false</IsPackable></PropertyGroup>
+  <PropertyGroup>
+    <IsTestProject>true</IsTestProject>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
   <ItemGroup>
     <Content Include="reference/**/*" CopyToOutputDirectory="PreserveNewest" />
     <ProjectReference Include="../Core/Core.csproj" />

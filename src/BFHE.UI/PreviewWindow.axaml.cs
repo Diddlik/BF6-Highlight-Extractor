@@ -18,6 +18,8 @@ public sealed partial class PreviewWindow : Window
     private Media? media;
     private readonly DispatcherTimer timer;
     private bool updating;
+    private bool seeking;
+    private bool resumeAfterSeek;
     private bool initialSeekPending;
     private bool closed;
 
@@ -29,7 +31,13 @@ public sealed partial class PreviewWindow : Window
         KeyDown += KeyPressed;
         Closed += (_, _) => DisposePlayer();
         Opened += (_, _) => this.FindControl<Button>("PlayPause")!.Focus();
-        this.FindControl<Slider>("Seek")!.PropertyChanged += SeekChanged;
+        var seek = this.FindControl<Slider>("Seek")!;
+        seek.PropertyChanged += SeekChanged;
+        seek.AddHandler(InputElement.PointerPressedEvent, SeekStarted,
+            RoutingStrategies.Tunnel, handledEventsToo: true);
+        seek.AddHandler(InputElement.PointerReleasedEvent, SeekFinished,
+            RoutingStrategies.Tunnel, handledEventsToo: true);
+        seek.PointerCaptureLost += SeekFinished;
     }
 
     public PreviewWindow(SegmentItem segment) : this()
@@ -82,16 +90,20 @@ public sealed partial class PreviewWindow : Window
             }
         }
 
-        var seconds = Math.Max(0, player.Time / 1000d);
-        if (item is { } current && seconds >= current.Segment.EndSeconds)
+        var seconds = seeking ? CurrentSeconds() : Math.Max(0, player.Time / 1000d);
+        if (!seeking && player.IsPlaying
+            && item is { } current && seconds >= current.Segment.EndSeconds)
         {
             player.Pause();
             seconds = current.Segment.EndSeconds;
         }
         var slider = this.FindControl<Slider>("Seek")!;
-        updating = true;
-        slider.Value = Math.Clamp(seconds, slider.Minimum, slider.Maximum);
-        updating = false;
+        if (!seeking)
+        {
+            updating = true;
+            slider.Value = Math.Clamp(seconds, slider.Minimum, slider.Maximum);
+            updating = false;
+        }
         this.FindControl<TextBlock>("CurrentText")!.Text = Format(seconds);
         this.FindControl<Button>("PlayPause")!.Content = player.IsPlaying ? "Pause" : "Abspielen";
     }
@@ -99,7 +111,26 @@ public sealed partial class PreviewWindow : Window
     private void SeekChanged(object? sender, AvaloniaPropertyChangedEventArgs e)
     {
         if (updating || player is null || e.Property != RangeBase.ValueProperty) return;
-        player.Time = (long)Math.Round(this.FindControl<Slider>("Seek")!.Value * 1000d);
+        var seconds = this.FindControl<Slider>("Seek")!.Value;
+        player.Time = (long)Math.Round(seconds * 1000d);
+        this.FindControl<TextBlock>("CurrentText")!.Text = Format(seconds);
+    }
+
+    private void SeekStarted(object? sender, PointerPressedEventArgs e)
+    {
+        if (player is null) return;
+        seeking = true;
+        resumeAfterSeek = player.IsPlaying;
+        if (resumeAfterSeek) player.Pause();
+    }
+
+    private void SeekFinished(object? sender, RoutedEventArgs e)
+    {
+        if (!seeking || player is null) return;
+        seeking = false;
+        player.Time = (long)Math.Round(CurrentSeconds() * 1000d);
+        if (resumeAfterSeek) player.Play();
+        resumeAfterSeek = false;
     }
 
     private void PlayPauseClick(object? sender, RoutedEventArgs e) => TogglePlayback();

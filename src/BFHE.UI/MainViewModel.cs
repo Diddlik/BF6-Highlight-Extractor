@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 
 namespace Bf6Highlights.Ui;
 
-public sealed record RegionFrame(byte[] Png, VideoMetadata Video, double Timestamp);
+public sealed record RegionFrame(VideoMetadata Video, double Timestamp);
 
 public abstract class Observable : INotifyPropertyChanged
 {
@@ -245,6 +245,7 @@ public sealed class MainViewModel : Observable
         private set { Set(ref problem, value); Raise(nameof(HasProblem)); }
     }
     public bool HasProblem => !string.IsNullOrEmpty(Problem);
+    internal void ReportProblem(string message) => Problem = message;
 
     private bool busy;
     public bool Busy
@@ -630,8 +631,8 @@ public sealed class MainViewModel : Observable
         }
     }
 
-    /// <summary>A full frame for the region editor at the requested source time.</summary>
-    public async Task<RegionFrame?> FrameForRegionAsync(VideoItem? source = null, double timestamp = 60)
+    /// <summary>The video and initial position for the region editor.</summary>
+    public RegionFrame? FrameForRegion(VideoItem? source = null, double timestamp = 60)
     {
         var video = source is { Valid: true } ? source : Videos.FirstOrDefault(item => item.Valid);
         if (video?.Metadata is not { } metadata)
@@ -639,24 +640,19 @@ public sealed class MainViewModel : Observable
             Problem = "Für den Bereichseditor fehlt ein lesbares Video.";
             return null;
         }
-        Busy = true;
         try
         {
             if (!double.IsFinite(timestamp)) throw new ArgumentException("Ungültige Frame-Zeit.");
             var at = Math.Clamp(timestamp, 0, Math.Max(0, metadata.DurationSeconds - 0.001));
-            using var frame = await Task.Run(() => FrameInspector.CropAsync(metadata, at,
-                new PixelRegion(0, 0, metadata.Width, metadata.Height)));
             Problem = null;
-            Status = $"Bild bei {Reports.FormatTimestamp(at)} aus {video.FileName}.";
-            return new(frame.ToBytes(".png"), metadata, at);
+            Status = $"Videovorschau bei {Reports.FormatTimestamp(at)} aus {video.FileName}.";
+            return new(metadata, at);
         }
-        catch (Exception error) when (error is IOException or ArgumentException
-            or ConfigurationException or TimeoutException or OpenCvSharp.OpenCVException)
+        catch (ArgumentException error)
         {
             Problem = error.Message;
             return null;
         }
-        finally { Busy = false; }
     }
 
     public RegionSettings? RegionForEditor(VideoMetadata video)

@@ -29,7 +29,9 @@
         <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
           <TextBlock Name="CurrentText" Text="00:00.000" VerticalAlignment="Center" />
           <Slider Name="Seek" Grid.Column="1" Minimum="0" Maximum="1"
-                  VerticalAlignment="Center" AutomationProperties.Name="Videoposition" />
+                  SmallChange="0.1" LargeChange="5" VerticalAlignment="Center"
+                  ToolTip.Tip="Ziehen, um im Video zu einer anderen Stelle zu springen"
+                  AutomationProperties.Name="Videoposition" />
           <TextBlock Name="DurationText" Grid.Column="2" Text="00:00.000" VerticalAlignment="Center" />
         </Grid>
         <Grid ColumnDefinitions="Auto,Auto,Auto,*,Auto" ColumnSpacing="8">

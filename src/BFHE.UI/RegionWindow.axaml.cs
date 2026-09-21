@@ -1,11 +1,18 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Controls.Shapes;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media.Imaging;
+using Avalonia.Threading;
 using System.Globalization;
+using System.Threading.Channels;
+using Mat = OpenCvSharp.Mat;
+using OpenCVException = OpenCvSharp.OpenCVException;
+using VideoCapture = OpenCvSharp.VideoCapture;
+using VideoCaptureProperties = OpenCvSharp.VideoCaptureProperties;
 
 namespace Bf6Highlights.Ui;
 
@@ -68,8 +75,17 @@ public sealed partial class RegionWindow : Window
     private bool dragging;
     private bool moving;
     private RegionSettings? startRegion;
+    private readonly Channel<(long Id, double Timestamp)> frameRequests =
+        Channel.CreateBounded<(long, double)>(new BoundedChannelOptions(1)
+        {
+            SingleReader = true,
+            FullMode = BoundedChannelFullMode.DropOldest,
+        });
+    private readonly CancellationTokenSource previewCancellation = new();
     private Bitmap? bitmap;
-    private Func<double, Task<RegionFrame?>>? loadFrame;
+    private long frameRequest;
+    private bool updatingSeek;
+    private bool closed;
 
     /// <summary>The picked region, or null when the window was closed without a choice.</summary>
     public RegionSettings? Region { get; private set; }
@@ -81,19 +97,21 @@ public sealed partial class RegionWindow : Window
         overlay.PointerPressed += Begin;
         overlay.PointerMoved += Drag;
         overlay.PointerReleased += Finish;
+        overlay.PointerCaptureLost += CaptureLost;
+        var seek = this.FindControl<Slider>("Seek")!;
+        seek.PropertyChanged += SeekChanged;
         SurfaceControl.SizeChanged += (_, _) => Render();
         AddHandler(KeyDownEvent, KeyPressed, Avalonia.Interactivity.RoutingStrategies.Tunnel);
         Opened += (_, _) => { Render(); overlay.Focus(); };
-        Closed += (_, _) => ReplaceBitmap(null);
+        Closed += (_, _) => DisposePreview();
     }
 
-    public RegionWindow(RegionFrame frame, RegionSettings? initialRegion,
-        Func<double, Task<RegionFrame?>> frameLoader) : this()
+    public RegionWindow(RegionFrame frame, RegionSettings? initialRegion) : this()
     {
-        loadFrame = frameLoader;
         Region = initialRegion;
         SetFrame(frame);
         UpdateSelection();
+        StartPreview(frame.Video.Path, frame.Timestamp);
     }
 
     private Grid SurfaceControl => this.FindControl<Grid>("Surface")!;
@@ -107,7 +125,7 @@ public sealed partial class RegionWindow : Window
         moving = Region is not null && SurfaceRect(Region).Contains(start);
         if (!moving) Region = null;
         dragging = true;
-        e.Pointer.Capture(SurfaceControl);
+        e.Pointer.Capture((Canvas)sender!);
         UpdateFromPointer(start);
     }
 
@@ -120,10 +138,19 @@ public sealed partial class RegionWindow : Window
     {
         if (!dragging) return;
         dragging = false;
-        e.Pointer.Capture(null);
         UpdateFromPointer(e.GetPosition(SurfaceControl));
+        e.Pointer.Capture(null);
         if (!Valid(Region)) Region = null;
+        moving = false;
+        startRegion = null;
         UpdateSelection();
+    }
+
+    private void CaptureLost(object? sender, PointerCaptureLostEventArgs e)
+    {
+        dragging = false;
+        moving = false;
+        startRegion = null;
     }
 
     private void UpdateFromPointer(Point current)
@@ -179,40 +206,121 @@ public sealed partial class RegionWindow : Window
     {
         videoWidth = frame.Video.Width;
         videoHeight = frame.Video.Height;
-        using var stream = new MemoryStream(frame.Png);
-        ReplaceBitmap(new Bitmap(stream));
         this.FindControl<TextBox>("Timestamp")!.Text =
             frame.Timestamp.ToString("G17", CultureInfo.InvariantCulture);
+        var seek = this.FindControl<Slider>("Seek")!;
+        updatingSeek = true;
+        seek.Maximum = Math.Max(0, frame.Video.DurationSeconds - 0.001);
+        seek.Value = Math.Clamp(frame.Timestamp, seek.Minimum, seek.Maximum);
+        updatingSeek = false;
+        this.FindControl<TextBlock>("CurrentTime")!.Text = Reports.FormatTimestamp(frame.Timestamp);
+        this.FindControl<TextBlock>("DurationTime")!.Text = Reports.FormatTimestamp(frame.Video.DurationSeconds);
         this.FindControl<TextBlock>("Hint")!.Text =
             $"{System.IO.Path.GetFileName(frame.Video.Path)} · {videoWidth}×{videoHeight} · "
             + $"Frame {Reports.FormatTimestamp(frame.Timestamp)}";
     }
 
-    private void ReplaceBitmap(Bitmap? replacement)
+    private void StartPreview(string sourcePath, double timestamp)
     {
-        this.FindControl<Image>("Frame")!.Source = replacement;
-        bitmap?.Dispose();
-        bitmap = replacement;
+        _ = Task.Run(() => PreviewLoop(sourcePath, previewCancellation.Token));
+        QueueFrame(timestamp);
     }
 
-    private async void LoadFrameClick(object? sender, RoutedEventArgs e)
+    private async Task PreviewLoop(string sourcePath, CancellationToken token)
+    {
+        try
+        {
+            using var capture = new VideoCapture(sourcePath);
+            if (!capture.IsOpened()) throw new IOException("Video konnte nicht geöffnet werden.");
+            using var image = new Mat();
+            await foreach (var request in frameRequests.Reader.ReadAllAsync(token))
+            {
+                token.ThrowIfCancellationRequested();
+                capture.Set(VideoCaptureProperties.PosMsec, request.Timestamp * 1000d);
+                if (!capture.Read(image) || image.Empty())
+                    throw new IOException("Frame konnte nicht gelesen werden.");
+                var png = image.ToBytes(".png");
+                if (request.Id != Interlocked.Read(ref frameRequest)) continue;
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    if (!closed && request.Id == Interlocked.Read(ref frameRequest))
+                        ReplaceBitmap(png);
+                });
+            }
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested) { }
+        catch (Exception error) when (error is IOException or OpenCVException)
+        {
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                if (!closed) this.FindControl<TextBlock>("Readout")!.Text = error.Message;
+            });
+        }
+    }
+
+    private void LoadFrameClick(object? sender, RoutedEventArgs e)
     {
         var text = this.FindControl<TextBox>("Timestamp")!.Text ?? "";
-        if (loadFrame is null || !double.TryParse(text, NumberStyles.Float,
+        if (!double.TryParse(text, NumberStyles.Float,
                 CultureInfo.InvariantCulture, out var timestamp) || !double.IsFinite(timestamp))
         {
             this.FindControl<TextBlock>("Readout")!.Text = "Bitte eine gültige Sekunde eingeben.";
             return;
         }
-        var button = this.FindControl<Button>("LoadFrame")!;
-        button.IsEnabled = false;
-        try
-        {
-            if (await loadFrame(timestamp) is { } frame) SetFrame(frame);
-            else this.FindControl<TextBlock>("Readout")!.Text = "Bild konnte nicht geladen werden.";
-            UpdateSelection();
-        }
-        finally { button.IsEnabled = true; }
+        SeekTo(timestamp);
+    }
+
+    private void SeekChanged(object? sender, AvaloniaPropertyChangedEventArgs e)
+    {
+        if (updatingSeek || e.Property != RangeBase.ValueProperty) return;
+        var timestamp = this.FindControl<Slider>("Seek")!.Value;
+        UpdateTime(timestamp);
+        QueueFrame(timestamp);
+    }
+
+    private void SeekTo(double timestamp)
+    {
+        var seek = this.FindControl<Slider>("Seek")!;
+        timestamp = Math.Clamp(timestamp, seek.Minimum, seek.Maximum);
+        updatingSeek = true;
+        seek.Value = timestamp;
+        updatingSeek = false;
+        UpdateTime(timestamp);
+        QueueFrame(timestamp);
+    }
+
+    private void UpdateTime(double timestamp)
+    {
+        this.FindControl<TextBox>("Timestamp")!.Text =
+            timestamp.ToString("G17", CultureInfo.InvariantCulture);
+        this.FindControl<TextBlock>("CurrentTime")!.Text = Reports.FormatTimestamp(timestamp);
+    }
+
+    private void QueueFrame(double timestamp)
+    {
+        if (closed) return;
+        var id = Interlocked.Increment(ref frameRequest);
+        frameRequests.Writer.TryWrite((id, timestamp));
+    }
+
+    private void ReplaceBitmap(byte[] png)
+    {
+        using var stream = new MemoryStream(png);
+        var replacement = new Bitmap(stream);
+        this.FindControl<Image>("Frame")!.Source = replacement;
+        bitmap?.Dispose();
+        bitmap = replacement;
+    }
+
+    private void DisposePreview()
+    {
+        if (closed) return;
+        closed = true;
+        previewCancellation.Cancel();
+        frameRequests.Writer.TryComplete();
+        this.FindControl<Image>("Frame")!.Source = null;
+        bitmap?.Dispose();
+        bitmap = null;
     }
 
     private void KeyPressed(object? sender, KeyEventArgs e)

@@ -16,6 +16,16 @@
           <TextBlock Text="Pfeile: 1 px · Umschalt+Pfeile: 10 px · Entf: zurücksetzen"
                      VerticalAlignment="Center" Foreground="#9AA0A6" FontSize="12" />
         </StackPanel>
+        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+          <TextBlock Name="CurrentTime" Text="00:00.000" VerticalAlignment="Center"
+                     Foreground="#D6D8DC" />
+          <Slider Name="Seek" Grid.Column="1" Minimum="0" Maximum="1"
+                  SmallChange="0.1" LargeChange="5" VerticalAlignment="Center"
+                  ToolTip.Tip="Ziehen, um einen anderen Frame für die Bereichsauswahl zu laden"
+                  AutomationProperties.Name="Videoposition für Bereichsauswahl" />
+          <TextBlock Name="DurationTime" Grid.Column="2" Text="00:00.000"
+                     VerticalAlignment="Center" Foreground="#D6D8DC" />
+        </Grid>
       </StackPanel>
     </Border>
 

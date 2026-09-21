@@ -4,6 +4,7 @@
     <VlcWindowsX64Enabled>true</VlcWindowsX64Enabled>
     <VlcWindowsX86Enabled>false</VlcWindowsX86Enabled>
     <VlcWindowsArm64Enabled>false</VlcWindowsArm64Enabled>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Velopack" Version="1.2.0" />

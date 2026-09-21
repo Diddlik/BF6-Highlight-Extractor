@@ -32,6 +32,9 @@ Alternativ erkennt der Vorlagenmodus die persönliche Kill-Bestätigung per Temp
 dotnet test -m:1            # nur die Tests
 ```
 
+Build und Restore schreiben gemeinsam nach `artifacts/`: getrennt nach Projekt und
+Konfiguration, nicht mehr in lokale `bin`- und `obj`-Ordner der einzelnen Projekte.
+
 ```powershell
 dotnet tool install -g vpk          # einmalig
 .\release.ps1 -Version 0.2.0        # Installer und Portable-ZIP nach ..\output\velopack
@@ -53,8 +56,10 @@ dotnet run --project BFHE.UI
 ```
 
 Vier Bereiche: Videos hinzufügen, Einstellungen, Analyse, Highlights prüfen und
-exportieren. Dazu ein Bereichseditor auf einem frei gewählten Frame, eine Videovorschau
-und das Sammeln beschrifteter Prüfdaten. Einzelheiten in
+exportieren. Im Bereichseditor springt der Slider direkt durch das Video; das Rechteck
+wird auf dem eingebetteten Bild gezeichnet und mit **Übernehmen** gespeichert. Die
+Highlight-Vorschau bietet Play/Pause, Seek sowie anpassbare Start- und Endgrenzen.
+Beschriftete Prüfdaten lassen sich unabhängig von einem Analyseergebnis sammeln. Einzelheiten in
 [docs/CSHARP_GUI.md](../docs/CSHARP_GUI.md) des Hauptprojekts.
 
 ## Kommandozeile
@@ -90,11 +95,12 @@ Format der Python-Referenz, dazu `clips/` beim Export. Vorhandene Clips werden n
 | --- | --- |
 | `Core` | Konfiguration, Frame-Strom, Änderungserkennung, OCR, Erkennung, Deduplizierung, Clips, Berichte |
 | `Cli` | Kommandozeile |
-| `Desktop` | Avalonia-Oberfläche |
-| `Tests` | 203 xUnit-Tests; Videos werden im Test mit FFmpeg erzeugt, OCR wird eingesetzt |
+| `BFHE.UI` | Avalonia-Oberfläche |
+| `Tests` | 212 xUnit-Tests einschließlich echter Video-, OCR- und Windows-Fensterprüfungen |
 
 ## Stand
 
-Die Fachlogik und die Bedienwege sind umgesetzt und getestet. Offen sind die
-Erkennungsabnahme auf einem größeren, beschrifteten Datensatz, die Leistungsmessung gegen
-die Python-Version und der Test auf einem frisch aufgesetzten Windows.
+Die Fachlogik und die wesentlichen Bedienwege sind umgesetzt und automatisiert geprüft.
+Offen bleiben die Erkennungsabnahme auf einem größeren beschrifteten Datensatz, ein
+60-Minuten- und Mehrvideo-Lauf, MKV/MOV/AVI-Prüfungen, Tastatur- und Skalierungsabnahme
+sowie der Pakettest auf einem frisch aufgesetzten Windows.

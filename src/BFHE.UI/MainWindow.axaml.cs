@@ -161,11 +161,14 @@ public sealed partial class MainWindow : Window
         var source = (sender as Control)?.DataContext as VideoItem;
         try
         {
-            if (await model.FrameForRegionAsync(source) is not { } frame) return;
-            var editor = new RegionWindow(frame, model.RegionForEditor(frame.Video),
-                timestamp => model.FrameForRegionAsync(source, timestamp));
+            if (model.FrameForRegion(source) is not { } frame) return;
+            var editor = new RegionWindow(frame, model.RegionForEditor(frame.Video));
             await editor.ShowDialog(this);
             if (editor.Region is { } region) model.ApplyRegion(region, frame.Video);
+        }
+        catch (InvalidOperationException error)
+        {
+            model.ReportProblem("Videovorschau konnte nicht geöffnet werden: " + error.Message);
         }
         finally { dialogOpen = false; }
     }
