@@ -52,6 +52,39 @@ public sealed class VideoService
             && double.TryParse(parts[1], CultureInfo.InvariantCulture, out var d) && d > 0 ? n / d : 0;
     }
 
+    /// <summary>
+    /// The keyframe positions from <paramref name="startSeconds"/> on. Only the packets are read,
+    /// nothing is decoded, so this stays cheap even for a long recording. An empty result means
+    /// the positions are unknown, not that the recording has no keyframes.
+    /// </summary>
+    public async Task<IReadOnlyList<double>> KeyframesAsync(string source, double startSeconds = 0,
+        CancellationToken token = default)
+    {
+        if (!double.IsFinite(startSeconds) || startSeconds < 0)
+            throw new ArgumentException("Startzeit liegt außerhalb des Videos.");
+        var path = System.IO.Path.GetFullPath(source);
+        // ffprobe's interval reading occasionally returns nothing at all for a file it read a
+        // moment ago, so an empty answer is asked once more before it is believed.
+        for (var attempt = 0; ; attempt++)
+        {
+            var output = await MediaProcess.RunAsync(Tool("ffprobe"),
+                ["-v", "error", "-select_streams", "v:0", "-show_entries", "packet=pts_time,flags",
+                    "-of", "csv=p=0", "-read_intervals", Number(startSeconds) + "%", path],
+                TimeSpan.FromMinutes(5), token);
+            var keyframes = new List<double>();
+            foreach (var line in output.Split('\n', StringSplitOptions.TrimEntries
+                         | StringSplitOptions.RemoveEmptyEntries))
+            {
+                var parts = line.Split(',');
+                if (parts.Length < 2 || !parts[1].StartsWith('K')) continue;
+                if (double.TryParse(parts[0], CultureInfo.InvariantCulture, out var position)
+                    && position >= startSeconds && (keyframes.Count == 0 || position > keyframes[^1]))
+                    keyframes.Add(position);
+            }
+            if (keyframes.Count > 0 || attempt > 0) return keyframes;
+        }
+    }
+
     public async Task FrameAsync(string source, double timestamp, string destination,
         CancellationToken token = default)
     {

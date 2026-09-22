@@ -41,6 +41,12 @@
         </Grid>
         <WrapPanel Orientation="Horizontal">
           <Button Name="PlayPause" Content="Abspielen" Click="PlayPauseClick" MinWidth="100" Margin="0,0,8,6" />
+          <Button Name="NextPotential" Content="Nächster Kill" Click="NextPotentialClick"
+                  Margin="0,0,8,6" AutomationProperties.Name="Nächsten Kill suchen"
+                  ToolTip.Tip="Springt zum nächsten Kill, den die konfigurierte Erkennung findet" />
+          <Button Name="NextDeath" Content="Nächster Tod" Click="NextDeathClick"
+                  Margin="0,0,8,6" AutomationProperties.Name="Nächsten eigenen Tod suchen"
+                  ToolTip.Tip="Springt zum nächsten eigenen Tod, für Negativbeispiele" />
           <Button Classes="label" Content="K  Eigener Kill" Tag="own_kill" Click="MarkClick" Margin="0,0,6,6" />
           <Button Classes="label" Content="F  Fremder Kill" Tag="foreign_kill" Click="MarkClick" Margin="0,0,6,6" />
           <Button Classes="label" Content="D  Eigener Tod" Tag="own_death" Click="MarkClick" Margin="0,0,6,6" />
@@ -49,7 +55,7 @@
           <Button Classes="label" Content="N  Kein Ereignis" Tag="no_event" Click="MarkClick" Margin="0,0,6,6" />
           <Button Classes="label" Content="X  Mehrere Kills" Tag="multiple_kills" Click="MarkClick" Margin="0,0,6,6" />
         </WrapPanel>
-        <TextBlock Classes="dim" Text="Leertaste: Play/Pause · ←/→: 1 Sekunde · Alt+←/→: 5 Sekunden · Umschalt+←/→: ein Bild · Strg+Z: letzte Markierung zurücknehmen" />
+        <TextBlock Classes="dim" Text="Leertaste: Play/Pause · Bild↓: nächster Kill · Bild↑: nächster eigener Tod · ←/→: 1 Sekunde · Alt+←/→: 5 Sekunden · Umschalt+←/→: ein Bild · Strg+Z: letzte Markierung zurücknehmen" />
       </StackPanel>
     </Border>
 

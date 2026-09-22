@@ -46,11 +46,21 @@ public sealed class RegionWindowSmokeTests
                 Assert.NotSame(firstFrame, frame.Source);
                 window.Close();
 
-                var sample = new SampleWindow(videoItem, Path.Combine(Path.GetTempPath(), "bfhe-smoke-sample"));
+                var sample = new SampleWindow(videoItem, Path.Combine(Path.GetTempPath(), "bfhe-smoke-sample"),
+                    detection: new()
+                    {
+                        Player = new() { Names = ["BulletWaltz"] },
+                        Killfeed = new()
+                        {
+                            Region = new() { X = 0, Y = 0, Width = metadata.Width, Height = metadata.Height },
+                        },
+                    });
                 sample.Show();
                 Dispatcher.UIThread.RunJobs();
                 Assert.NotNull(sample.FindControl<LibVLCSharp.Avalonia.VideoView>("Video")!.MediaPlayer);
                 Assert.True(sample.FindControl<Slider>("Seek")!.Maximum > 0);
+                Assert.True(sample.FindControl<Button>("NextPotential")!.IsEnabled);
+                Assert.True(sample.FindControl<Button>("NextDeath")!.IsEnabled);
                 sample.Close();
                 completion.SetResult();
             }

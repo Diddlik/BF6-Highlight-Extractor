@@ -78,6 +78,8 @@ bf6-highlights.exe analyze "D:\Aufnahmen\match.mkv" config.yaml "D:\Highlights" 
 | `analyze VIDEO KONFIG ZIEL [--export]` | Analyse mit Berichten, auf Wunsch mit Clips |
 | `export VIDEO EVENTS.json KONFIG ZIEL` | Clips aus einer vorhandenen `events.json` |
 | `inspect-frame VIDEO KONFIG ZEIT [ZIEL]` | Erkennung auf einem Einzelbild nachvollziehen |
+| `next-kill VIDEO KONFIG ZEIT` | nächsten erkannten Kill ab einer Position suchen |
+| `next-death VIDEO KONFIG ZEIT` | nächsten eigenen Tod suchen, für Negativbeispiele |
 | `configure-region VIDEO KONFIG [ZEIT] [NAME]` | Killfeed-Bereich mit der Maus festlegen |
 | `config-check KONFIG` | Konfiguration prüfen, Fehler je Feld |
 | `config-import PYTHON.yaml ZIEL.yaml` | Python-Konfiguration übernehmen |
@@ -117,7 +119,7 @@ weil sie unter 48 Pixeln zu einer grauen Fläche verschmelzen.
 | `Core` | Konfiguration, Frame-Strom, Änderungserkennung, OCR, Erkennung, Deduplizierung, Clips, Berichte |
 | `Cli` | Kommandozeile |
 | `BFHE.UI` | Avalonia-Oberfläche |
-| `Tests` | 227 xUnit-Tests einschließlich echter Video-, OCR- und Windows-Fensterprüfungen |
+| `Tests` | 229 xUnit-Tests einschließlich echter Video-, OCR- und Windows-Fensterprüfungen |
 
 ## Stand
 

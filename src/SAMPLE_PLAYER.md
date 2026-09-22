@@ -84,11 +84,27 @@ Wichtige Invarianten:
 ## Umgesetzt seit der ersten Fassung
 
 - **Frame-Schritt** über `Umschalt+←` und `Umschalt+→`, abgeleitet aus der Bildrate der Quelle.
+- **Nächster Kill** über die Schaltfläche oder `Bild↓`, **Nächster Tod** über `Bild↑`:
+  Ab der aktuellen Position läuft die konfigurierte Erkennung (inklusive aktivem persönlichem
+  Profil) weiter, bis sie das gesuchte Ereignis erkennt; dieser Zeitpunkt wird angesprungen.
+  Die Suche läuft in zwei Stufen:
+  ein Grobdurchlauf über die Keyframes der Aufnahme, weil FFmpeg dafür nichts dazwischen
+  dekodieren muss, danach ein Feindurchlauf mit der konfigurierten Abtastrate zwischen dem
+  letzten leeren Grobframe und dem Treffer, der den ersten Frame des Eintrags findet.
+  Maßstab für beide ist `deduplication.duplicate_window_seconds`: So lange bleibt ein
+  Killfeed-Eintrag stehen, deshalb darf der Grobdurchlauf keinen größeren Abstand haben.
+  Liegen die Keyframes weiter auseinander, greift stattdessen ein fester Frameabstand von
+  einem halben Fenster. Die Suche nach dem eigenen Tod nimmt denselben Weg und wertet nur die
+  verworfenen Zeilen aus; im Vorlagen-Modus steht sie nicht zur Verfügung. Killfeed-Einträge, die
+  an der Startposition schon sichtbar sind, gelten nicht als neuer Treffer. Das ist nur eine
+  Navigationshilfe; der Nutzer prüft das Bild und vergibt das Label weiterhin selbst.
 - **Marker auf der Zeitleiste** als farbige Punkte je Label, mit Zeit und Label als Tooltip.
   Die Liste rechts bleibt die zugängliche Textdarstellung.
 - **Marker bearbeiten**: Label wechseln und Zeitpunkt auf die aktuelle Position setzen.
   Beides prüft dieselbe Doppelungsregel wie das Anlegen und rührt exportierte Ordner nicht an.
 - **Session-Wiederherstellung** über `.bf6-sample-drafts.json` neben dem Zielordner.
+- **Quellidentität pro Exportlauf:** Der SHA-256 einer Aufnahme wird einmal vorbereitet
+  und für alle daraus exportierten Samples wiederverwendet.
 
 Geprüft von `Tests/SampleSessionTests.cs`: Verschieben, Umbenennen, abgelehnte Doppelungen,
 Wiederherstellung, Zuordnung zur richtigen Quelle und Löschen nach dem Export.
@@ -117,6 +133,10 @@ Standarderkennung bleibt jederzeit verfügbar.
 
 Positive Klassen sind `own_kill`, `headshot` und `multiple_kills`. `own_death`,
 `foreign_kill`, `no_event` und `no_event_marker` dienen als wichtige Negativbeispiele.
+Eigene Tode findet der Player selbst: Die Erkennung verwirft eine Killfeed-Zeile mit dem
+eigenen Namen auf der Opferseite mit dem Grund `name_not_on_killer_side`, und genau diese
+Zeilen sucht **Nächster Tod**. Fremde Kills und Markierungen bleiben Handarbeit, für sie
+gibt es kein Erkennungssignal.
 Langfristig zählt `expected_events` als Wahrheit. Ein bloßes `label_hint` darf nur nach
 einer ausdrücklichen Bestätigung im Trainingsdialog verwendet werden.
 
@@ -230,9 +250,9 @@ ausdrücklich nicht zum nächsten Ziel.
    prüfen, Einträge anspringen, bearbeiten, entfernen und mindestens zwei Samples gesammelt
    exportieren. Tastaturfokus, Videowiedergabe und die native LibVLC-Darstellung lassen sich
    nicht sinnvoll automatisiert prüfen.
-2. **Exportleistung:** Quell-Hash pro Video wiederverwenden und Exporte begrenzt
-   parallelisieren, ohne Player oder Datenträger zu überlasten. Heute wird der SHA-256 der
-   Quelle für jedes Sample neu berechnet, bei großen Aufnahmen spürbar.
+2. **Exportparallelität:** Exporte laufen weiterhin seriell, damit Player und Datenträger
+   nicht unkontrolliert belastet werden. Eine begrenzte Parallelisierung braucht zuerst
+   Messwerte auf langen Aufnahmen.
 3. **Kombinierte Ereignisse:** erst nach einer Schemaentscheidung umsetzen. Das heutige
    `label_hint` kann beispielsweise `own_kill` und `headshot` nicht gleichzeitig tragen.
 4. **Reihenfolge der Liste** bleibt die Reihenfolge des Markierens, auch nach dem Verschieben

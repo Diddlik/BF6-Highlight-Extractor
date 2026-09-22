@@ -108,6 +108,50 @@ public sealed class FrameStreamTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task AStepAndAStopPositionLimitTheStream()
+    {
+        var frames = new List<(int Number, double Timestamp)>();
+        await foreach (var frame in FrameStream.ReadEveryAsync(metadata, new(0, 0, 64, 48), step: 5,
+                           startSeconds: 0.4, stopSeconds: 1.2))
+            using (frame)
+                frames.Add((frame.Number, frame.TimestampSeconds));
+
+        Assert.Equal([(5, 0.5), (10, 1.0)], frames);
+    }
+
+    [Fact]
+    public async Task KeyframesAreStreamedWithTheirRealTimestamps()
+    {
+        var keyed = Path.Combine(directory, "keyed.mp4");
+        await MediaProcess.RunAsync("ffmpeg", ["-v", "error", "-f", "lavfi", "-i",
+            "testsrc2=size=64x48:rate=10", "-t", "3", "-c:v", "libx264", "-g", "10",
+            "-pix_fmt", "yuv420p", keyed], TimeSpan.FromSeconds(60));
+        var service = new VideoService();
+        var keyframes = (await service.KeyframesAsync(keyed)).Select(Round).ToArray();
+
+        var streamed = new List<double>();
+        var sought = new List<double>();
+        var probed = await service.ProbeAsync(keyed);
+        await foreach (var frame in FrameStream.ReadKeyframesAsync(probed, new(0, 0, 64, 48)))
+            using (frame)
+                streamed.Add(Round(frame.TimestampSeconds));
+        await foreach (var frame in FrameStream.ReadKeyframesAsync(probed, new(0, 0, 64, 48),
+                           startSeconds: 0.5))
+            using (frame)
+                sought.Add(Round(frame.TimestampSeconds));
+
+        Assert.Equal([0.0, 1.0, 2.0], streamed);
+        // A seek must not rebase the timestamps to zero.
+        Assert.Equal([1.0, 2.0], sought);
+        // ffprobe sometimes answers an interval read with nothing; the search then simply works
+        // without the keyframe positions, so only the values themselves are checked here.
+        Assert.All(keyframes, position => Assert.Contains(position, streamed));
+        Assert.Equal(keyframes, keyframes.Order());
+    }
+
+    private static double Round(double seconds) => Math.Round(seconds, 3);
+
+    [Fact]
     public async Task RegionsOutsideTheVideoAreRejected() =>
         await Assert.ThrowsAsync<ArgumentException>(async () =>
             await Read(new(0, 0, 65, 48), samplesPerSecond: 1));

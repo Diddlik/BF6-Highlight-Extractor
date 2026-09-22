@@ -42,6 +42,12 @@ public sealed record DetectionResult(IReadOnlyList<KillCandidate> Candidates,
 
 public sealed class KillfeedDetector
 {
+    /// <summary>
+    /// Rejection reason for a killfeed row that carries the player's name on the victim side.
+    /// Such a row is a confirmed death of the player, not a miss.
+    /// </summary>
+    public const string VictimSide = "name_not_on_killer_side";
+
     private readonly DetectionSettings settings;
     private readonly (string Original, string Normalized)[] names;
     private sealed record Token(string Text, double Confidence, int X0, int X1, int Y, int Height)
@@ -120,7 +126,7 @@ public sealed class KillfeedDetector
                     ? center < other.Average(t => t.Center) : center > other.Average(t => t.Center)));
             var reason = score < settings.NameThreshold ? "similarity_below_threshold"
                 : confidence < settings.MinimumConfidence ? "ocr_confidence_below_minimum"
-                : !side ? "name_not_on_killer_side" : null;
+                : !side ? VictimSide : null;
             if (reason is not null) { rejected.Add(new(raw, reason, score, timestamp)); continue; }
             var rest = settings.KillerSide == "left" ? row[last..] : row[..first];
             var opponent = rest.Length == 0 ? null : (settings.KillerSide == "left" ? rest[^1] : rest[0]).Text;

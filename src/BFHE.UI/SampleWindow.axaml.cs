@@ -29,6 +29,9 @@ public sealed partial class SampleWindow : Window
     private double frameStep;
     private string destination = "";
     private bool editing;
+    private VideoMetadata? video;
+    private Configuration? detection;
+    private CancellationTokenSource? potentialCancellation;
 
     public IReadOnlyList<SampleRequest> Requests { get; private set; } = [];
 
@@ -50,11 +53,14 @@ public sealed partial class SampleWindow : Window
         seek.PointerCaptureLost += SeekFinished;
     }
 
-    public SampleWindow(VideoItem video, string firstDestination, string playerName = "") : this()
+    public SampleWindow(VideoItem video, string firstDestination, string playerName = "",
+        Configuration? detection = null) : this()
     {
         if (video.Metadata is not { } metadata)
             throw new ArgumentException("Das Video besitzt keine gültigen Metadaten.", nameof(video));
 
+        this.video = metadata;
+        this.detection = detection;
         frameStep = metadata.Fps > 0 ? 1 / metadata.Fps : 0;
         destination = firstDestination;
         session = new(metadata.DurationSeconds, firstDestination, video.Path);
@@ -71,6 +77,14 @@ public sealed partial class SampleWindow : Window
         labels.ItemsSource = SampleExporter.Labels.Select(SampleMarker.LabelName).ToArray();
         session.Markers.CollectionChanged += (_, _) => DrawMarkers();
         this.FindControl<Canvas>("MarkerTrack")!.SizeChanged += (_, _) => DrawMarkers();
+        foreach (var name in new[] { "NextPotential", "NextDeath" })
+        {
+            var search = this.FindControl<Button>(name)!;
+            search.IsEnabled = detection is not null;
+            if (detection is null)
+                ToolTip.SetTip(search,
+                    "Dafür wird ein gültiger Erkennungsbereich in den Einstellungen benötigt.");
+        }
 
         // An interrupted session left its drafts next to the destination.
         var drafts = SampleSession.LoadDrafts(firstDestination, video.Path);
@@ -153,12 +167,24 @@ public sealed partial class SampleWindow : Window
         if (player.IsPlaying) player.Pause(); else player.Play();
     }
 
+    /// <summary>LibVLC's Pause() toggles, so an unguarded call would resume a paused video.</summary>
+    private void PausePlayback()
+    {
+        if (player is { IsPlaying: true }) player.Pause();
+    }
+
     private void KeyPressed(object? sender, KeyEventArgs e)
     {
         if (e.Key == Key.Escape) { Close(); return; }
         if (this.FindControl<TextBox>("Player")!.IsKeyboardFocusWithin
             || this.FindControl<ComboBox>("Split")!.IsKeyboardFocusWithin) return;
         if (e.Key == Key.Space) { TogglePlayback(); e.Handled = true; return; }
+        if (e.Key is Key.PageDown or Key.PageUp)
+        {
+            _ = FindNextPotentialAsync(ownDeath: e.Key == Key.PageUp);
+            e.Handled = true;
+            return;
+        }
         if (e.Key is Key.Left or Key.Right)
         {
             // A single frame comes from the source frame rate; LibVLC seeks to the nearest
@@ -188,9 +214,61 @@ public sealed partial class SampleWindow : Window
     private void SeekBy(double delta)
     {
         if (player is null) return;
-        player.Pause();
+        PausePlayback();
         var seek = this.FindControl<Slider>("Seek")!;
         seek.Value = Math.Clamp(CurrentSeconds() + delta, seek.Minimum, seek.Maximum);
+    }
+
+    private async void NextPotentialClick(object? sender, RoutedEventArgs e) =>
+        await FindNextPotentialAsync(ownDeath: false);
+
+    private async void NextDeathClick(object? sender, RoutedEventArgs e) =>
+        await FindNextPotentialAsync(ownDeath: true);
+
+    private async Task FindNextPotentialAsync(bool ownDeath)
+    {
+        if (player is null || video is null || detection is null || potentialCancellation is not null)
+            return;
+        PausePlayback();
+        var buttons = new[] { this.FindControl<Button>("NextPotential")!,
+            this.FindControl<Button>("NextDeath")! };
+        foreach (var button in buttons) button.IsEnabled = false;
+        potentialCancellation = new();
+        HideError();
+        var what = ownDeath ? "eigenen Tod" : "Kill";
+        var status = this.FindControl<TextBlock>("StatusText")!;
+        status.Text = $"Suche den nächsten erkannten {what} …";
+        try
+        {
+            var configuration = detection;
+            var after = CurrentSeconds();
+            var progress = new Progress<double>(position =>
+                status.Text = $"Suche den nächsten erkannten {what} … {Format(position)}");
+            var timestamp = await Task.Run(() => PotentialFrameFinder.FindNextAsync(configuration,
+                video, after, () => new OnnxOcrEngine(), PersonalProfileStore.ActivePath, progress,
+                ownDeath, potentialCancellation.Token));
+            if (closed) return;
+            if (timestamp is { } found)
+            {
+                this.FindControl<Slider>("Seek")!.Value = found;
+                status.Text = $"Vorschlag bei {Format(found)}. Bitte Bild prüfen und selbst beschriften.";
+            }
+            else
+                status.Text = $"Bis zum Videoende wurde kein weiterer {what} erkannt.";
+        }
+        catch (OperationCanceledException) when (closed) { }
+        catch (Exception error) when (error is IOException or ArgumentException or TimeoutException
+            or ConfigurationException or System.ComponentModel.Win32Exception
+            or Microsoft.ML.OnnxRuntime.OnnxRuntimeException)
+        {
+            if (!closed) ShowError("Vorschlag konnte nicht gesucht werden: " + error.Message);
+        }
+        finally
+        {
+            potentialCancellation?.Dispose();
+            potentialCancellation = null;
+            if (!closed) foreach (var button in buttons) button.IsEnabled = true;
+        }
     }
 
     private void MarkClick(object? sender, RoutedEventArgs e)
@@ -349,6 +427,7 @@ public sealed partial class SampleWindow : Window
     {
         if (closed) return;
         closed = true;
+        potentialCancellation?.Cancel();
         timer.Stop();
         var view = this.FindControl<LibVLCSharp.Avalonia.VideoView>("Video");
         if (view is not null) view.MediaPlayer = null;

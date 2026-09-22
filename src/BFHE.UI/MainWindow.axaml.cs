@@ -83,7 +83,19 @@ public sealed partial class MainWindow : Window
             var destination = UniqueSamplePath(parent);
             var player = model.Settings.PlayerNames.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
                 .FirstOrDefault() ?? "";
-            var dialog = new SampleWindow(video, destination, player);
+            // Only offer the suggestion when the configured detection fits this recording.
+            Configuration? detection = null;
+            try
+            {
+                var configuration = model.Settings.ToConfiguration();
+                var metadata = video.Metadata!;
+                _ = (configuration.Detection.Mode == "template"
+                    ? configuration.ResolveDetectionRegion(metadata.Width, metadata.Height)
+                    : configuration.ResolveKillfeedRegion(metadata.Width, metadata.Height)).ToPixelRegion();
+                detection = configuration;
+            }
+            catch (ConfigurationException) { }
+            var dialog = new SampleWindow(video, destination, player, detection);
             await dialog.ShowDialog(this);
             if (dialog.Requests.Count > 0)
                 await model.ExportSamplesAsync(video, dialog.Requests, dialog.DraftDestination);

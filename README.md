@@ -75,8 +75,9 @@ Die Analyse selbst schreibt nie Videodateien, sondern nur Berichte. Clips entste
 beim Export. Vorhandene Clips werden nie überschrieben, Quellvideos nie verändert.
 
 Für Trainings- und Prüfdaten besitzt jede importierte Aufnahme außerdem einen
-Keyboard-Player: Mit Pfeiltasten navigieren, Ereignisse per Kürzel markieren, rechts
-prüfen und anschließend gesammelt exportieren. Details stehen unter
+Keyboard-Player: Mit Pfeiltasten navigieren, mit `Bild↓` zum nächsten erkannten Kill und
+mit `Bild↑` zum nächsten eigenen Tod springen, Ereignisse per Kürzel markieren, rechts prüfen
+und anschließend gesammelt exportieren. Details stehen unter
 [Sample-Player: Bedienung und Weiterentwicklung](src/SAMPLE_PLAYER.md).
 
 ## Was dabei herauskommt
@@ -132,6 +133,8 @@ bf6-highlights.exe analyze "D:\Aufnahmen\match.mkv" config.yaml "D:\Highlights" 
 | `analyze VIDEO KONFIG ZIEL [--export]` | Analyse mit Berichten, auf Wunsch mit Clips |
 | `export VIDEO EVENTS.json KONFIG ZIEL` | Clips aus einer vorhandenen `events.json` |
 | `inspect-frame VIDEO KONFIG ZEIT` | Erkennung auf einem Einzelbild nachvollziehen |
+| `next-kill VIDEO KONFIG ZEIT` | nächsten erkannten Kill ab einer Position suchen |
+| `next-death VIDEO KONFIG ZEIT` | nächsten eigenen Tod suchen, für Negativbeispiele |
 | `configure-region VIDEO KONFIG` | Killfeed-Bereich mit der Maus festlegen |
 | `config-check KONFIG` | Konfiguration prüfen, Fehler je Feld |
 | `sample VIDEO START ENDE ZEIT LABEL ZIEL` | beschriftete Prüfdaten sammeln |
@@ -147,7 +150,7 @@ Nötig sind das .NET-10-SDK sowie FFmpeg und ffprobe auf dem PATH.
 ```powershell
 cd src
 dotnet build -m:1
-dotnet test -m:1                # 227 Tests
+dotnet test -m:1                # 229 Tests
 dotnet run --project BFHE.UI    # Oberfläche starten
 ```
 

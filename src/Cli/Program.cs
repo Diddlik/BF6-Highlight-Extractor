@@ -103,6 +103,19 @@ try
             }
             Console.WriteLine("Ausschnitt: " + inspection.CropPath);
             break;
+        case ["next-kill" or "next-death", var input, var configuration, var time]:
+            var nextConfig = ConfigurationFile.Load(configuration);
+            var nextVideo = await service.ProbeAsync(input, cancel.Token);
+            var next = await PotentialFrameFinder.FindNextAsync(nextConfig, nextVideo, Seconds(time),
+                () => new OnnxOcrEngine(), PersonalProfileStore.ActivePath,
+                new Progress<double>(scanned => Console.Error.Write(
+                    Reports.FormatTimestamp(scanned) + "\r")), args[0] == "next-death",
+                cancel.Token);
+            Console.Error.WriteLine();
+            Console.WriteLine(next is { } hit ? Reports.FormatTimestamp(hit)
+                : args[0] == "next-death" ? "Kein weiterer Tod gefunden."
+                : "Kein weiterer Kill gefunden.");
+            break;
         case ["configure-region", var input, var configuration, .. var picker]
             when picker.Length <= 2:
             // Fail on a broken configuration before opening the picker window.
@@ -206,6 +219,8 @@ try
                 analyze VIDEO KONFIG.yaml ZIELORDNER [--export]
                 export VIDEO EVENTS.json KONFIG.yaml ZIELORDNER
                 inspect-frame VIDEO KONFIG.yaml ZEIT [ZIELORDNER]
+                next-kill VIDEO KONFIG.yaml ZEIT
+                next-death VIDEO KONFIG.yaml ZEIT
                 configure-region VIDEO KONFIG.yaml [ZEIT] [PROFILNAME]
                 train-profile SAMPLE-ORDNER KONFIG.yaml [--allow-hints] [--activate]
                 profiles | profile-activate PROFIL.json | profile-off

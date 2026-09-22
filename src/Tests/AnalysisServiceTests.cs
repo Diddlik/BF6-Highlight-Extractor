@@ -93,6 +93,56 @@ public sealed class AnalysisServiceTests : IAsyncLifetime
         Assert.True(File.Exists(Path.Combine(output, "segments.json")));
     }
 
+    /// <summary>A killfeed entry stays on screen, here from the given frame on for two seconds.</summary>
+    private static Dictionary<int, (string, int)> VisibleFrom(int first) =>
+        Enumerable.Range(first, 19).ToDictionary(frame => frame, _ => ("BulletWaltz Gegner1", 4));
+
+    private static Configuration FinderConfig() => Config() with
+    {
+        Deduplication = new() { DuplicateWindowSeconds = 2.0 },
+    };
+
+    [Fact]
+    public async Task TheNextPotentialFrameIsTheFirstFrameOfTheNextDetectedKill()
+    {
+        var metadata = await new VideoService().ProbeAsync(video);
+        var ocr = new FakeOcr(VisibleFrom(20));
+
+        var timestamp = await PotentialFrameFinder.FindNextAsync(FinderConfig(), metadata,
+            afterSeconds: 0.5, () => ocr);
+
+        Assert.Equal(2.0, timestamp);
+        // A coarse pass plus the window before the hit, not every sampled frame of the video.
+        Assert.InRange(ocr.Calls, 1, 15);
+    }
+
+    [Fact]
+    public async Task TheNextPotentialDeathIsTheRowWithThePlayerOnTheVictimSide()
+    {
+        var metadata = await new VideoService().ProbeAsync(video);
+        var rows = Enumerable.Range(20, 19).ToDictionary(frame => frame, _ => ("Gegner1 BulletWaltz", 4));
+
+        var death = await PotentialFrameFinder.FindNextAsync(FinderConfig(), metadata,
+            afterSeconds: 0.5, () => new FakeOcr(rows), ownDeath: true);
+        var kill = await PotentialFrameFinder.FindNextAsync(FinderConfig(), metadata,
+            afterSeconds: 0.5, () => new FakeOcr(rows));
+
+        Assert.Equal(2.0, death);
+        Assert.Null(kill);
+    }
+
+    /// <summary>A killfeed entry that is already on screen at the start position is not a new event.</summary>
+    [Fact]
+    public async Task AnEntryVisibleAtTheStartPositionIsNotProposed()
+    {
+        var metadata = await new VideoService().ProbeAsync(video);
+
+        var timestamp = await PotentialFrameFinder.FindNextAsync(FinderConfig(), metadata,
+            afterSeconds: 2.0, () => new FakeOcr(VisibleFrom(20)));
+
+        Assert.Null(timestamp);
+    }
+
     [Fact]
     public async Task ADeathIsNotCountedAsAKill()
     {
