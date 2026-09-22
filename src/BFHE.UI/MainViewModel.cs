@@ -749,12 +749,14 @@ public sealed class MainViewModel : Observable
         {
             var failures = new List<string>();
             var written = 0;
+            Stage = "Quelldatei vorbereiten: " + video.FileName;
+            var source = await SampleExporter.PrepareSourceAsync(video.Path, cancel.Token);
             foreach (var request in requests)
             {
                 Stage = $"Prüfsample {written + failures.Count + 1}/{requests.Count}: {video.FileName}";
                 try
                 {
-                    await Task.Run(() => SampleExporter.ExportAsync(video.Path, request.Start, request.End,
+                    await Task.Run(() => SampleExporter.ExportAsync(source, request.Start, request.End,
                         request.Timestamp, request.Label, request.Destination, cancel.Token,
                         request.Player, request.Split), cancel.Token);
                     written++;

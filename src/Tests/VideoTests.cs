@@ -122,6 +122,38 @@ public sealed class VideoTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task PreparedSourceCanBeReusedAcrossSamples()
+    {
+        var source = await SampleExporter.PrepareSourceAsync(Source);
+        var first = Path.Combine(directory, "prepared-first");
+        var second = Path.Combine(directory, "prepared-second");
+
+        await SampleExporter.ExportAsync(source, 0, 1, 0.5, "own_kill", first);
+        await SampleExporter.ExportAsync(source, 1, 2, 1.5, "own_death", second);
+
+        foreach (var target in new[] { first, second })
+        {
+            using var manifest = JsonDocument.Parse(
+                await File.ReadAllTextAsync(Path.Combine(target, "sample.json")));
+            Assert.Equal(source.Sha256,
+                manifest.RootElement.GetProperty("source_sha256").GetString());
+        }
+    }
+
+    [Fact]
+    public async Task PreparedSourceRejectsAChangedVideo()
+    {
+        var source = await SampleExporter.PrepareSourceAsync(Source);
+        File.SetLastWriteTimeUtc(Source, File.GetLastWriteTimeUtc(Source).AddSeconds(2));
+        var target = Path.Combine(directory, "changed-source");
+
+        await Assert.ThrowsAsync<IOException>(() =>
+            SampleExporter.ExportAsync(source, 0, 1, 0.5, "own_kill", target));
+
+        Assert.False(Directory.Exists(target));
+    }
+
+    [Fact]
     public async Task SampleRejectsUnknownSplitBeforeWriting()
     {
         var target = Path.Combine(directory, "invalid-split");
