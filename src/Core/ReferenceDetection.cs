@@ -10,7 +10,11 @@ public static class ReferenceDetection
     {
         destination = Path.GetFullPath(destination);
         if (File.Exists(destination)) throw new IOException("Prüfbericht existiert bereits.");
-        var inputs = Directory.GetDirectories(samples).Select(folder =>
+        // A sample folder can sit next to the drafts of an interrupted session; only folders with
+        // a manifest are samples, a broken manifest is still an error.
+        var inputs = Directory.GetDirectories(samples)
+            .Where(folder => File.Exists(Path.Combine(folder, "sample.json")))
+            .Select(folder =>
         {
             try
             {

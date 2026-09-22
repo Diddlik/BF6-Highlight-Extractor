@@ -62,6 +62,19 @@ public sealed class ReferenceBatchTests : IDisposable
     }
 
     [Fact]
+    public async Task FoldersWithoutAManifestAreSkipped()
+    {
+        CreateSample("sample-1", 1.0, CreateImage());
+        Directory.CreateDirectory(Path.Combine(directory, ".bf6-sample-draft"));
+        var report = Path.Combine(directory, "report.json");
+
+        await ReferenceDetection.RunAsync(directory, Settings(), new(0, 0, 900, 240), report);
+
+        using var document = JsonDocument.Parse(await File.ReadAllTextAsync(report));
+        Assert.Single(document.RootElement.GetProperty("cases").EnumerateArray());
+    }
+
+    [Fact]
     public async Task MalformedManifestSurfacesIOException()
     {
         var sample = Path.Combine(directory, "broken");
