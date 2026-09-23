@@ -69,15 +69,20 @@ public sealed class KillfeedDetector
     private string Normalize(string value) => NameMatching.Normalize(value, settings.StripSpecial, settings.Confusables);
 
     // Thresholds tolerate the usual OCR damage seen in recordings: "gepngf", "het cine", "hai ein".
-    private bool IsPing(IEnumerable<Token> others)
+    private bool IsPing(IEnumerable<Token> matched, IEnumerable<Token> others)
     {
+        // The OCR glues "Ping" onto the name at times: "BulletWaltzPing abgebrochen".
+        var longest = names.Max(name => name.Normalized.Length);
+        if (Normalize(string.Join(' ', matched.Select(t => t.Text))).Split(' ')
+            .Any(word => word.Length > longest && word.EndsWith("ping", StringComparison.Ordinal))) return true;
         var words = Normalize(string.Join(' ', others.Select(t => t.Text)))
             .Split(' ', StringSplitOptions.RemoveEmptyEntries);
         for (var index = 0; index < words.Length; index++)
         {
             var word = words[index];
             if (word.EndsWith("ping", StringComparison.Ordinal) || NameMatching.Ratio(word, "gepingt") >= 70
-                || NameMatching.Ratio(word, "pinged") >= 75) return true;
+                || NameMatching.Ratio(word, "pinged") >= 75 || NameMatching.Ratio(word, "abgebrochen") >= 75)
+                return true;
             if (index + 1 < words.Length && NameMatching.Ratio(word, "hat") >= 66
                 && (words[index + 1].StartsWith("ein", StringComparison.Ordinal)
                     || NameMatching.Ratio(words[index + 1], "eine") >= 75)) return true;
@@ -149,7 +154,7 @@ public sealed class KillfeedDetector
                     ? center < other.Average(t => t.Center) : center > other.Average(t => t.Center)));
             var reason = score < settings.NameThreshold ? "similarity_below_threshold"
                 : confidence < settings.MinimumConfidence ? "ocr_confidence_below_minimum"
-                : IsPing(other) ? PingMessage
+                : IsPing(matched, other) ? PingMessage
                 : !side ? VictimSide : null;
             if (reason is not null) { rejected.Add(new(raw, reason, score, timestamp)); continue; }
             var rest = settings.KillerSide == "left" ? row[last..] : row[..first];

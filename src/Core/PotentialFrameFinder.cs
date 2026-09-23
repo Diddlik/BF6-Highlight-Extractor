@@ -75,6 +75,7 @@ public static class PotentialFrameFinder
                     var lines = await engine.ReadAsync(frame.Image, region, token);
                     var detected = detector.Detect(lines, region, frame.TimestampSeconds,
                         frame.Number, name);
+                    deduplicator.Observe(detected.Rejections, name);
                     foreach (var candidate in ownDeath
                                  ? detected.Rejections
                                      .Where(rejection => rejection.Reason == KillfeedDetector.VictimSide)

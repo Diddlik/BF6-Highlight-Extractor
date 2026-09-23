@@ -83,13 +83,17 @@ public sealed class AnalysisService(Configuration configuration, Func<IOcrEngine
             {
                 lastEvent = null;
                 using (sample.Frame)
-                    foreach (var candidate in detector.Detect(sample.Lines, region,
-                        sample.Frame.TimestampSeconds, sample.Frame.Number, name).Candidates)
+                {
+                    var detected = detector.Detect(sample.Lines, region,
+                        sample.Frame.TimestampSeconds, sample.Frame.Number, name);
+                    deduplicator.Observe(detected.Rejections, name);
+                    foreach (var candidate in detected.Candidates)
                         if (deduplicator.Accept(candidate))
                         {
                             events.Add(candidate);
                             lastEvent = candidate;
                         }
+                }
                 Report("analyzing");
             }
 

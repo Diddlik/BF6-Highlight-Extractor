@@ -70,6 +70,7 @@ public sealed class DetectionSafetyTests
     [InlineData("het cine endenheft gf")]
     [InlineData("hai ein LMG gesinel")]
     [InlineData("Ping abgebrochen")]
+    [InlineData("abgebrochen")]
     [InlineData("pinged an enemy")]
     public void PingsAreRejectedInsteadOfCountedAsKills(string message)
     {
@@ -77,6 +78,34 @@ public sealed class DetectionSafetyTests
         var result = new KillfeedDetector(Settings).Detect(lines, new(0, 0, 600, 300), 10, 600, "video");
         Assert.Empty(result.Candidates);
         Assert.Equal(KillfeedDetector.PingMessage, Assert.Single(result.Rejections).Reason);
+    }
+
+    [Fact]
+    public void APingGluedToTheNameIsRejected()
+    {
+        OcrLine[] lines = [new("BulletWaltzPing abgebrochen", .95, new(10, 20, 400, 20))];
+        var result = new KillfeedDetector(Settings).Detect(lines, new(0, 0, 600, 300), 10, 600, "video");
+        Assert.Equal(KillfeedDetector.PingMessage, Assert.Single(result.Rejections).Reason);
+    }
+
+    // The frames around 543.0 s of a real recording: the ping sentence is read in every frame but one.
+    [Fact]
+    public void TheNameAloneRightAfterAPingIsNotAKill()
+    {
+        var detector = new KillfeedDetector(Settings);
+        var dedup = new EventDeduplicator(Settings);
+        bool Kill(double time, params string[] texts)
+        {
+            OcrLine[] lines = [.. texts.Select((text, index) => new OcrLine(text, .95, new(10 + index * 200, 20, 150, 20)))];
+            var result = detector.Detect(lines, new(0, 0, 600, 300), time, (int)(time * 60), "video");
+            dedup.Observe(result.Rejections, "video");
+            return result.Candidates.Any(dedup.Accept);
+        }
+        Assert.False(Kill(542.67, "BullefWaltz", "hat cin Gewchr gepingt"));
+        Assert.False(Kill(543.0, "BulletWaltz"));
+        Assert.False(Kill(543.33, "BullefWaltz", "hat ein Gewehr gepingt"));
+        // A victim the OCR cannot read, such as a name in Chinese characters, is still a kill.
+        Assert.True(Kill(600.0, "BulletWaltz"));
     }
 
     [Theory]

@@ -9,8 +9,20 @@ public sealed class EventDeduplicator
     private sealed record Recent(KillCandidate Event, string Text, List<string> Opponents)
     { public double LastSeen { get; set; } = Event.TimestampSeconds; }
 
+    // A ping row stays on screen for seconds and its sentence is read in almost every frame; in the odd
+    // frame only the name survives. Measured: the frame before such a slip always showed the ping.
+    private const double PingShadowSeconds = 2;
+    private readonly Dictionary<string, double> lastPing = new(StringComparer.Ordinal);
+
     public EventDeduplicator(DetectionSettings settings) { settings.Validate(); this.settings = settings; }
     private string Normalize(string text) => NameMatching.Normalize(text, settings.StripSpecial, settings.Confusables);
+
+    /// <summary>Feeds the rejections of a frame, so a ping read without its sentence is not taken for a kill.</summary>
+    public void Observe(IEnumerable<DetectionRejection> rejections, string source)
+    {
+        foreach (var rejection in rejections)
+            if (rejection.Reason == KillfeedDetector.PingMessage) lastPing[source] = rejection.TimestampSeconds;
+    }
 
     public bool Accept(KillCandidate candidate)
     {
@@ -20,6 +32,9 @@ public sealed class EventDeduplicator
         if (lastTimestamp.TryGetValue(candidate.SourceVideo, out var previous) && now < previous)
             throw new ArgumentException("Ereignisse müssen pro Quelle zeitlich geordnet sein.");
         lastTimestamp[candidate.SourceVideo] = now;
+        if (candidate is { EventType: "kill", DetectionMethod: "ocr", OpponentName: null, WeaponText: null }
+            && lastPing.TryGetValue(candidate.SourceVideo, out var ping) && now - ping <= PingShadowSeconds)
+            return false;
         recent.RemoveAll(r => r.Event.SourceVideo == candidate.SourceVideo && now - r.LastSeen > settings.DuplicateWindowSeconds);
         var text = Normalize(candidate.RawText);
         var opponent = Normalize(candidate.OpponentName ?? "");
