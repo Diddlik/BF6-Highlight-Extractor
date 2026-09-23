@@ -6,7 +6,8 @@ namespace Bf6Highlights.Tests;
 
 public sealed class PreviewPlaybackTests
 {
-    [Fact]
+    // Needs the recordings in the untracked samples folder, which CI does not have.
+    [Fact, Trait("Category", "LocalSamples")]
     public async Task BothSampleVideosSupportPlaybackSeekAndPause()
     {
         if (!OperatingSystem.IsWindows()) return;
@@ -70,7 +71,7 @@ public sealed class PreviewPlaybackTests
         for (var directory = new DirectoryInfo(AppContext.BaseDirectory);
              directory is not null; directory = directory.Parent)
             if (Directory.Exists(Path.Combine(directory.FullName, "samples"))
-                && Directory.Exists(Path.Combine(directory.FullName, "csharp")))
+                && Directory.Exists(Path.Combine(directory.FullName, "src")))
                 return directory.FullName;
         throw new DirectoryNotFoundException(
             $"Repository-Wurzel oberhalb von '{AppContext.BaseDirectory}' nicht gefunden.");

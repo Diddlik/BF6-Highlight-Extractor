@@ -7,7 +7,9 @@ try {
     $versionArgument = if ($Version) { "-p:Version=$Version" } else { '' }
     dotnet build -c Release -m:1 --no-restore $versionArgument
     if ($LASTEXITCODE) { throw 'Build fehlgeschlagen.' }
-    dotnet test -c Release -m:1 --no-build --no-restore
+    # CI has no local recordings; GitHub Actions sets CI=true.
+    $filterArgument = if ($env:CI -eq 'true') { '--filter', 'Category!=LocalSamples' } else { @() }
+    dotnet test -c Release -m:1 --no-build --no-restore @filterArgument
     if ($LASTEXITCODE) { throw 'Tests fehlgeschlagen (FFmpeg/ffprobe auf PATH erforderlich).' }
     if ($Publish) {
         $publishRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../output/csharp-publish'))

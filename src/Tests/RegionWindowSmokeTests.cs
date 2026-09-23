@@ -9,7 +9,8 @@ namespace Bf6Highlights.Tests;
 
 public sealed class RegionWindowSmokeTests
 {
-    [Fact]
+    // Needs the recordings in the untracked samples folder, which CI does not have.
+    [Fact, Trait("Category", "LocalSamples")]
     public async Task VideoEditingWindowsOpenWithoutANativeChildWindow()
     {
         if (!OperatingSystem.IsWindows()) return;
