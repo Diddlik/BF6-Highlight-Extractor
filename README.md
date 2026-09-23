@@ -24,10 +24,16 @@ Entscheidend ist danach die **Seite**, auf der der eigene Name steht. `EigenerNa
 ⟶ Gegner` ist ein eigener Kill. `Gegner ⟶ Waffe ⟶ EigenerName` ist der eigene Tod und wird
 verworfen. Den Namen irgendwo im Killfeed zu finden genügt ausdrücklich nicht.
 
+![Killfeed mit eigenem Kill, fremde Namen unkenntlich gemacht](.github/media/beispiel-killfeed.png)
+
 Weil eine Killfeed-Zeile mehrere Sekunden stehen bleibt, wird derselbe Kill dutzendfach
-erkannt. Eine Zusammenfassung über Spielername, Gegner und Zeilentext innerhalb eines
-Zeitfensters macht daraus genau ein Ereignis — zwei schnelle Kills auf denselben Gegner
-bleiben aber zwei.
+erkannt, oft mit anders gelesenem Namen (`darkrabbit`, `derkrabbit`). Innerhalb eines
+Zeitfensters gilt ein Treffer deshalb als derselbe Kill, wenn der Gegner einer bereits
+gelesenen Schreibweise ähnelt oder gar nicht lesbar war; denselben Gegner kann man in
+diesen Sekunden nicht zweimal töten. Verschiedene Gegner bleiben getrennte Kills.
+
+Pings und Markierungen (`… hat eine Gefahr gepingt`, `Ping abgebrochen`) stehen im selben
+Killfeed und tragen den eigenen Namen. Sie werden als Satz erkannt und verworfen.
 
 Aus den Zeitpunkten entstehen Clip-Abschnitte, standardmäßig drei Sekunden davor und zwei
 danach. Liegen Abschnitte dicht beieinander, werden sie zu einem Mehrfachkill-Clip
@@ -70,6 +76,8 @@ ersten Start SmartScreen; über „Weitere Informationen“ lässt es sich trotz
    gewählten Clips.
 
 ![Analyse](.github/media/oberflaeche-analyse.png)
+
+![Highlights prüfen und exportieren](.github/media/oberflaeche-highlights.png)
 
 Die Analyse selbst schreibt nie Videodateien, sondern nur Berichte. Clips entstehen erst
 beim Export. Vorhandene Clips werden nie überschrieben, Quellvideos nie verändert.
@@ -183,9 +191,10 @@ gegen die Originalausgabe geprüft.
 
 Ehrlich benannt gehört dazu:
 
-- **Die Erkennungsgüte ist nicht abgenommen.** Dafür fehlt ein ausreichend großer, von Hand
-  beschrifteter Prüfsatz. Auf echtem Material entstehen derzeit noch mehrere Kandidaten für
-  denselben Kill, wenn die Texterkennung den Namen unterschiedlich liest.
+- **Die Erkennungsgüte ist nicht abgenommen.** Auf drei Aufnahmen mit 104 von Hand
+  markierten Kills findet die Erkennung 87 von 88 Kill-Zeitpunkten und meldet 163 statt
+  früher 282 Kandidaten. Ein Teil davon sind echte, nicht markierte Kills, ein Teil noch
+  doppelte Lesungen stark verstümmelter Namen.
 - **Gemessen ist bisher nur ein kurzer Ausschnitt.** Dort war die C#-Fassung rund 17-mal
   schneller als die Python-Fassung und brauchte ein Siebtel des Speichers. Ein Langlauf über
   Stunden steht aus.
