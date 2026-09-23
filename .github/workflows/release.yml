@@ -76,6 +76,8 @@ jobs:
             Version = '${{ steps.version.outputs.value }}'
             RepoUrl = '${{ github.server_url }}/${{ github.repository }}'
             Token   = $env:GITHUB_TOKEN
+            # PATH only holds Chocolatey shims, which do not work once copied into the package.
+            FfmpegDirectory = "$env:ChocolateyInstall\lib\ffmpeg\tools\ffmpeg\bin"
           }
           if ('${{ steps.existing.outputs.publish }}' -eq 'true') {
             $arguments.Publish = $true

@@ -35,6 +35,11 @@ try {
         $toolDirectory = Join-Path $target 'tools'
         New-Item -ItemType Directory -Force -Path $toolDirectory | Out-Null
         Copy-Item -LiteralPath $tools -Destination $toolDirectory -Force
+        # A launcher shim (Chocolatey, Scoop) fails once it is copied away from its target.
+        foreach ($tool in @('ffmpeg.exe', 'ffprobe.exe')) {
+            & (Join-Path $toolDirectory $tool) -hide_banner -version | Out-Null
+            if ($LASTEXITCODE) { throw "Kopiertes $tool startet nicht; -FfmpegDirectory auf die echten Programme setzen." }
+        }
         Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'config.example.yaml') `
             -Destination (Join-Path $target 'config.example.yaml') -Force
 
