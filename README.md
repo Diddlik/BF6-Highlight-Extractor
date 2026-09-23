@@ -107,9 +107,11 @@ hinterlässt keine halbfertigen Dateien.
 
 ![Einstellungen](.github/media/oberflaeche-einstellungen.png)
 
-Alles Wichtige ist einstellbar: Spielernamen, Erkennungsmodus, Killfeed-Bereich,
-Ähnlichkeitsschwellen, Abtastrate, parallele Erkennung, Vor- und Nachlauf der Clips,
-Zusammenführungsabstand, Schnittart und Ausgabeordner. Die Werte landen in einer
+Die Einstellungen sind in Tabs gegliedert: **Erkennung** (Spielernamen, Erkennungsmodus,
+Killfeed-Bereich, Ähnlichkeitsschwellen), **Profil** (persönliches Erkennungsprofil),
+**Leistung** (Abtastrate, parallele Erkennung), **Clips** (Vor- und Nachlauf,
+Zusammenführungsabstand, Schnittart, Ausgabeordner) und **Allgemein** (Konfigurationsdatei,
+Aktualisierung). Die Werte landen in einer
 YAML-Datei unter `%APPDATA%\BF6-Highlight-Extractor\config.yaml`.
 
 Zwei Werte lohnen die Aufmerksamkeit:
@@ -124,8 +126,9 @@ gemeldet, was sich ändert, etwa ein nicht mehr unterstütztes Erkennungs-Backen
 ## Aktualisierung
 
 Die installierte Fassung sucht beim Start nach neuen Releases dieses Repositorys. Die Suche
-lässt sich abschalten, und **Update prüfen** sucht sofort. Wird etwas gefunden, lädt
-**Aktualisieren und neu starten** die neue Fassung und startet sie. Aus einem Build-Ordner
+lässt sich abschalten, und **Update prüfen** sucht sofort. Wird etwas gefunden, erscheint
+über jeder Seite ein Hinweis; **Aktualisieren und neu starten** lädt die neue Fassung und
+startet sie, **Später** blendet den Hinweis bis zum nächsten Start aus. Aus einem Build-Ordner
 heraus gestartet aktualisiert sich nichts.
 
 ## Kommandozeile

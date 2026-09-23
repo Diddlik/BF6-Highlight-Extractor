@@ -110,6 +110,10 @@
       <Setter Property="MinHeight" Value="40" />
       <Setter Property="Foreground" Value="{StaticResource Text}" />
     </Style>
+    <Style Selector="TabItem">
+      <Setter Property="FontSize" Value="15" />
+      <Setter Property="MinHeight" Value="40" />
+    </Style>
     <Style Selector="ProgressBar">
       <Setter Property="Foreground" Value="{StaticResource Accent}" />
       <Setter Property="Background" Value="#23272C" />
@@ -172,6 +176,19 @@
           <TextBlock Classes="title" Text="{Binding AreaTitle}" />
           <TextBlock Classes="dim" Text="{Binding AreaSubtitle}" />
         </StackPanel>
+      </Border>
+
+      <Border DockPanel.Dock="Top" IsVisible="{Binding ShowUpdateNotice}" Margin="28,0,28,14"
+              Background="{StaticResource AccentSoft}" BorderBrush="{StaticResource Accent}"
+              BorderThickness="1" CornerRadius="6" Padding="14,10">
+        <Grid ColumnDefinitions="*,Auto">
+          <TextBlock Text="{Binding UpdateStatus}" TextWrapping="Wrap" VerticalAlignment="Center" />
+          <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10">
+            <Button Classes="primary" Content="Aktualisieren und neu starten" Click="ApplyUpdate"
+                    IsEnabled="{Binding CanCheckUpdate}" />
+            <Button Content="Später" Click="DismissUpdate" IsEnabled="{Binding CanCheckUpdate}" />
+          </StackPanel>
+        </Grid>
       </Border>
 
       <Border DockPanel.Dock="Bottom" Background="{StaticResource Rail}" BorderBrush="{StaticResource Line}"
@@ -274,211 +291,235 @@
         </Grid>
 
         <!-- 2 · Einstellungen -->
-        <ScrollViewer IsVisible="{Binding ShowSettings}">
-          <StackPanel Spacing="14">
-            <Border Classes="card">
-              <StackPanel Spacing="12">
-                <TextBlock Classes="h" Text="Konfigurationsdatei" />
-                <StackPanel Orientation="Horizontal" Spacing="10">
-                  <Button Content="Laden …" Click="LoadConfig" IsEnabled="{Binding Idle}" />
-                  <Button Content="Python-Konfiguration übernehmen …" Click="ImportConfig"
-                          IsEnabled="{Binding Idle}" />
-                  <Button Content="Speichern" Click="SaveConfigHere" IsEnabled="{Binding Idle}" />
-                  <Button Content="Speichern unter …" Click="SaveConfig" IsEnabled="{Binding Idle}" />
-                </StackPanel>
-                <TextBlock Classes="dim mono" Text="{Binding Settings.ConfigPath}" TextWrapping="Wrap" />
-              </StackPanel>
-            </Border>
-
-            <Border Classes="card">
-              <StackPanel Spacing="12">
-                <Grid ColumnDefinitions="*,Auto">
-                  <StackPanel Spacing="3">
-                    <TextBlock Classes="h" Text="Aktualisierung" />
-                    <TextBlock Classes="dim" Text="{Binding VersionText}" />
-                  </StackPanel>
-                  <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10">
-                    <Button Content="Update prüfen" Click="CheckUpdates"
-                            IsEnabled="{Binding CanCheckUpdate}" />
-                    <Button Classes="primary" Content="Aktualisieren und neu starten"
-                            Click="ApplyUpdate" IsVisible="{Binding UpdateReady}"
-                            IsEnabled="{Binding CanCheckUpdate}" />
-                  </StackPanel>
-                </Grid>
-                <TextBlock Classes="dim" Text="{Binding UpdateStatus}" TextWrapping="Wrap" />
-                <StackPanel Orientation="Horizontal" Spacing="20">
-                  <CheckBox Content="Beim Start automatisch nach Updates suchen"
-                            IsChecked="{Binding Settings.AutomaticUpdates}" />
-                  <CheckBox Content="Auch Vorabversionen"
-                            IsChecked="{Binding Settings.PrereleaseUpdates}" />
-                </StackPanel>
-                <StackPanel Spacing="4">
-                  <TextBlock Classes="dim" Text="Repository der Releases" />
-                  <TextBox Text="{Binding Settings.RepositoryUrl}" MinWidth="420"
-                           AutomationProperties.Name="Repository für Aktualisierungen" />
-                </StackPanel>
-              </StackPanel>
-            </Border>
-
-            <Border Classes="card">
-              <StackPanel Spacing="12">
-                <TextBlock Classes="h" Text="Erkennung" />
-                <StackPanel Spacing="4">
-                  <TextBlock Classes="dim" Text="Spielernamen, mit Komma getrennt" />
-                  <TextBox Text="{Binding Settings.PlayerNames}" MinWidth="360"
-                           AutomationProperties.Name="Spielernamen" />
-                </StackPanel>
-                <StackPanel Spacing="4">
-                  <TextBlock Classes="dim" Text="Erkennungsmodus" />
-                  <StackPanel Orientation="Horizontal" Spacing="20">
-                    <RadioButton GroupName="mode" Content="Killfeed-OCR"
-                                 IsChecked="{Binding Settings.OcrMode}" />
-                    <RadioButton GroupName="mode" Content="Persönliche Kill-Anzeige (Vorlagen)"
-                                 IsChecked="{Binding Settings.TemplateMode}" />
-                  </StackPanel>
-                  <TextBlock Classes="dim" TextWrapping="Wrap"
-                             Text="Der Vorlagenmodus braucht detection.region und Vorlagenbilder in der Konfigurationsdatei." />
-                </StackPanel>
-                <StackPanel Spacing="6">
-                  <TextBlock Classes="dim" Text="Killfeed-Bereich in Pixeln" />
-                  <StackPanel Orientation="Horizontal" Spacing="8">
-                    <TextBlock Text="x" VerticalAlignment="Center" Classes="dim" />
-                    <TextBox Text="{Binding Settings.RegionX}" Width="84" AutomationProperties.Name="Bereich x" />
-                    <TextBlock Text="y" VerticalAlignment="Center" Classes="dim" />
-                    <TextBox Text="{Binding Settings.RegionY}" Width="84" AutomationProperties.Name="Bereich y" />
-                    <TextBlock Text="Breite" VerticalAlignment="Center" Classes="dim" />
-                    <TextBox Text="{Binding Settings.RegionWidth}" Width="84" AutomationProperties.Name="Bereich Breite" />
-                    <TextBlock Text="Höhe" VerticalAlignment="Center" Classes="dim" />
-                    <TextBox Text="{Binding Settings.RegionHeight}" Width="84" AutomationProperties.Name="Bereich Höhe" />
-                    <Button Content="Im Video markieren …" Click="PickRegion" IsEnabled="{Binding Idle}" />
-                  </StackPanel>
-                  <TextBlock Classes="dim" TextWrapping="Wrap"
-                             Text="Bei 0 gilt der BF6-Standard: oben rechts, passend zur Auflösung jeder Aufnahme. Nur bei geänderter HUD-Größe im Spiel einen eigenen Bereich markieren." />
-                </StackPanel>
-                <StackPanel Spacing="6">
-                  <TextBlock Classes="dim" Text="Ähnlichkeitsschwellen" />
-                  <StackPanel Orientation="Horizontal" Spacing="12">
+        <TabControl IsVisible="{Binding ShowSettings}" Padding="0,10,0,0">
+          <TabItem Header="Erkennung">
+            <ScrollViewer>
+              <StackPanel Spacing="14">
+                <Border Classes="card">
+                  <StackPanel Spacing="12">
+                    <TextBlock Classes="h" Text="Erkennung" />
                     <StackPanel Spacing="4">
-                      <TextBlock Classes="dim" Text="Name" />
-                      <TextBox Text="{Binding Settings.NameThreshold}" Width="80"
-                               AutomationProperties.Name="Namensähnlichkeit" />
+                      <TextBlock Classes="dim" Text="Spielernamen, mit Komma getrennt" />
+                      <TextBox Text="{Binding Settings.PlayerNames}" MinWidth="360"
+                               AutomationProperties.Name="Spielernamen" />
                     </StackPanel>
                     <StackPanel Spacing="4">
-                      <TextBlock Classes="dim" Text="Zeile" />
-                      <TextBox Text="{Binding Settings.TextThreshold}" Width="80"
-                               AutomationProperties.Name="Zeilenähnlichkeit" />
+                      <TextBlock Classes="dim" Text="Erkennungsmodus" />
+                      <StackPanel Orientation="Horizontal" Spacing="20">
+                        <RadioButton GroupName="mode" Content="Killfeed-OCR"
+                                     IsChecked="{Binding Settings.OcrMode}" />
+                        <RadioButton GroupName="mode" Content="Persönliche Kill-Anzeige (Vorlagen)"
+                                     IsChecked="{Binding Settings.TemplateMode}" />
+                      </StackPanel>
+                      <TextBlock Classes="dim" TextWrapping="Wrap"
+                                 Text="Der Vorlagenmodus braucht detection.region und Vorlagenbilder in der Konfigurationsdatei." />
                     </StackPanel>
-                    <StackPanel Spacing="4">
-                      <TextBlock Classes="dim" Text="Gegner" />
-                      <TextBox Text="{Binding Settings.OpponentThreshold}" Width="80"
-                               AutomationProperties.Name="Gegnerähnlichkeit" />
+                    <StackPanel Spacing="6">
+                      <TextBlock Classes="dim" Text="Killfeed-Bereich in Pixeln" />
+                      <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBlock Text="x" VerticalAlignment="Center" Classes="dim" />
+                        <TextBox Text="{Binding Settings.RegionX}" Width="84" AutomationProperties.Name="Bereich x" />
+                        <TextBlock Text="y" VerticalAlignment="Center" Classes="dim" />
+                        <TextBox Text="{Binding Settings.RegionY}" Width="84" AutomationProperties.Name="Bereich y" />
+                        <TextBlock Text="Breite" VerticalAlignment="Center" Classes="dim" />
+                        <TextBox Text="{Binding Settings.RegionWidth}" Width="84" AutomationProperties.Name="Bereich Breite" />
+                        <TextBlock Text="Höhe" VerticalAlignment="Center" Classes="dim" />
+                        <TextBox Text="{Binding Settings.RegionHeight}" Width="84" AutomationProperties.Name="Bereich Höhe" />
+                        <Button Content="Im Video markieren …" Click="PickRegion" IsEnabled="{Binding Idle}" />
+                      </StackPanel>
+                      <TextBlock Classes="dim" TextWrapping="Wrap"
+                                 Text="Bei 0 gilt der BF6-Standard: oben rechts, passend zur Auflösung jeder Aufnahme. Nur bei geänderter HUD-Größe im Spiel einen eigenen Bereich markieren." />
                     </StackPanel>
-                  </StackPanel>
-                </StackPanel>
-              </StackPanel>
-            </Border>
-
-            <Border Classes="card">
-              <StackPanel Spacing="12">
-                <Grid ColumnDefinitions="*,Auto">
-                  <StackPanel Spacing="3">
-                    <TextBlock Classes="h" Text="Persönliches Erkennungsprofil" />
-                    <TextBlock Classes="dim" Text="{Binding ProfileState}" />
-                  </StackPanel>
-                  <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10">
-                    <Button Content="Profil trainieren …" Click="TrainProfile"
-                            IsEnabled="{Binding Idle}" />
-                    <Button Content="Standarderkennung" Click="UseStandardDetection"
-                            IsEnabled="{Binding ProfileActive}" />
-                  </StackPanel>
-                </Grid>
-                <TextBlock Classes="dim" TextWrapping="Wrap"
-                           Text="Das Training kalibriert Schwellenwerte auf geprüfte Samples. Es verändert die mitgelieferten Modelle nicht, läuft lokal und nutzt für die Wahl nur Entwicklungsfälle." />
-                <StackPanel Orientation="Horizontal" Spacing="10">
-                  <TextBlock Text="Name" VerticalAlignment="Center" Classes="dim" />
-                  <TextBox Name="ProfileName" Width="220" Text="Persönliches Profil"
-                           AutomationProperties.Name="Name des Profils" />
-                  <CheckBox Name="AllowHints" Content="Ungeprüfte Labels verwenden"
-                            ToolTip.Tip="Nur setzen, wenn die Labels der Samples stimmen." />
-                </StackPanel>
-                <Border IsVisible="{Binding HasTrainingResult}" Background="#181B1F"
-                        BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="6"
-                        Padding="12,10">
-                  <StackPanel Spacing="10">
-                    <SelectableTextBlock Classes="mono" Text="{Binding TrainingResult}"
-                                         TextWrapping="Wrap" />
-                    <StackPanel Orientation="Horizontal" Spacing="10">
-                      <Button Classes="primary" Content="Profil aktivieren" Click="ActivateProfile" />
-                      <Button Content="Verwerfen" Click="DiscardProfile" />
+                    <StackPanel Spacing="6">
+                      <TextBlock Classes="dim" Text="Ähnlichkeitsschwellen" />
+                      <StackPanel Orientation="Horizontal" Spacing="12">
+                        <StackPanel Spacing="4">
+                          <TextBlock Classes="dim" Text="Name" />
+                          <TextBox Text="{Binding Settings.NameThreshold}" Width="80"
+                                   AutomationProperties.Name="Namensähnlichkeit" />
+                        </StackPanel>
+                        <StackPanel Spacing="4">
+                          <TextBlock Classes="dim" Text="Zeile" />
+                          <TextBox Text="{Binding Settings.TextThreshold}" Width="80"
+                                   AutomationProperties.Name="Zeilenähnlichkeit" />
+                        </StackPanel>
+                        <StackPanel Spacing="4">
+                          <TextBlock Classes="dim" Text="Gegner" />
+                          <TextBox Text="{Binding Settings.OpponentThreshold}" Width="80"
+                                   AutomationProperties.Name="Gegnerähnlichkeit" />
+                        </StackPanel>
+                      </StackPanel>
                     </StackPanel>
                   </StackPanel>
                 </Border>
               </StackPanel>
-            </Border>
-
-            <Border Classes="card">
-              <StackPanel Spacing="12">
-                <TextBlock Classes="h" Text="Leistung" />
-                <StackPanel Orientation="Horizontal" Spacing="18">
-                  <StackPanel Spacing="4">
-                    <TextBlock Classes="dim" Text="Bilder pro Sekunde" />
-                    <TextBox Text="{Binding Settings.SamplesPerSecond}" Width="84"
-                             AutomationProperties.Name="Bilder pro Sekunde" />
+            </ScrollViewer>
+          </TabItem>
+          <TabItem Header="Profil">
+            <ScrollViewer>
+              <StackPanel Spacing="14">
+                <Border Classes="card">
+                  <StackPanel Spacing="12">
+                    <Grid ColumnDefinitions="*,Auto">
+                      <StackPanel Spacing="3">
+                        <TextBlock Classes="h" Text="Persönliches Erkennungsprofil" />
+                        <TextBlock Classes="dim" Text="{Binding ProfileState}" />
+                      </StackPanel>
+                      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10">
+                        <Button Content="Profil trainieren …" Click="TrainProfile"
+                                IsEnabled="{Binding Idle}" />
+                        <Button Content="Standarderkennung" Click="UseStandardDetection"
+                                IsEnabled="{Binding ProfileActive}" />
+                      </StackPanel>
+                    </Grid>
+                    <TextBlock Classes="dim" TextWrapping="Wrap"
+                               Text="Das Training kalibriert Schwellenwerte auf geprüfte Samples. Es verändert die mitgelieferten Modelle nicht, läuft lokal und nutzt für die Wahl nur Entwicklungsfälle." />
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                      <TextBlock Text="Name" VerticalAlignment="Center" Classes="dim" />
+                      <TextBox Name="ProfileName" Width="220" Text="Persönliches Profil"
+                               AutomationProperties.Name="Name des Profils" />
+                      <CheckBox Name="AllowHints" Content="Ungeprüfte Labels verwenden"
+                                ToolTip.Tip="Nur setzen, wenn die Labels der Samples stimmen." />
+                    </StackPanel>
+                    <Border IsVisible="{Binding HasTrainingResult}" Background="#181B1F"
+                            BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="6"
+                            Padding="12,10">
+                      <StackPanel Spacing="10">
+                        <SelectableTextBlock Classes="mono" Text="{Binding TrainingResult}"
+                                             TextWrapping="Wrap" />
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                          <Button Classes="primary" Content="Profil aktivieren" Click="ActivateProfile" />
+                          <Button Content="Verwerfen" Click="DiscardProfile" />
+                        </StackPanel>
+                      </StackPanel>
+                    </Border>
                   </StackPanel>
-                  <StackPanel Spacing="4">
-                    <TextBlock Classes="dim" Text="Parallele OCR" />
-                    <TextBox Text="{Binding Settings.MaxWorkers}" Width="84"
-                             AutomationProperties.Name="Parallele OCR-Aufrufe" />
-                  </StackPanel>
-                  <CheckBox Content="Änderungserkennung" IsChecked="{Binding Settings.ChangeDetection}"
-                            VerticalAlignment="Bottom" />
-                </StackPanel>
-                <TextBlock Classes="dim" TextWrapping="Wrap"
-                           Text="Jeder parallele OCR-Aufruf hält eine eigene Modellsitzung von gut 100 MB. Mehr Parallelität kostet Speicher." />
+                </Border>
               </StackPanel>
-            </Border>
-
-            <Border Classes="card">
-              <StackPanel Spacing="12">
-                <TextBlock Classes="h" Text="Clips und Ausgabe" />
-                <StackPanel Orientation="Horizontal" Spacing="18">
-                  <StackPanel Spacing="4">
-                    <TextBlock Classes="dim" Text="Vorlauf s" />
-                    <TextBox Text="{Binding Settings.SecondsBefore}" Width="84"
-                             AutomationProperties.Name="Vorlauf" />
+            </ScrollViewer>
+          </TabItem>
+          <TabItem Header="Leistung">
+            <ScrollViewer>
+              <StackPanel Spacing="14">
+                <Border Classes="card">
+                  <StackPanel Spacing="12">
+                    <TextBlock Classes="h" Text="Leistung" />
+                    <StackPanel Orientation="Horizontal" Spacing="18">
+                      <StackPanel Spacing="4">
+                        <TextBlock Classes="dim" Text="Bilder pro Sekunde" />
+                        <TextBox Text="{Binding Settings.SamplesPerSecond}" Width="84"
+                                 AutomationProperties.Name="Bilder pro Sekunde" />
+                      </StackPanel>
+                      <StackPanel Spacing="4">
+                        <TextBlock Classes="dim" Text="Parallele OCR" />
+                        <TextBox Text="{Binding Settings.MaxWorkers}" Width="84"
+                                 AutomationProperties.Name="Parallele OCR-Aufrufe" />
+                      </StackPanel>
+                      <CheckBox Content="Änderungserkennung" IsChecked="{Binding Settings.ChangeDetection}"
+                                VerticalAlignment="Bottom" />
+                    </StackPanel>
+                    <TextBlock Classes="dim" TextWrapping="Wrap"
+                               Text="Jeder parallele OCR-Aufruf hält eine eigene Modellsitzung von gut 100 MB. Mehr Parallelität kostet Speicher." />
                   </StackPanel>
-                  <StackPanel Spacing="4">
-                    <TextBlock Classes="dim" Text="Nachlauf s" />
-                    <TextBox Text="{Binding Settings.SecondsAfter}" Width="84"
-                             AutomationProperties.Name="Nachlauf" />
-                  </StackPanel>
-                  <StackPanel Spacing="4">
-                    <TextBlock Classes="dim" Text="Zusammenführen ab s" />
-                    <TextBox Text="{Binding Settings.MergeGap}" Width="84"
-                             AutomationProperties.Name="Zusammenführungsabstand" />
-                  </StackPanel>
-                </StackPanel>
-                <StackPanel Spacing="4">
-                  <TextBlock Classes="dim" Text="Schnittart" />
-                  <StackPanel Orientation="Horizontal" Spacing="20">
-                    <RadioButton GroupName="export" Content="Präziser Schnitt (neu kodieren)"
-                                 IsChecked="{Binding Settings.AccurateExport}" />
-                    <RadioButton GroupName="export" Content="Schnell (Stream kopieren)"
-                                 IsChecked="{Binding Settings.FastExport}" />
-                  </StackPanel>
-                </StackPanel>
-                <StackPanel Spacing="4">
-                  <TextBlock Classes="dim" Text="Ausgabeordner" />
-                  <StackPanel Orientation="Horizontal" Spacing="8">
-                    <TextBox Text="{Binding Settings.OutputDirectory}" MinWidth="380"
-                             AutomationProperties.Name="Ausgabeordner" />
-                    <Button Content="Wählen …" Click="ChooseOutput" IsEnabled="{Binding Idle}" />
-                  </StackPanel>
-                </StackPanel>
+                </Border>
               </StackPanel>
-            </Border>
-          </StackPanel>
-        </ScrollViewer>
+            </ScrollViewer>
+          </TabItem>
+          <TabItem Header="Clips">
+            <ScrollViewer>
+              <StackPanel Spacing="14">
+                <Border Classes="card">
+                  <StackPanel Spacing="12">
+                    <TextBlock Classes="h" Text="Clips und Ausgabe" />
+                    <StackPanel Orientation="Horizontal" Spacing="18">
+                      <StackPanel Spacing="4">
+                        <TextBlock Classes="dim" Text="Vorlauf s" />
+                        <TextBox Text="{Binding Settings.SecondsBefore}" Width="84"
+                                 AutomationProperties.Name="Vorlauf" />
+                      </StackPanel>
+                      <StackPanel Spacing="4">
+                        <TextBlock Classes="dim" Text="Nachlauf s" />
+                        <TextBox Text="{Binding Settings.SecondsAfter}" Width="84"
+                                 AutomationProperties.Name="Nachlauf" />
+                      </StackPanel>
+                      <StackPanel Spacing="4">
+                        <TextBlock Classes="dim" Text="Zusammenführen ab s" />
+                        <TextBox Text="{Binding Settings.MergeGap}" Width="84"
+                                 AutomationProperties.Name="Zusammenführungsabstand" />
+                      </StackPanel>
+                    </StackPanel>
+                    <StackPanel Spacing="4">
+                      <TextBlock Classes="dim" Text="Schnittart" />
+                      <StackPanel Orientation="Horizontal" Spacing="20">
+                        <RadioButton GroupName="export" Content="Präziser Schnitt (neu kodieren)"
+                                     IsChecked="{Binding Settings.AccurateExport}" />
+                        <RadioButton GroupName="export" Content="Schnell (Stream kopieren)"
+                                     IsChecked="{Binding Settings.FastExport}" />
+                      </StackPanel>
+                    </StackPanel>
+                    <StackPanel Spacing="4">
+                      <TextBlock Classes="dim" Text="Ausgabeordner" />
+                      <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBox Text="{Binding Settings.OutputDirectory}" MinWidth="380"
+                                 AutomationProperties.Name="Ausgabeordner" />
+                        <Button Content="Wählen …" Click="ChooseOutput" IsEnabled="{Binding Idle}" />
+                      </StackPanel>
+                    </StackPanel>
+                  </StackPanel>
+                </Border>
+              </StackPanel>
+            </ScrollViewer>
+          </TabItem>
+          <TabItem Header="Allgemein">
+            <ScrollViewer>
+              <StackPanel Spacing="14">
+                <Border Classes="card">
+                  <StackPanel Spacing="12">
+                    <TextBlock Classes="h" Text="Konfigurationsdatei" />
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                      <Button Content="Laden …" Click="LoadConfig" IsEnabled="{Binding Idle}" />
+                      <Button Content="Python-Konfiguration übernehmen …" Click="ImportConfig"
+                              IsEnabled="{Binding Idle}" />
+                      <Button Content="Speichern" Click="SaveConfigHere" IsEnabled="{Binding Idle}" />
+                      <Button Content="Speichern unter …" Click="SaveConfig" IsEnabled="{Binding Idle}" />
+                    </StackPanel>
+                    <TextBlock Classes="dim mono" Text="{Binding Settings.ConfigPath}" TextWrapping="Wrap" />
+                  </StackPanel>
+                </Border>
+
+                <Border Classes="card">
+                  <StackPanel Spacing="12">
+                    <Grid ColumnDefinitions="*,Auto">
+                      <StackPanel Spacing="3">
+                        <TextBlock Classes="h" Text="Aktualisierung" />
+                        <TextBlock Classes="dim" Text="{Binding VersionText}" />
+                      </StackPanel>
+                      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10">
+                        <Button Content="Update prüfen" Click="CheckUpdates"
+                                IsEnabled="{Binding CanCheckUpdate}" />
+                        <Button Classes="primary" Content="Aktualisieren und neu starten"
+                                Click="ApplyUpdate" IsVisible="{Binding UpdateReady}"
+                                IsEnabled="{Binding CanCheckUpdate}" />
+                      </StackPanel>
+                    </Grid>
+                    <TextBlock Classes="dim" Text="{Binding UpdateStatus}" TextWrapping="Wrap" />
+                    <StackPanel Orientation="Horizontal" Spacing="20">
+                      <CheckBox Content="Beim Start automatisch nach Updates suchen"
+                                IsChecked="{Binding Settings.AutomaticUpdates}" />
+                      <CheckBox Content="Auch Vorabversionen"
+                                IsChecked="{Binding Settings.PrereleaseUpdates}" />
+                    </StackPanel>
+                    <StackPanel Spacing="4">
+                      <TextBlock Classes="dim" Text="Repository der Releases" />
+                      <TextBox Text="{Binding Settings.RepositoryUrl}" MinWidth="420"
+                               AutomationProperties.Name="Repository für Aktualisierungen" />
+                    </StackPanel>
+                  </StackPanel>
+                </Border>
+              </StackPanel>
+            </ScrollViewer>
+          </TabItem>
+        </TabControl>
 
         <!-- 3 · Analyse -->
         <Grid IsVisible="{Binding ShowAnalysis}" RowDefinitions="Auto,Auto,*">

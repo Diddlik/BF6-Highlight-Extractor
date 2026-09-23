@@ -443,7 +443,20 @@ public sealed class MainViewModel : Observable
     public string VersionText => "Version " + updates.Version;
 
     private bool updateReady;
-    public bool UpdateReady { get => updateReady; private set => Set(ref updateReady, value); }
+    public bool UpdateReady
+    {
+        get => updateReady;
+        private set { Set(ref updateReady, value); Raise(nameof(ShowUpdateNotice)); }
+    }
+
+    // The banner over every page; "Später" hides it until the next start.
+    private bool updateDismissed;
+    public bool ShowUpdateNotice => UpdateReady && !updateDismissed;
+    public void DismissUpdate()
+    {
+        updateDismissed = true;
+        Raise(nameof(ShowUpdateNotice));
+    }
 
     private bool checkingUpdate;
     public bool CheckingUpdate

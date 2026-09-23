@@ -211,6 +211,8 @@ public sealed partial class MainWindow : Window
     private async void ApplyUpdate(object? sender, RoutedEventArgs e) =>
         await model.ApplyUpdateAsync();
 
+    private void DismissUpdate(object? sender, RoutedEventArgs e) => model.DismissUpdate();
+
     private async void TrainProfile(object? sender, RoutedEventArgs e)
     {
         if (model.Busy || !BeginDialog()) return;
