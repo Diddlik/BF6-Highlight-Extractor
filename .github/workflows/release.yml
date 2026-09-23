@@ -23,9 +23,9 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '10.0.x'
 
@@ -87,7 +87,7 @@ jobs:
           ./src/release.ps1 @arguments
 
       - name: Paket als Artefakt sichern
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: velopack-${{ steps.version.outputs.value }}
           path: output/velopack
