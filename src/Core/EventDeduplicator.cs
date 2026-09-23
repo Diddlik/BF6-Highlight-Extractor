@@ -5,7 +5,8 @@ public sealed class EventDeduplicator
     private readonly DetectionSettings settings;
     private readonly List<Recent> recent = [];
     private readonly Dictionary<string, double> lastTimestamp = new(StringComparer.Ordinal);
-    private sealed record Recent(KillCandidate Event, string Text, string Opponent)
+    // Every spelling the OCR produced for the opponent of one killfeed row ("darkrabbit", "derkrabbit").
+    private sealed record Recent(KillCandidate Event, string Text, List<string> Opponents)
     { public double LastSeen { get; set; } = Event.TimestampSeconds; }
 
     public EventDeduplicator(DetectionSettings settings) { settings.Validate(); this.settings = settings; }
@@ -27,13 +28,18 @@ public sealed class EventDeduplicator
             if (entry.Event.SourceVideo != candidate.SourceVideo ||
                 entry.Event.PlayerNameConfigured != candidate.PlayerNameConfigured ||
                 entry.Event.EventType != candidate.EventType) continue;
-            if (NameMatching.TokenSortRatio(text, entry.Text) < settings.TextThreshold) continue;
-            if (opponent.Length != 0 && entry.Opponent.Length != 0 &&
-                NameMatching.TokenSortRatio(opponent, entry.Opponent) < settings.OpponentThreshold) continue;
+            // The weapon icon and the own name come out as noise ("DA 62", "BullefWalfz"), so the row text
+            // alone misses repeats. The same opponent cannot die twice within the window, and a row whose
+            // opponent was not read cannot be told apart from the one already on screen.
+            var repeat = NameMatching.TokenSortRatio(text, entry.Text) >= settings.TextThreshold
+                || opponent.Length == 0 || entry.Opponents.Count == 0
+                || entry.Opponents.Any(known => NameMatching.TokenSortRatio(opponent, known) >= settings.OpponentThreshold);
+            if (!repeat) continue;
             entry.LastSeen = now;
+            if (opponent.Length != 0) entry.Opponents.Add(opponent);
             return false;
         }
-        recent.Add(new(candidate, text, opponent));
+        recent.Add(new(candidate, text, opponent.Length == 0 ? [] : [opponent]));
         return true;
     }
 }

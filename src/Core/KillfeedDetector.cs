@@ -48,6 +48,12 @@ public sealed class KillfeedDetector
     /// </summary>
     public const string VictimSide = "name_not_on_killer_side";
 
+    /// <summary>
+    /// Rejection reason for a ping or marking ("BulletWaltz hat eine Gefahr gepingt", "Ping abgebrochen").
+    /// These share the killfeed with kills, but a kill row holds only names and the weapon icon, never a sentence.
+    /// </summary>
+    public const string PingMessage = "ping_message";
+
     private readonly DetectionSettings settings;
     private readonly (string Original, string Normalized)[] names;
     private sealed record Token(string Text, double Confidence, int X0, int X1, int Y, int Height)
@@ -61,6 +67,23 @@ public sealed class KillfeedDetector
     }
 
     private string Normalize(string value) => NameMatching.Normalize(value, settings.StripSpecial, settings.Confusables);
+
+    // Thresholds tolerate the usual OCR damage seen in recordings: "gepngf", "het cine", "hai ein".
+    private bool IsPing(IEnumerable<Token> others)
+    {
+        var words = Normalize(string.Join(' ', others.Select(t => t.Text)))
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        for (var index = 0; index < words.Length; index++)
+        {
+            var word = words[index];
+            if (word.EndsWith("ping", StringComparison.Ordinal) || NameMatching.Ratio(word, "gepingt") >= 70
+                || NameMatching.Ratio(word, "pinged") >= 75) return true;
+            if (index + 1 < words.Length && NameMatching.Ratio(word, "hat") >= 66
+                && (words[index + 1].StartsWith("ein", StringComparison.Ordinal)
+                    || NameMatching.Ratio(words[index + 1], "eine") >= 75)) return true;
+        }
+        return false;
+    }
 
     public DetectionResult Detect(IReadOnlyList<OcrLine> lines, PixelRegion region,
         double timestamp, int frameNumber, string source)
@@ -126,6 +149,7 @@ public sealed class KillfeedDetector
                     ? center < other.Average(t => t.Center) : center > other.Average(t => t.Center)));
             var reason = score < settings.NameThreshold ? "similarity_below_threshold"
                 : confidence < settings.MinimumConfidence ? "ocr_confidence_below_minimum"
+                : IsPing(other) ? PingMessage
                 : !side ? VictimSide : null;
             if (reason is not null) { rejected.Add(new(raw, reason, score, timestamp)); continue; }
             var rest = settings.KillerSide == "left" ? row[last..] : row[..first];
