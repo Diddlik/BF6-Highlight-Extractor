@@ -35,7 +35,7 @@ try {
         $toolDirectory = Join-Path $target 'tools'
         New-Item -ItemType Directory -Force -Path $toolDirectory | Out-Null
         Copy-Item -LiteralPath $tools -Destination $toolDirectory -Force
-        Copy-Item -LiteralPath (Join-Path $PSScriptRoot '../config.example.yaml') `
+        Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'config.example.yaml') `
             -Destination (Join-Path $target 'config.example.yaml') -Force
 
         # Record which FFmpeg build was shipped; the options decide the licence of the package.
