@@ -623,8 +623,8 @@
                                            FontWeight="SemiBold" FontSize="12" />
                               </Border>
                               <TextBlock Classes="mono" Text="{Binding Range}" VerticalAlignment="Center" />
-                              <TextBlock Classes="dim" Text="{Binding Quality}" VerticalAlignment="Center" />
                             </StackPanel>
+                            <TextBlock Classes="dim" Text="{Binding Quality}" TextTrimming="CharacterEllipsis" />
                             <TextBlock Classes="dim" Text="{Binding SourceName}" />
                             <TextBlock Classes="dim" Text="{Binding Opponents}" />
                           </StackPanel>

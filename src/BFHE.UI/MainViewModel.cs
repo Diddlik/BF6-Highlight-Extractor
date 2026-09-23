@@ -618,10 +618,11 @@ public sealed class MainViewModel : Observable
                 Stage = "Analyse: " + video.FileName;
                 var target = System.IO.Path.Combine(Settings.OutputDirectory,
                     System.IO.Path.GetFileNameWithoutExtension(video.Path));
-                DetectionNote = service.DetectionNote;
                 var result = await Task.Run(() => service.RunAsync(video.Path, target,
                     new Progress<AnalysisProgress>(update =>
                     {
+                        // RunAsync decides whether the profile fits this recording before it reports progress.
+                        DetectionNote = service.DetectionNote;
                         Progress = update.Percent;
                         Stage = $"{video.FileName}: {StepName(update.Stage)}";
                         Step = StepName(update.Stage);
