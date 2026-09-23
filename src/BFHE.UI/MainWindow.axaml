@@ -352,6 +352,8 @@
                     <TextBox Text="{Binding Settings.RegionHeight}" Width="84" AutomationProperties.Name="Bereich Höhe" />
                     <Button Content="Im Video markieren …" Click="PickRegion" IsEnabled="{Binding Idle}" />
                   </StackPanel>
+                  <TextBlock Classes="dim" TextWrapping="Wrap"
+                             Text="Bei 0 gilt der BF6-Standard: oben rechts, passend zur Auflösung jeder Aufnahme. Nur bei geänderter HUD-Größe im Spiel einen eigenen Bereich markieren." />
                 </StackPanel>
                 <StackPanel Spacing="6">
                   <TextBlock Classes="dim" Text="Ähnlichkeitsschwellen" />

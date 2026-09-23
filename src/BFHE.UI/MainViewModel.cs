@@ -179,7 +179,7 @@ public sealed class MainViewModel : Observable
     public string VideosState => Videos.Count == 0 ? "offen"
         : Videos.Any(video => !video.Valid) ? "Hinweis" : "bereit";
     public string SettingsState => string.IsNullOrWhiteSpace(Settings.OutputDirectory) ? "offen"
-        : Settings.RegionForEditor() is null ? "Bereich fehlt" : "bereit";
+        : Settings.RegionForEditor() is null ? "Standardbereich" : "bereit";
     public string AnalysisState => Busy && !Exporting ? "läuft"
         : analysisFailed ? "Fehler"
         : analysisDone ? (interruptedRun ? "abgebrochen" : "fertig")
@@ -823,7 +823,7 @@ public sealed class MainViewModel : Observable
         var region = Settings.RegionForEditor();
         return region is not null && region.Width <= video.Width && region.Height <= video.Height
             && region.X <= video.Width - region.Width && region.Y <= video.Height - region.Height
-            ? region : null;
+            ? region : Configuration.DefaultKillfeedRegion(video.Width, video.Height);
     }
 
     /// <summary>Takes the picked region and reports which resolution it belongs to.</summary>

@@ -66,8 +66,9 @@ ersten Start SmartScreen; über „Weitere Informationen“ lässt es sich trotz
    Größe und Tonspur, unlesbare Dateien nennen den Grund.
 2. **Spielernamen eintragen.** Unter *Einstellungen* genau so, wie er im Killfeed steht.
    Mehrere Schreibweisen mit Komma trennen.
-3. **Killfeed-Bereich markieren.** *Im Video markieren …* öffnet ein Bild der Aufnahme; dort
-   ein Rechteck über den Killfeed ziehen. Der Bereich gilt für diese Auflösung.
+3. **Killfeed-Bereich prüfen.** Ohne eigene Angabe gilt der BF6-Standard: oben rechts,
+   passend zur Auflösung jeder Aufnahme, auch bei Ultrawide. Nur wer die HUD-Größe im Spiel
+   verändert hat, markiert mit *Im Video markieren …* ein eigenes Rechteck über dem Killfeed.
 4. **Analyse starten.** Der Fortschritt zeigt Position im Video, verstrichene und
    geschätzte Restzeit, geprüfte Bilder, Erkennungsaufrufe und jeden bestätigten Kill,
    sobald er gefunden wird.

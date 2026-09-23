@@ -266,8 +266,6 @@ public sealed class ConfigurationTests : IDisposable
     public void RegionsOutsideTheVideoAndMissingRegionsAreReported()
     {
         var configuration = new Configuration { Player = new() { Names = ["BulletWaltz"] } };
-        Assert.Contains("Kein Killfeed-Bereich", Assert.Throws<ConfigurationException>(
-            () => configuration.ResolveKillfeedRegion(1920, 1080)).Message);
         Assert.Contains("Kein Erkennungsbereich", Assert.Throws<ConfigurationException>(
             () => configuration.ResolveDetectionRegion(1920, 1080)).Message);
         var narrow = configuration with
@@ -276,6 +274,19 @@ public sealed class ConfigurationTests : IDisposable
         };
         Assert.Contains("außerhalb", Assert.Throws<ConfigurationException>(
             () => narrow.ResolveKillfeedRegion(1920, 1080)).Message);
+    }
+
+    // 2560x1440 is the measured region; the others follow from the top-right anchor and the height.
+    [Theory]
+    [InlineData(2560, 1440, 1850, 173, 710, 295)]
+    [InlineData(1920, 1080, 1388, 130, 532, 221)]
+    [InlineData(3840, 2160, 2775, 260, 1065, 442)]
+    [InlineData(3440, 1440, 2730, 173, 710, 295)]
+    public void WithoutAConfiguredRegionTheBf6KillfeedIsUsed(int width, int height, int x, int y, int w, int h)
+    {
+        var configuration = new Configuration { Player = new() { Names = ["BulletWaltz"] } };
+        Assert.Equal(new RegionSettings { X = x, Y = y, Width = w, Height = h },
+            configuration.ResolveKillfeedRegion(width, height));
     }
 
     [Fact]

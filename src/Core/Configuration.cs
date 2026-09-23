@@ -204,7 +204,10 @@ public sealed record Configuration
         OpponentThreshold = Deduplication.OpponentSimilarityThreshold,
     };
 
-    /// <summary>Killfeed region for a resolution: matching profile, then normalized, then absolute.</summary>
+    /// <summary>
+    /// Killfeed region for a resolution: matching profile, then normalized, then absolute, then the
+    /// BF6 default.
+    /// </summary>
     public RegionSettings ResolveKillfeedRegion(int videoWidth, int videoHeight)
     {
         foreach (var profile in Profiles.Values)
@@ -215,8 +218,20 @@ public sealed record Configuration
                 videoWidth, videoHeight, "killfeed.region_normalized");
         if (Killfeed.Region is not null)
             return Inside(Killfeed.Region, videoWidth, videoHeight, "killfeed.region");
-        throw new ConfigurationException($"Kein Killfeed-Bereich für {videoWidth}x{videoHeight} "
-            + "konfiguriert. Bereich im Editor festlegen oder killfeed.region setzen.");
+        return DefaultKillfeedRegion(videoWidth, videoHeight);
+    }
+
+    /// <summary>
+    /// Where BF6 draws the killfeed. The HUD sits in the top-right corner and scales with the screen
+    /// height, so ultrawide recordings keep it at the right edge. Measured at 2560x1440 on reviewed
+    /// samples; a changed HUD scale in the game needs a region of its own.
+    /// </summary>
+    public static RegionSettings DefaultKillfeedRegion(int videoWidth, int videoHeight)
+    {
+        var scale = videoHeight / 1440d;
+        int Scaled(double pixels) => (int)Math.Round(pixels * scale, MidpointRounding.ToEven);
+        var width = Math.Min(videoWidth, Scaled(710));
+        return new() { X = videoWidth - width, Y = Scaled(173), Width = width, Height = Scaled(295) };
     }
 
     public RegionSettings ResolveDetectionRegion(int videoWidth, int videoHeight)

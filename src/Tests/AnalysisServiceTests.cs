@@ -244,11 +244,12 @@ public sealed class AnalysisServiceTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task AMissingRegionIsReported()
+    public async Task WithoutARegionTheBf6DefaultIsAnalysed()
     {
         var configuration = Config() with { Killfeed = new() };
-        await Assert.ThrowsAsync<ConfigurationException>(() => new AnalysisService(configuration,
-            () => new FakeOcr([])).RunAsync(video, Path.Combine(directory, "none")));
+        var result = await new AnalysisService(configuration, () => new FakeOcr([]))
+            .RunAsync(video, Path.Combine(directory, "default-region"));
+        Assert.Empty(result.Events);
     }
 
     [Fact]
