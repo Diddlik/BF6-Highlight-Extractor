@@ -9,6 +9,11 @@
              CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="model-manifest.json" Link="models/v5/model-manifest.json"
              CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="Models/row-classifier.onnx;Models/row-classifier.json" Link="models/%(Filename)%(Extension)"
+             CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <!-- Only the test needs the reference row; the package leaves it out. -->
+    <Content Include="Models/row-classifier-reference.png" Link="models/%(Filename)%(Extension)"
+             CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="Never" />
     <Content Include="../licenses/*" Link="licenses/%(Filename)%(Extension)"
              CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>

@@ -43,17 +43,28 @@ try
             foreach (var notice in imported.Notices) Console.WriteLine("Hinweis: " + notice);
             Console.WriteLine(Path.GetFullPath(target));
             break;
+        case ["export-rows", var input, var configuration, var destination]:
+            var rowsVideo = await new VideoService().ProbeAsync(input, cancel.Token);
+            var rowCount = await RowExporter.RunAsync(ConfigurationFile.Load(configuration), rowsVideo,
+                destination, () => new OnnxOcrEngine(), PersonalProfileStore.ActivePath,
+                token: cancel.Token);
+            Console.WriteLine($"{rowCount} Zeilen in {Path.GetFullPath(destination)}");
+            break;
         case ["analyze", var input, var configuration, var destination, .. var options]
             when options.Length == 0 || options is ["--export"]:
+        {
             var settings = ConfigurationFile.Load(configuration);
             var withClips = options.Length == 1;
+            using var rowClassifier = RowClassifier.Load(settings.Player.Names);
             var analysisService = new AnalysisService(settings, () => new OnnxOcrEngine())
             {
                 ProfilePath = PersonalProfileStore.ActivePath,
+                RowClassifier = rowClassifier,
             };
             var analysis = await analysisService.RunAsync(
                 input, destination, new ConsoleProgress(), cancel.Token, withClips);
-            Console.WriteLine("Erkennung: " + analysisService.DetectionNote);
+            Console.WriteLine("Erkennung: " + analysisService.DetectionNote
+                + (rowClassifier is null ? "" : ", mit Bildprüfung der Zeilen"));
             Console.WriteLine($"{analysis.Events.Count} Kill-Kandidaten, "
                 + $"{analysis.Segments.Count} Clip-Abschnitte, Berichte in {Path.GetFullPath(destination)}");
             Console.WriteLine(withClips
@@ -61,6 +72,7 @@ try
                 : "Ohne --export werden keine Clips geschrieben.");
             if (analysis.Interrupted) return 130;
             break;
+        }
         case ["export", var input, var eventFile, var configuration, var destination]:
             var clipSettings = ConfigurationFile.Load(configuration);
             var probe = await service.ProbeAsync(input, cancel.Token);
@@ -229,6 +241,7 @@ try
                 frame-check VIDEO ZEIT
                 ocr BILD [X Y BREITE HÖHE]
                 detect-samples ORDNER SPIELER X Y BREITE HÖHE BERICHT.json
+                export-rows VIDEO KONFIG.yaml ZIELORDNER  (Killfeed-Zeilen für den Zeilen-Klassifikator)
                 Liefert vorläufige Kill-Kandidaten je Sample, keine bestätigten Kills.
                 OCR: lokale PP-OCRv5-Modelle, CPU, Boxen in Originalbild-Koordinaten.
 

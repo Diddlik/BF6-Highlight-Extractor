@@ -35,6 +35,14 @@ diesen Sekunden nicht zweimal töten. Verschiedene Gegner bleiben getrennte Kill
 Pings und Markierungen (`… hat eine Gefahr gepingt`, `Ping abgebrochen`) stehen im selben
 Killfeed und tragen den eigenen Namen. Sie werden als Satz erkannt und verworfen.
 
+Zusätzlich prüft ein kleines Bildmodell jede Zeile, die die Texterkennung für einen eigenen
+Kill hält. Es sieht, was der Texterkennung entgeht: Waffensymbol oder Satz, eigener Name
+links oder rechts. Das Modell verwirft einen Kandidaten nur, wenn es mit mindestens 90 %
+Sicherheit einen Ping, einen eigenen Tod oder etwas anderes sieht; einen Kill fügt es nie
+hinzu. In zwei Messläufen auf zurückgehaltenen Aufnahmen (98 und 222 von Hand geprüfte
+Zeilen) ging dabei kein echter Kill verloren. Das Modell kennt bisher nur Aufnahmen in
+2560×1440 mit Standard-HUD. Es läuft lokal über ONNX Runtime, wie die Texterkennung.
+
 Aus den Zeitpunkten entstehen Clip-Abschnitte, standardmäßig drei Sekunden davor und zwei
 danach. Liegen Abschnitte dicht beieinander, werden sie zu einem Mehrfachkill-Clip
 zusammengefasst.
@@ -154,6 +162,24 @@ bf6-highlights.exe analyze "D:\Aufnahmen\match.mkv" config.yaml "D:\Highlights" 
 | `profiles`, `profile-activate`, `profile-off` | Profile auflisten, aktivieren, abschalten |
 
 Ohne Argumente zeigt die Anwendung die vollständige Liste.
+
+### Bildmodell nachtrainieren
+
+Nötig sind Python mit `torch`, `opencv-python` und `onnx`; die Anwendung selbst braucht kein
+Python.
+
+```powershell
+bf6-highlights export-rows "Aufnahme.mp4" config.yaml "T:\Rows\Aufnahme"   # je Aufnahme
+python src\Training\make_gallery.py T:\Rows 500      # erzeugt T:\Rows\gallery.html
+# gallery.html im Browser prüfen (K/P/T/A), labels.json nach T:\Rows speichern
+python src\Training\train.py T:\Rows T:\Rows\labels.json src\Core\Models --player BulletWaltz
+```
+
+Die Anwendung nutzt das Modell nur, wenn einer der mit `--player` genannten Namen
+eingestellt ist; für andere Spieler bleibt es bei der Texterkennung. `train.py` hält ganze
+Aufnahmen zurück, misst nur auf geprüften Zeilen und gibt aus, wie
+viele echte Kills die Veto-Schwelle kosten würde. Der Test `RowClassifierTests` stellt
+sicher, dass die Anwendung eine Zeile genauso aufbereitet wie das Training.
 
 ## Selbst bauen
 

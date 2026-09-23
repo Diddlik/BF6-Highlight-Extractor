@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Killfeed-Zeilen prüfen</title>
+<style>
+  :root { color-scheme: dark; --bg: #15171a; --card: #1e2126; --line: #2e3339; --text: #eceef1;
+          --muted: #a3a9b2; --accent: #e07b24; --kill: #6fcf7a; --ping: #5aafd4; --death: #e4695a; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 "Segoe UI", sans-serif; }
+  main { max-width: 900px; margin: 0 auto; padding: 24px 16px; }
+  .row { background: #000; border: 1px solid var(--line); border-radius: 8px; padding: 12px; }
+  .row img { display: block; width: 100%; image-rendering: auto; }
+  .meta { color: var(--muted); font-size: 13px; margin: 8px 0 16px; word-break: break-all; }
+  .keys { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
+  button { background: var(--card); color: var(--text); border: 1px solid var(--line); border-radius: 6px;
+           padding: 10px; font: inherit; cursor: pointer; }
+  button.hint { border-color: var(--accent); }
+  kbd { background: #262a30; border: 1px solid var(--line); border-radius: 4px; padding: 0 6px; }
+  .bar { height: 6px; background: #23272c; border-radius: 3px; margin: 12px 0 20px; }
+  .bar div { height: 100%; background: var(--accent); border-radius: 3px; }
+  .done { font-size: 18px; }
+</style>
+</head>
+<body>
+<main>
+  <h1 style="font-size:20px;margin:0">Killfeed-Zeilen prüfen</h1>
+  <div id="progress" class="meta"></div>
+  <div class="bar"><div id="fill"></div></div>
+  <div id="view"></div>
+  <p class="meta">Tasten: <kbd>K</kbd> Kill · <kbd>P</kbd> Ping/Markierung · <kbd>T</kbd> eigener Tod ·
+    <kbd>A</kbd> anderes · <kbd>Leertaste</kbd> Vorschlag übernehmen · <kbd>Rücktaste</kbd> zurück.
+    Der Stand bleibt im Browser gespeichert.</p>
+  <button id="export">labels.json herunterladen</button>
+</main>
+<script>
+const ROWS = /*ROWS*/[];
+const NAMES = { kill: "Kill", ping: "Ping/Markierung", death: "eigener Tod", other: "anderes" };
+const KEYS = { k: "kill", p: "ping", t: "death", a: "other" };
+const STORE = "bfhe-row-labels";
+let labels = {};
+try { labels = JSON.parse(localStorage.getItem(STORE) || "{}"); } catch { labels = {}; }
+let index = ROWS.findIndex(row => !(row.file in labels));
+if (index < 0) index = ROWS.length;
+
+const esc = text => String(text).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+
+function save() { try { localStorage.setItem(STORE, JSON.stringify(labels)); } catch {} }
+
+function render() {
+  const done = ROWS.filter(row => row.file in labels).length;
+  document.getElementById("progress").textContent = `${done} von ${ROWS.length} geprüft`;
+  document.getElementById("fill").style.width = `${ROWS.length ? 100 * done / ROWS.length : 0}%`;
+  const view = document.getElementById("view");
+  if (index >= ROWS.length) {
+    view.innerHTML = `<p class="done">Fertig. Jetzt „labels.json herunterladen“ klicken.</p>`;
+    return;
+  }
+  const row = ROWS[index];
+  const current = labels[row.file];
+  view.innerHTML = `<div class="row"><img src="${esc(encodeURI(row.file))}" alt=""></div>
+    <div class="meta">${esc(row.recording)} · ${row.time.toFixed(2)} s · OCR: ${esc(row.text || "(leer)")}
+      ${current ? " · bisher: " + NAMES[current] : ""}</div>
+    <div class="keys">${Object.entries(KEYS).map(([key, label]) =>
+      `<button data-label="${label}" class="${label === row.hint ? "hint" : ""}">
+        <kbd>${key.toUpperCase()}</kbd> ${NAMES[label]}</button>`).join("")}</div>`;
+  view.querySelectorAll("button").forEach(button =>
+    button.addEventListener("click", () => choose(button.dataset.label)));
+}
+
+function choose(label) {
+  if (index >= ROWS.length) return;
+  labels[ROWS[index].file] = label;
+  save();
+  index++;
+  render();
+}
+
+document.addEventListener("keydown", event => {
+  const key = event.key.toLowerCase();
+  if (key in KEYS) choose(KEYS[key]);
+  else if (key === " ") { event.preventDefault(); if (index < ROWS.length) choose(ROWS[index].hint); }
+  else if (key === "backspace") { event.preventDefault(); index = Math.max(0, index - 1); render(); }
+});
+
+document.getElementById("export").addEventListener("click", () => {
+  const blob = new Blob([JSON.stringify(labels, null, 1)], { type: "application/json" });
+  const link = Object.assign(document.createElement("a"),
+    { href: URL.createObjectURL(blob), download: "labels.json" });
+  link.click();
+  URL.revokeObjectURL(link.href);
+});
+
+render();
+</script>
+</body>
+</html>

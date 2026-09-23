@@ -34,6 +34,8 @@ public sealed class AnalysisService(Configuration configuration, Func<IOcrEngine
 {
     /// <summary>A personal profile to calibrate the detection with, or null for the standard.</summary>
     public string? ProfilePath { get; init; }
+    /// <summary>Checks every OCR kill against the picture of its row; null keeps the OCR alone.</summary>
+    public RowClassifier? RowClassifier { get; init; }
 
     /// <summary>Which detection the last run used; shown so nobody has to guess.</summary>
     public string DetectionNote { get; private set; } = "Standarderkennung";
@@ -88,7 +90,8 @@ public sealed class AnalysisService(Configuration configuration, Func<IOcrEngine
                         sample.Frame.TimestampSeconds, sample.Frame.Number, name);
                     deduplicator.Observe(detected.Rejections, name);
                     foreach (var candidate in detected.Candidates)
-                        if (deduplicator.Accept(candidate))
+                        if (RowClassifier?.Vetoes(sample.Frame.Image, candidate.RowY) != true
+                            && deduplicator.Accept(candidate))
                         {
                             events.Add(candidate);
                             lastEvent = candidate;

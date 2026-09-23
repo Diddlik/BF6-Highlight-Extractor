@@ -618,9 +618,11 @@ public sealed class MainViewModel : Observable
         try
         {
             var configuration = Settings.ToConfiguration();
+            using var rowClassifier = RowClassifier.Load(configuration.Player.Names);
             var service = new AnalysisService(configuration, () => new OnnxOcrEngine())
             {
                 ProfilePath = PersonalProfileStore.ActivePath,
+                RowClassifier = rowClassifier,
             };
             var queue = Videos.Where(item => item.Valid).ToArray();
             for (var index = 0; index < queue.Length; index++)

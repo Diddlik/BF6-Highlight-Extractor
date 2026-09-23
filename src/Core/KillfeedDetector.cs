@@ -36,7 +36,11 @@ public sealed record KillCandidate(double TimestampSeconds, string PlayerNameDet
     string PlayerNameConfigured, string? OpponentName, string? WeaponText, string RawText,
     double Confidence, double SimilarityScore, int FrameNumber, string SourceVideo, int RowY,
     string EventType = "kill", string DetectionMethod = "ocr");
-public sealed record DetectionRejection(string RowText, string Reason, double Score, double TimestampSeconds);
+public sealed record DetectionRejection(string RowText, string Reason, double Score, double TimestampSeconds)
+{
+    // Kept out of the reports, whose format is pinned by the reference data.
+    [System.Text.Json.Serialization.JsonIgnore] public int RowY { get; init; }
+}
 public sealed record DetectionResult(IReadOnlyList<KillCandidate> Candidates,
     IReadOnlyList<DetectionRejection> Rejections);
 
@@ -156,7 +160,11 @@ public sealed class KillfeedDetector
                 : confidence < settings.MinimumConfidence ? "ocr_confidence_below_minimum"
                 : IsPing(matched, other) ? PingMessage
                 : !side ? VictimSide : null;
-            if (reason is not null) { rejected.Add(new(raw, reason, score, timestamp)); continue; }
+            if (reason is not null)
+            {
+                rejected.Add(new(raw, reason, score, timestamp) { RowY = (int)row.Average(t => t.Y) });
+                continue;
+            }
             var rest = settings.KillerSide == "left" ? row[last..] : row[..first];
             // A victim name with a space ("Mahmoud Samy", or "Bad Trip95" as the OCR splits it) arrives as a
             // line of its own; only when that line also holds the own name is the last word the victim.
