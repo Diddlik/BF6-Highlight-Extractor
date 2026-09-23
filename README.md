@@ -150,7 +150,7 @@ Nötig sind das .NET-10-SDK sowie FFmpeg und ffprobe auf dem PATH.
 ```powershell
 cd src
 dotnet build -m:1
-dotnet test -m:1                # 229 Tests
+dotnet test -m:1                # 234 Tests
 dotnet run --project BFHE.UI    # Oberfläche starten
 ```
 
