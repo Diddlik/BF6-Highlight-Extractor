@@ -35,9 +35,13 @@ public sealed class UpdateService(Func<UpdateSettings> settings)
             || repository.Scheme != Uri.UriSchemeHttps) return null;
         try
         {
-            // Rebuilt when the repository or the channel changed.
-            return manager = new UpdateManager(
-                new GithubSource(current.RepositoryUrl, null, current.Prerelease));
+            // Rebuilt when the repository or the channel changed. GitHub's release list kept showing
+            // new releases without their assets for hours, which hid them from GithubSource; the
+            // download URL of the latest release is current at once. Prereleases are never "latest".
+            IUpdateSource source = current.Prerelease
+                ? new GithubSource(current.RepositoryUrl, null, true)
+                : new SimpleWebSource(current.RepositoryUrl.TrimEnd('/') + "/releases/latest/download/");
+            return manager = new UpdateManager(source);
         }
         catch (Exception error) when (error is IOException or ArgumentException
             or InvalidOperationException or UnauthorizedAccessException)
