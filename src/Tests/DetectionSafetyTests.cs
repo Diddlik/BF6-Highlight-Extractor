@@ -58,7 +58,7 @@ public sealed class DetectionSafetyTests
         var accepted = reads.Where(read => dedup.Accept(Candidate with
         {
             TimestampSeconds = read.Time, RawText = read.Raw, OpponentName = read.Opponent,
-        })).Select(read => read.Opponent).ToArray();
+        })).Select(read => read.Opponent ?? "").ToArray();
         Assert.Equal(["SyphzonSPW", "Real_Chillfe", "dankrabbit", "yung_mygeL"], accepted);
     }
 
