@@ -80,6 +80,23 @@ public sealed class DetectionSafetyTests
         Assert.Equal(KillfeedDetector.PingMessage, Assert.Single(result.Rejections).Reason);
     }
 
+    // 667 s and 677 s of a real recording: the same row, the victim later read as two words.
+    [Fact]
+    public void AVictimSplitIntoTwoWordsIsStillTheSameKill()
+    {
+        var detector = new KillfeedDetector(Settings);
+        var dedup = new EventDeduplicator(Settings);
+        KillCandidate Read(double time, params OcrLine[] lines) => Assert.Single(detector.Detect(lines,
+            new(1850, 173, 710, 295), time, (int)(time * 60), "video").Candidates);
+        var first = Read(667.33, new("BulletWaltz DA", .95, new(1955, 262, 200, 22)),
+            new("BadTrip95", .95, new(2241, 261, 110, 22)));
+        var later = Read(677.0, new("14 m", .99, new(1871, 187, 40, 22)),
+            new("BulletWaltz", .98, new(1956, 182, 140, 22)), new("Bad Tfip95", .91, new(2240, 181, 115, 22)));
+        Assert.Equal("Bad Tfip95", later.OpponentName);
+        Assert.True(dedup.Accept(first));
+        Assert.False(dedup.Accept(later with { TimestampSeconds = 672 }));
+    }
+
     [Fact]
     public void APingGluedToTheNameIsRejected()
     {

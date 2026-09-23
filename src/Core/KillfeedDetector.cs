@@ -56,7 +56,7 @@ public sealed class KillfeedDetector
 
     private readonly DetectionSettings settings;
     private readonly (string Original, string Normalized)[] names;
-    private sealed record Token(string Text, double Confidence, int X0, int X1, int Y, int Height)
+    private sealed record Token(string Text, double Confidence, int X0, int X1, int Y, int Height, OcrLine Line)
     { public double Center => (X0 + (double)X1) / 2; }
 
     public KillfeedDetector(DetectionSettings settings)
@@ -112,7 +112,7 @@ public sealed class KillfeedDetector
                 var end = box.X - region.X + (int)((double)box.Width * cursor / length);
                 cursor++;
                 tokens.Add(new(word, line.Confidence, start, Math.Max(start + 1, end),
-                    box.Y - region.Y + box.Height / 2, box.Height));
+                    box.Y - region.Y + box.Height / 2, box.Height, line));
             }
         }
         var rows = new List<List<Token>>();
@@ -158,8 +158,14 @@ public sealed class KillfeedDetector
                 : !side ? VictimSide : null;
             if (reason is not null) { rejected.Add(new(raw, reason, score, timestamp)); continue; }
             var rest = settings.KillerSide == "left" ? row[last..] : row[..first];
-            var opponent = rest.Length == 0 ? null : (settings.KillerSide == "left" ? rest[^1] : rest[0]).Text;
-            var middle = rest.Length == 0 ? [] : settings.KillerSide == "left" ? rest[..^1] : rest[1..];
+            // A victim name with a space ("Mahmoud Samy", or "Bad Trip95" as the OCR splits it) arrives as a
+            // line of its own; only when that line also holds the own name is the last word the victim.
+            var edge = rest.Length == 0 ? null : settings.KillerSide == "left" ? rest[^1] : rest[0];
+            var victim = edge is null ? []
+                : matched.Any(t => ReferenceEquals(t.Line, edge.Line)) ? [edge]
+                : rest.Where(t => ReferenceEquals(t.Line, edge.Line)).ToArray();
+            var opponent = victim.Length == 0 ? null : string.Join(' ', victim.Select(t => t.Text));
+            var middle = rest.Except(victim).ToArray();
             var weapon = string.Join(' ', middle.Select(t => t.Text));
             events.Add(new(timestamp, string.Join(' ', matched.Select(t => t.Text)), configured, opponent,
                 weapon.Length == 0 ? null : weapon, raw, confidence, score, frameNumber, source,

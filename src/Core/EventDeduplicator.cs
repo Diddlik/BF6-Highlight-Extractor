@@ -17,6 +17,11 @@ public sealed class EventDeduplicator
     public EventDeduplicator(DetectionSettings settings) { settings.Validate(); this.settings = settings; }
     private string Normalize(string text) => NameMatching.Normalize(text, settings.StripSpecial, settings.Confusables);
 
+    // The OCR splits a name at random ("Bad Tfip95" for "BadTrip95"), so spaces do not count.
+    private bool SameOpponent(string opponent, string known) =>
+        NameMatching.TokenSortRatio(opponent, known) >= settings.OpponentThreshold
+        || NameMatching.Ratio(opponent.Replace(" ", ""), known.Replace(" ", "")) >= settings.OpponentThreshold;
+
     /// <summary>Feeds the rejections of a frame, so a ping read without its sentence is not taken for a kill.</summary>
     public void Observe(IEnumerable<DetectionRejection> rejections, string source)
     {
@@ -48,7 +53,7 @@ public sealed class EventDeduplicator
             // opponent was not read cannot be told apart from the one already on screen.
             var repeat = NameMatching.TokenSortRatio(text, entry.Text) >= settings.TextThreshold
                 || opponent.Length == 0 || entry.Opponents.Count == 0
-                || entry.Opponents.Any(known => NameMatching.TokenSortRatio(opponent, known) >= settings.OpponentThreshold);
+                || entry.Opponents.Any(known => SameOpponent(opponent, known));
             if (!repeat) continue;
             entry.LastSeen = now;
             if (opponent.Length != 0) entry.Opponents.Add(opponent);
