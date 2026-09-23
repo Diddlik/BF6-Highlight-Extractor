@@ -64,6 +64,8 @@ jobs:
           $done = $assets -and $assets.Contains('releases.win.json')
           if ($done) { Write-Host "Release $tag ist bereits vollständig; es wird nur gebaut." }
           "publish=$(-not $done)".ToLowerInvariant() >> $env:GITHUB_OUTPUT
+          # gh exits with 1 when the release does not exist yet; the runner would fail the step on it.
+          exit 0
 
       - name: Bauen, testen, paketieren und veröffentlichen
         shell: pwsh
