@@ -19,28 +19,35 @@ public sealed class RowClassifier : IDisposable
 
     public static string DefaultPath => Path.Combine(AppContext.BaseDirectory, "models", "row-classifier.onnx");
 
-    private RowClassifier(string path, Spec spec)
+    private RowClassifier(string path, Spec spec, bool trained)
     {
         this.spec = spec;
+        Trained = trained;
         using var options = new SessionOptions { IntraOpNumThreads = 1 };
         session = new InferenceSession(path, options);
     }
+
+    /// <summary>
+    /// True when a configured player is one the model was trained on. Only then does it tell kills
+    /// from deaths: it knows which name is "own" by having seen it. A ping looks the same for every
+    /// name, so pings are recognised for everyone.
+    /// </summary>
+    public bool Trained { get; }
 
     // The classifier only vetoes, it never adds a kill, and only when it is sure: the OCR rules
     // stay in charge wherever the picture is ambiguous.
     private const float VetoConfidence = 0.9f;
 
     /// <summary>True when the picture of the row clearly shows something other than an own kill.</summary>
-    public bool Vetoes(Mat killfeed, int rowY)
+    public bool Vetoes(Mat killfeed, int rowY) => Vetoes(Classify(killfeed, rowY), Trained);
+
+    public static bool Vetoes(IReadOnlyDictionary<string, float> probabilities, bool trained)
     {
-        var (label, probability) = Classify(killfeed, rowY).MaxBy(pair => pair.Value);
-        return label != "kill" && probability >= VetoConfidence;
+        var (label, probability) = probabilities.MaxBy(pair => pair.Value);
+        return probability >= VetoConfidence && (label == "ping" || trained && label != "kill");
     }
 
-    /// <summary>
-    /// The classifier, or null without a model or when none of the configured players is one it was
-    /// trained on. The model has seen only those names; for anyone else a veto could drop real kills.
-    /// </summary>
+    /// <summary>The classifier, or null when the application ships without the model.</summary>
     public static RowClassifier? Load(IEnumerable<string> playerNames, string? path = null)
     {
         path ??= DefaultPath;
@@ -48,8 +55,9 @@ public sealed class RowClassifier : IDisposable
         var spec = JsonSerializer.Deserialize<Spec>(File.ReadAllText(Path.ChangeExtension(path, ".json")),
                        new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
                    ?? throw new IOException("Beschreibung des Zeilenmodells ist leer.");
-        return playerNames.Any(name => (spec.Players ?? []).Contains(name.Trim(), StringComparer.OrdinalIgnoreCase))
-            ? new RowClassifier(path, spec) : null;
+        var trained = playerNames.Any(name =>
+            (spec.Players ?? []).Contains(name.Trim(), StringComparer.OrdinalIgnoreCase));
+        return new RowClassifier(path, spec, trained);
     }
 
     /// <summary>Probability of each class for the row around <paramref name="rowY"/> in the killfeed crop.</summary>

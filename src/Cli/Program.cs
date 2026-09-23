@@ -64,7 +64,8 @@ try
             var analysis = await analysisService.RunAsync(
                 input, destination, new ConsoleProgress(), cancel.Token, withClips);
             Console.WriteLine("Erkennung: " + analysisService.DetectionNote
-                + (rowClassifier is null ? "" : ", mit Bildprüfung der Zeilen"));
+                + (rowClassifier is null ? ""
+                    : rowClassifier.Trained ? ", mit Bildprüfung der Zeilen" : ", mit Bildprüfung auf Pings"));
             Console.WriteLine($"{analysis.Events.Count} Kill-Kandidaten, "
                 + $"{analysis.Segments.Count} Clip-Abschnitte, Berichte in {Path.GetFullPath(destination)}");
             Console.WriteLine(withClips

@@ -26,12 +26,24 @@ public sealed class RowClassifierTests
             Assert.Equal(expected[index], actual[classes[index]], 3);
     }
 
-    // The model has only seen the names it was trained for; anyone else keeps the OCR alone.
+    // Measured on rows of other players: pings were recognised, kills were taken for deaths, because
+    // the model only knows its own training names. So everyone else gets the ping veto alone.
     [Fact]
-    public void OtherPlayersDoNotGetTheModel()
+    public void OtherPlayersOnlyGetThePingVeto()
     {
-        Assert.Null(RowClassifier.Load(["SomeoneElse"]));
+        using var other = RowClassifier.Load(["SomeoneElse"]);
         using var trained = RowClassifier.Load(["  bulletwaltz ", "SomeoneElse"]);
-        Assert.NotNull(trained);
+        Assert.False(other!.Trained);
+        Assert.True(trained!.Trained);
+
+        static Dictionary<string, float> Sure(string label) => new()
+            { ["kill"] = 0.02f, ["ping"] = 0.02f, ["death"] = 0.02f, ["other"] = 0.02f, [label] = 0.94f };
+        Assert.True(RowClassifier.Vetoes(Sure("ping"), trained: false));
+        Assert.False(RowClassifier.Vetoes(Sure("death"), trained: false));
+        Assert.False(RowClassifier.Vetoes(Sure("other"), trained: false));
+        Assert.True(RowClassifier.Vetoes(Sure("death"), trained: true));
+        Assert.False(RowClassifier.Vetoes(Sure("kill"), trained: true));
+        Assert.False(RowClassifier.Vetoes(new Dictionary<string, float> { ["kill"] = 0.15f, ["ping"] = 0.85f },
+            trained: true));
     }
 }

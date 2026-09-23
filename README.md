@@ -37,11 +37,18 @@ Killfeed und tragen den eigenen Namen. Sie werden als Satz erkannt und verworfen
 
 Zusätzlich prüft ein kleines Bildmodell jede Zeile, die die Texterkennung für einen eigenen
 Kill hält. Es sieht, was der Texterkennung entgeht: Waffensymbol oder Satz, eigener Name
-links oder rechts. Das Modell verwirft einen Kandidaten nur, wenn es mit mindestens 90 %
-Sicherheit einen Ping, einen eigenen Tod oder etwas anderes sieht; einen Kill fügt es nie
-hinzu. In zwei Messläufen auf zurückgehaltenen Aufnahmen (98 und 222 von Hand geprüfte
-Zeilen) ging dabei kein echter Kill verloren. Das Modell kennt bisher nur Aufnahmen in
-2560×1440 mit Standard-HUD. Es läuft lokal über ONNX Runtime, wie die Texterkennung.
+links oder rechts. Das Modell verwirft einen Kandidaten nur, wenn es sich zu mindestens 90 %
+sicher ist; einen Kill fügt es nie hinzu.
+
+- **Pings und Markierungen** verwirft es für jeden Spielernamen. Auf Zeilen fremder Spieler
+  erkannte es 181 von 185 Pings und hielt keinen Kill mit Gegner für einen Ping.
+- **Eigene Tode und Sonstiges** verwirft es nur für die Namen, mit denen es trainiert wurde.
+  Es weiß nur bei diesen Namen, wessen Kill eine Zeile ist; bei fremden Namen hielt es
+  Kills für Tode.
+
+In zwei Messläufen auf zurückgehaltenen Aufnahmen (98 und 222 von Hand geprüfte Zeilen) ging
+kein echter Kill verloren. Das Modell kennt bisher nur Aufnahmen in 2560×1440 mit
+Standard-HUD. Es läuft lokal über ONNX Runtime, wie die Texterkennung.
 
 Aus den Zeitpunkten entstehen Clip-Abschnitte, standardmäßig drei Sekunden davor und zwei
 danach. Liegen Abschnitte dicht beieinander, werden sie zu einem Mehrfachkill-Clip
@@ -175,8 +182,8 @@ python src\Training\make_gallery.py T:\Rows 500      # erzeugt T:\Rows\gallery.h
 python src\Training\train.py T:\Rows T:\Rows\labels.json src\Core\Models --player BulletWaltz
 ```
 
-Die Anwendung nutzt das Modell nur, wenn einer der mit `--player` genannten Namen
-eingestellt ist; für andere Spieler bleibt es bei der Texterkennung. `train.py` hält ganze
+Mit `--player` genannte Namen bekommen die volle Prüfung; für alle anderen verwirft das
+Modell nur Pings. `train.py` hält ganze
 Aufnahmen zurück, misst nur auf geprüften Zeilen und gibt aus, wie
 viele echte Kills die Veto-Schwelle kosten würde. Der Test `RowClassifierTests` stellt
 sicher, dass die Anwendung eine Zeile genauso aufbereitet wie das Training.
