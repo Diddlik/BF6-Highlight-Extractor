@@ -9,10 +9,7 @@ using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using System.Globalization;
 using System.Threading.Channels;
-using Mat = OpenCvSharp.Mat;
 using OpenCVException = OpenCvSharp.OpenCVException;
-using VideoCapture = OpenCvSharp.VideoCapture;
-using VideoCaptureProperties = OpenCvSharp.VideoCaptureProperties;
 
 namespace Bf6Highlights.Ui;
 
@@ -111,7 +108,7 @@ public sealed partial class RegionWindow : Window
         Region = initialRegion;
         SetFrame(frame);
         UpdateSelection();
-        StartPreview(frame.Video.Path, frame.Timestamp);
+        StartPreview(frame.Video, frame.Timestamp);
     }
 
     private Grid SurfaceControl => this.FindControl<Grid>("Surface")!;
@@ -220,26 +217,31 @@ public sealed partial class RegionWindow : Window
             + $"Frame {Reports.FormatTimestamp(frame.Timestamp)}";
     }
 
-    private void StartPreview(string sourcePath, double timestamp)
+    private void StartPreview(VideoMetadata video, double timestamp)
     {
-        _ = Task.Run(() => PreviewLoop(sourcePath, previewCancellation.Token));
+        _ = Task.Run(() => PreviewLoop(video, previewCancellation.Token));
         QueueFrame(timestamp);
     }
 
-    private async Task PreviewLoop(string sourcePath, CancellationToken token)
+    // FFmpeg instead of OpenCV's VideoCapture: the FFmpeg bundled with OpenCV only has libaom for
+    // AV1, which cannot decode the AV1 recordings of the NVIDIA app.
+    private async Task PreviewLoop(VideoMetadata video, CancellationToken token)
     {
+        var whole = new PixelRegion(0, 0, video.Width, video.Height);
         try
         {
-            using var capture = new VideoCapture(sourcePath);
-            if (!capture.IsOpened()) throw new IOException("Video konnte nicht geöffnet werden.");
-            using var image = new Mat();
             await foreach (var request in frameRequests.Reader.ReadAllAsync(token))
             {
                 token.ThrowIfCancellationRequested();
-                capture.Set(VideoCaptureProperties.PosMsec, request.Timestamp * 1000d);
-                if (!capture.Read(image) || image.Empty())
-                    throw new IOException("Frame konnte nicht gelesen werden.");
-                var png = image.ToBytes(".png");
+                byte[]? png = null;
+                await foreach (var frame in FrameStream.ReadEveryAsync(video, whole, 1, token,
+                                   request.Timestamp))
+                    using (frame)
+                    {
+                        png = frame.Image.ToBytes(".png");
+                        break;
+                    }
+                if (png is null) throw new IOException("Frame konnte nicht gelesen werden.");
                 if (request.Id != Interlocked.Read(ref frameRequest)) continue;
                 await Dispatcher.UIThread.InvokeAsync(() =>
                 {
