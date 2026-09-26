@@ -40,6 +40,11 @@ try {
             & (Join-Path $toolDirectory $tool) -hide_banner -version | Out-Null
             if ($LASTEXITCODE) { throw "Kopiertes $tool startet nicht; -FfmpegDirectory auf die echten Programme setzen." }
         }
+        # Without dav1d FFmpeg falls back to libaom, which rejects the NVIDIA app's AV1 recordings.
+        $decoders = & (Join-Path $toolDirectory 'ffmpeg.exe') -hide_banner -decoders
+        if (-not ($decoders -match '\blibdav1d\b')) {
+            throw 'FFmpeg ohne libdav1d kann AV1-Aufnahmen nicht dekodieren; einen Build mit dav1d verwenden.'
+        }
         Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'config.example.yaml') `
             -Destination (Join-Path $target 'config.example.yaml') -Force
 

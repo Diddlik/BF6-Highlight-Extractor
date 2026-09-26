@@ -29,9 +29,10 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
-      # FFmpeg is needed for the tests and is shipped inside the package.
+      # FFmpeg is needed for the tests and is shipped inside the package. The full build, because
+      # only it has dav1d; the essentials build's libaom rejects the NVIDIA app's AV1 recordings.
       - name: FFmpeg bereitstellen
-        run: choco install ffmpeg -y --no-progress
+        run: choco install ffmpeg-full -y --no-progress
 
       - name: vpk installieren
         run: dotnet tool install -g vpk
@@ -75,7 +76,7 @@ jobs:
             RepoUrl = '${{ github.server_url }}/${{ github.repository }}'
             Token   = $env:GITHUB_TOKEN
             # PATH only holds Chocolatey shims, which do not work once copied into the package.
-            FfmpegDirectory = "$env:ChocolateyInstall\lib\ffmpeg\tools\ffmpeg\bin"
+            FfmpegDirectory = "$env:ChocolateyInstall\lib\ffmpeg-full\tools\ffmpeg\bin"
           }
           if ('${{ steps.existing.outputs.publish }}' -eq 'true') {
             $arguments.Publish = $true
