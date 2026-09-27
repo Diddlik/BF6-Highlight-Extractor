@@ -45,6 +45,11 @@ try {
         if (-not ($decoders -match '\blibdav1d\b')) {
             throw 'FFmpeg ohne libdav1d kann AV1-Aufnahmen nicht dekodieren; einen Build mit dav1d verwenden.'
         }
+        # The analysis would still run through the CPU fallback, but about three times slower.
+        $hwaccels = & (Join-Path $toolDirectory 'ffmpeg.exe') -hide_banner -hwaccels
+        if (-not ($hwaccels -match '^\s*d3d11va\s*$')) {
+            throw 'FFmpeg ohne d3d11va dekodiert nur auf der CPU; einen Build mit D3D11VA verwenden.'
+        }
         Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'config.example.yaml') `
             -Destination (Join-Path $target 'config.example.yaml') -Force
 
