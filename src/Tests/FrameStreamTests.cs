@@ -42,24 +42,33 @@ public sealed class FrameStreamTests : IAsyncLifetime
     }
 
     /// <summary>The frame FFmpeg writes for that index, cropped to the region.</summary>
-    private async Task<Mat> Reference(int index, PixelRegion region)
+    /// <remarks>
+    /// Cropped in the source format like the stream does; on subsampled video a crop at odd
+    /// offsets after the RGB conversion would pair other chroma samples with the pixels.
+    /// </remarks>
+    private async Task<Mat> Reference(string source, int index, PixelRegion region)
     {
-        var file = Path.Combine(directory, $"reference-{index}.png");
+        var file = Path.Combine(directory, $"{Path.GetFileNameWithoutExtension(source)}-{index}-"
+            + $"{region.X}-{region.Y}-{region.Width}-{region.Height}.png");
         if (!File.Exists(file))
-            await MediaProcess.RunAsync("ffmpeg", ["-v", "error", "-i", video, "-vf",
-                $"select=eq(n\\,{index})", "-fps_mode", "vfr", "-frames:v", "1", file],
+            await MediaProcess.RunAsync("ffmpeg", ["-v", "error", "-i", source, "-vf",
+                $"select=eq(n\\,{index}),crop={region.Width}:{region.Height}:{region.X}:{region.Y}:exact=1",
+                "-fps_mode", "vfr", "-frames:v", "1", "-pix_fmt", "bgr24", file],
                 TimeSpan.FromSeconds(30));
-        using var full = Cv2.ImRead(file);
-        return new Mat(full, new Rect(region.X, region.Y, region.Width, region.Height)).Clone();
+        return Cv2.ImRead(file);
     }
 
-    private async Task AssertFramesMatchTheirSource(PixelRegion region, int samplesPerSecond, int[] expected)
+    private Task AssertFramesMatchTheirSource(PixelRegion region, int samplesPerSecond, int[] expected) =>
+        AssertFramesMatchTheirSource(metadata, region, samplesPerSecond, expected);
+
+    private async Task AssertFramesMatchTheirSource(VideoMetadata source, PixelRegion region,
+        int samplesPerSecond, int[] expected)
     {
         var numbers = new List<int>();
-        await foreach (var frame in FrameStream.ReadAsync(metadata, region, samplesPerSecond))
+        await foreach (var frame in FrameStream.ReadAsync(source, region, samplesPerSecond))
             using (frame)
             {
-                using var reference = await Reference(frame.Number, region);
+                using var reference = await Reference(source.Path, frame.Number, region);
                 using var difference = new Mat();
                 Cv2.Absdiff(reference, frame.Image, difference);
                 Cv2.MinMaxLoc(difference.Reshape(1), out double _, out double largest);
@@ -86,6 +95,25 @@ public sealed class FrameStreamTests : IAsyncLifetime
     [Fact]
     public Task TheRegionIsCroppedByFfmpeg() =>
         AssertFramesMatchTheirSource(new(16, 8, 32, 24), samplesPerSecond: 1, [0, 10]);
+
+    /// <summary>
+    /// These formats go through the GPU decoder where one exists and must deliver the same frames
+    /// as the CPU; without a GPU they cover the software fallback.
+    /// </summary>
+    [Theory]
+    [InlineData("libx264", "yuv420p")]
+    [InlineData("libx265", "yuv420p10le")]
+    public async Task GpuDecodableRecordingsDeliverTheirOwnFrames(string encoder, string pixelFormat)
+    {
+        var recording = Path.Combine(directory, $"{encoder}-{pixelFormat}.mp4");
+        await MediaProcess.RunAsync("ffmpeg", ["-v", "error", "-f", "lavfi", "-i",
+            "testsrc2=size=128x96:rate=10", "-t", "2", "-c:v", encoder, "-pix_fmt", pixelFormat,
+            recording], TimeSpan.FromSeconds(60));
+        var probed = await new VideoService().ProbeAsync(recording);
+        Assert.Equal(pixelFormat, probed.PixelFormat);
+        await AssertFramesMatchTheirSource(probed, new(5, 3, 33, 21), samplesPerSecond: 2,
+            [0, 5, 10, 15]);
+    }
 
     /// <summary>A subsampled source must not shrink an odd region; crop runs with exact=1.</summary>
     [Fact]

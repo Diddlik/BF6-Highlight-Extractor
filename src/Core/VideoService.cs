@@ -4,7 +4,10 @@ using System.Text.Json;
 namespace Bf6Highlights;
 
 public sealed record VideoMetadata(string Path, int Width, int Height, double Fps,
-    double DurationSeconds, string VideoCodec, string? AudioCodec);
+    double DurationSeconds, string VideoCodec, string? AudioCodec)
+{
+    public string? PixelFormat { get; init; }
+}
 
 public sealed class VideoService
 {
@@ -37,7 +40,10 @@ public sealed class VideoService
             throw new IOException("Ungültige Dauer oder Bildrate.");
         return new(source, video.GetProperty("width").GetInt32(), video.GetProperty("height").GetInt32(),
             fps, duration, video.GetProperty("codec_name").GetString() ?? "unknown",
-            audio.ValueKind == JsonValueKind.Undefined ? null : audio.GetProperty("codec_name").GetString());
+            audio.ValueKind == JsonValueKind.Undefined ? null : audio.GetProperty("codec_name").GetString())
+        {
+            PixelFormat = video.TryGetProperty("pix_fmt", out var pixelFormat) ? pixelFormat.GetString() : null,
+        };
     }
 
     private static double Parse(JsonElement value, string key) =>

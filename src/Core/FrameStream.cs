@@ -37,23 +37,71 @@ public static class FrameStream
         var firstFrame = checked((int)Math.Ceiling(startSeconds * video.Fps / step) * step);
         var firstTimestamp = firstFrame / video.Fps;
         if (stopSeconds is { } stop && stop < firstTimestamp) return Empty();
-        var arguments = new List<string>
+        List<string> Arguments(string? surfaceFormat)
         {
-            "-nostdin", "-hide_banner", "-loglevel", "error", "-ss", Number(firstTimestamp),
-            "-i", video.Path, "-map", "0:v:0",
-            "-vf", $"select=not(mod(n\\,{step})),{Crop(region)}",
-            "-fps_mode", "passthrough", "-pix_fmt", "bgr24", "-f", "rawvideo",
-        };
-        // Half a frame of slack so the frame at the stop position is still delivered.
-        if (stopSeconds is { } limit)
-        {
-            arguments.Add("-t");
-            arguments.Add(Number(limit - firstTimestamp + 0.5 / video.Fps));
+            var arguments = new List<string> { "-nostdin", "-hide_banner", "-loglevel", "error" };
+            // The frames stay on the GPU until select has dropped the unsampled ones; downloading
+            // every frame first costs most of what the GPU decoder saves.
+            if (surfaceFormat is not null)
+                arguments.AddRange(["-hwaccel", "d3d11va", "-hwaccel_output_format", "d3d11"]);
+            arguments.AddRange(["-ss", Number(firstTimestamp), "-i", video.Path, "-map", "0:v:0",
+                // Back to the source's planar format before cropping: crop at odd offsets on the
+                // interleaved GPU layout shifts the chroma and changes the colours.
+                "-vf", $"select=not(mod(n\\,{step})),"
+                    + (surfaceFormat is null ? ""
+                        : $"hwdownload,format={surfaceFormat},format={video.PixelFormat},")
+                    + Crop(region),
+                "-fps_mode", "passthrough", "-pix_fmt", "bgr24", "-f", "rawvideo"]);
+            // Half a frame of slack so the frame at the stop position is still delivered.
+            if (stopSeconds is { } limit)
+            {
+                arguments.Add("-t");
+                arguments.Add(Number(limit - firstTimestamp + 0.5 / video.Fps));
+            }
+            arguments.Add("-");
+            return arguments;
         }
-        arguments.Add("-");
-        return PipeAsync(video, region, arguments,
-            index => (checked(firstFrame + index * step), firstTimestamp + index * step / video.Fps),
-            token);
+        (int, double)? Position(int index) =>
+            (checked(firstFrame + index * step), firstTimestamp + index * step / video.Fps);
+        var software = PipeAsync(video, region, Arguments(null), Position, token);
+        return GpuSurfaceFormat(video) is { } format
+            ? WithSoftwareFallbackAsync(PipeAsync(video, region, Arguments(format), Position, token),
+                software, token)
+            : software;
+    }
+
+    // The layouts D3D11 decoders hand out for the formats games record in.
+    private static string? GpuSurfaceFormat(VideoMetadata video) => video.PixelFormat switch
+    {
+        "yuv420p" => "nv12",
+        "yuv420p10le" => "p010le",
+        _ => null,
+    };
+
+    /// <summary>
+    /// Streams from the GPU decoder and switches to the CPU when it cannot deliver a first frame,
+    /// because there is no D3D11 device or the GPU does not decode the codec. A failure after the
+    /// first frame is a real error and is reported.
+    /// </summary>
+    private static async IAsyncEnumerable<SampledFrame> WithSoftwareFallbackAsync(
+        IAsyncEnumerable<SampledFrame> hardware, IAsyncEnumerable<SampledFrame> software,
+        [EnumeratorCancellation] CancellationToken token)
+    {
+        var frames = hardware.GetAsyncEnumerator(token);
+        try
+        {
+            bool first;
+            try { first = await frames.MoveNextAsync(); }
+            catch (IOException) { first = false; }
+            if (first)
+            {
+                do yield return frames.Current;
+                while (await frames.MoveNextAsync());
+                yield break;
+            }
+        }
+        finally { await frames.DisposeAsync(); }
+        await foreach (var frame in software) yield return frame;
     }
 
     /// <summary>
