@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "note": "Python vision/change_detection.py outputs; crops are built by formula.",
+  "note": "Reference change-detection outputs; crops are built by formula.",
   "work_width": 160,
   "pixel_delta": 25,
   "cases": [

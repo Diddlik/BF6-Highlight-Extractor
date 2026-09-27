@@ -1,5 +1,6 @@
 using System.Globalization;
 using YamlDotNet.Core;
+using YamlDotNet.RepresentationModel;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
@@ -9,12 +10,6 @@ namespace Bf6Highlights;
 public sealed class ConfigurationException(string message, Exception? inner = null)
     : Exception(message, inner);
 
-public sealed record ApplicationSettings
-{
-    public string LogLevel { get; init; } = "INFO";
-    public string Language { get; init; } = "de";
-}
-
 public sealed record PlayerSettings
 {
     public List<string> Names { get; init; } = [];
@@ -22,7 +17,6 @@ public sealed record PlayerSettings
 
 public sealed record VideoSettings
 {
-    public string Input { get; init; } = "";
     public string OutputDirectory { get; init; } = "output";
 }
 
@@ -106,23 +100,8 @@ public sealed record AnalysisSettings
     public int MaxWorkers { get; init; } = 2;
 }
 
-public sealed record PreprocessingSettings
-{
-    public double UpscaleFactor { get; init; } = 2.0;
-    public bool Grayscale { get; init; } = true;
-    public bool Sharpen { get; init; } = true;
-    public bool AdaptiveThreshold { get; init; }
-    public bool Denoise { get; init; } = true;
-    public bool Invert { get; init; }
-}
-
 public sealed record OcrSettings
 {
-    /// <summary>Only the bundled ONNX pipeline; the Python engine names are migrated on import.</summary>
-    public string Engine { get; init; } = "onnx";
-    public string Language { get; init; } = "en";
-    public bool UseGpu { get; init; }
-    public bool FallbackToCpu { get; init; } = true;
     public double MinimumConfidence { get; init; } = 0.45;
     public double PlayerNameSimilarityThreshold { get; init; } = 82.0;
     public bool NormalizeStripSpecial { get; init; } = true;
@@ -149,15 +128,6 @@ public sealed record ClipSettings
     public string AudioBitrate { get; init; } = "192k";
 }
 
-public sealed record DebugSettings
-{
-    public bool Enabled { get; init; }
-    public bool SaveChangedFrames { get; init; }
-    public bool SaveOcrFrames { get; init; } = true;
-    public bool SaveDetectedKills { get; init; } = true;
-    public bool SaveRejectedMatches { get; init; }
-}
-
 /// <summary>
 /// Where the application looks for a newer version. Only used by the installed Windows
 /// package; a build from source never updates itself.
@@ -174,18 +144,15 @@ public sealed record Configuration
     public const int CurrentVersion = 1;
 
     public int ConfigVersion { get; init; } = CurrentVersion;
-    public ApplicationSettings Application { get; init; } = new();
     public PlayerSettings Player { get; init; } = new();
     public VideoSettings Video { get; init; } = new();
     public KillfeedSettings Killfeed { get; init; } = new();
     public DetectionModeSettings Detection { get; init; } = new();
     public Dictionary<string, ProfileSettings> Profiles { get; init; } = [];
     public AnalysisSettings Analysis { get; init; } = new();
-    public PreprocessingSettings Preprocessing { get; init; } = new();
     public OcrSettings Ocr { get; init; } = new();
     public DeduplicationSettings Deduplication { get; init; } = new();
     public ClipSettings Clips { get; init; } = new();
-    public DebugSettings Debug { get; init; } = new();
     public UpdateSettings Update { get; init; } = new();
 
     public DetectionSettings ToDetectionSettings() => new()
@@ -258,7 +225,13 @@ public sealed record Configuration
 /// <summary>Reads, validates, migrates and writes the YAML configuration.</summary>
 public static class ConfigurationFile
 {
-    private static readonly string[] LogLevels = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"];
+    // Earlier versions wrote these and nothing reads them any more; dropping them on load keeps
+    // saved files working while every other unknown key is still reported as a typo.
+    private static readonly string[][] ObsoleteSettings =
+    [
+        ["application"], ["preprocessing"], ["debug"], ["video", "input"], ["ocr", "engine"],
+        ["ocr", "language"], ["ocr", "use_gpu"], ["ocr", "fallback_to_cpu"],
+    ];
 
     /// <summary>
     /// Where a packaged application keeps its own configuration: a writable user folder, never
@@ -278,7 +251,7 @@ public static class ConfigurationFile
             configuration = new DeserializerBuilder()
                 .WithNamingConvention(UnderscoredNamingConvention.Instance)
                 .Build()
-                .Deserialize<Configuration>(File.ReadAllText(path));
+                .Deserialize<Configuration>(WithoutObsoleteSettings(File.ReadAllText(path)));
         }
         catch (YamlException error)
         {
@@ -289,6 +262,28 @@ public static class ConfigurationFile
         if (configuration is null)
             throw new ConfigurationException("Konfigurationsdatei ist leer: " + path);
         return Validated(configuration);
+    }
+
+    /// <summary>The text unchanged unless it holds an obsolete key, so error lines stay right.</summary>
+    private static string WithoutObsoleteSettings(string text)
+    {
+        var stream = new YamlStream();
+        stream.Load(new StringReader(text));
+        if (stream.Documents.Count == 0 || stream.Documents[0].RootNode is not YamlMappingNode root)
+            return text;
+        var removed = false;
+        foreach (var setting in ObsoleteSettings)
+        {
+            var parent = root;
+            foreach (var key in setting[..^1])
+                parent = parent?.Children.TryGetValue(key, out var child) == true
+                    ? child as YamlMappingNode : null;
+            removed |= parent?.Children.Remove(setting[^1]) == true;
+        }
+        if (!removed) return text;
+        using var writer = new StringWriter();
+        stream.Save(writer, assignAnchors: false);
+        return writer.ToString();
     }
 
     public static Configuration Validated(Configuration configuration)
@@ -305,10 +300,6 @@ public static class ConfigurationFile
         var settings = configuration;
         Check(settings.ConfigVersion is >= 1 and <= Configuration.CurrentVersion, "config_version",
             $"Unterstützt wird Version 1 bis {Configuration.CurrentVersion} ({settings.ConfigVersion})");
-        Check(LogLevels.Contains(settings.Application.LogLevel), "application.log_level",
-            "Erlaubt sind " + string.Join(", ", LogLevels));
-        Check(!string.IsNullOrWhiteSpace(settings.Application.Language), "application.language",
-            "Sprachkürzel darf nicht leer sein");
         Check(settings.Player.Names.Count > 0 && settings.Player.Names.All(n => !string.IsNullOrWhiteSpace(n)),
             "player.names", "Mindestens ein nicht leerer Spielername ist erforderlich");
         Check(!string.IsNullOrWhiteSpace(settings.Video.OutputDirectory), "video.output_directory",
@@ -363,14 +354,7 @@ public static class ConfigurationFile
         Range(settings.Analysis.ChangeThreshold, "analysis.change_threshold", 0, 1);
         Check(settings.Analysis.MaxWorkers is >= 1 and <= 32, "analysis.max_workers",
             "Wert muss zwischen 1 und 32 liegen (" + settings.Analysis.MaxWorkers + ")");
-        Range(settings.Preprocessing.UpscaleFactor, "preprocessing.upscale_factor", 1, 8);
 
-        Check(settings.Ocr.Engine == "onnx", "ocr.engine",
-            "Unterstützt wird nur onnx; paddleocr, easyocr und tesseract werden beim Import ersetzt");
-        Check(!string.IsNullOrWhiteSpace(settings.Ocr.Language), "ocr.language",
-            "Sprachkürzel darf nicht leer sein");
-        Check(!settings.Ocr.UseGpu, "ocr.use_gpu",
-            "Es ist kein geprüfter GPU-Anbieter vorhanden; nur false ist möglich");
         Range(settings.Ocr.MinimumConfidence, "ocr.minimum_confidence", 0, 1);
         Range(settings.Ocr.PlayerNameSimilarityThreshold, "ocr.player_name_similarity_threshold", 0, 100);
 
@@ -408,58 +392,8 @@ public static class ConfigurationFile
     }
 
     /// <summary>
-    /// Reads a Python configuration, migrates the values C# handles differently and reports every
-    /// change. The source file is never written to.
-    /// </summary>
-    public static (Configuration Configuration, IReadOnlyList<string> Notices) Import(string path)
-    {
-        if (!File.Exists(path)) throw new ConfigurationException("Konfigurationsdatei nicht gefunden: " + path);
-        Configuration raw;
-        try
-        {
-            raw = new DeserializerBuilder()
-                .WithNamingConvention(UnderscoredNamingConvention.Instance)
-                .IgnoreUnmatchedProperties()
-                .Build()
-                .Deserialize<Configuration>(File.ReadAllText(path))
-                ?? throw new ConfigurationException("Konfigurationsdatei ist leer: " + path);
-        }
-        catch (YamlException error)
-        {
-            throw new ConfigurationException(
-                $"Konfigurationsdatei ist nicht lesbar ({Path.GetFileName(path)}, Zeile "
-                + $"{error.Start.Line}): {error.InnerException?.Message ?? error.Message}", error);
-        }
-        var notices = new List<string>();
-        var engine = raw.Ocr.Engine;
-        if (engine != "onnx")
-            notices.Add(engine == "paddleocr"
-                ? "ocr.engine: paddleocr wird auf das mitgelieferte ONNX-Backend (onnx) umgestellt."
-                : $"ocr.engine: {engine} ist in C# nicht vorhanden; es wird das mitgelieferte "
-                  + "ONNX-Backend (onnx) verwendet. Erkennungsergebnisse bitte erneut prüfen.");
-        if (raw.Ocr.UseGpu)
-            notices.Add("ocr.use_gpu: Es ist kein geprüfter GPU-Anbieter vorhanden; die Analyse "
-                + "läuft auf der CPU.");
-        var folder = Path.GetDirectoryName(Path.GetFullPath(path))!;
-        var templates = raw.Detection.Templates.Select(template =>
-        {
-            if (template.Path.Length == 0) return template;
-            var resolved = Path.GetFullPath(template.Path, folder);
-            notices.Add($"detection.templates: {template.Path} wird zu {resolved} aufgelöst"
-                + (File.Exists(resolved) ? "." : " und fehlt dort."));
-            return template with { Path = resolved };
-        }).ToList();
-        return (Validated(raw with
-        {
-            ConfigVersion = Configuration.CurrentVersion,
-            Ocr = raw.Ocr with { Engine = "onnx", UseGpu = false },
-            Detection = raw.Detection with { Templates = templates },
-        }), notices);
-    }
-
-    /// <summary>
     /// Adds or replaces a resolution profile in an existing configuration. Every other value is
-    /// kept; comments of a hand-written file are lost, as in the Python original.
+    /// kept; comments of a hand-written file are lost.
     /// </summary>
     public static Configuration SaveRegionProfile(string path, string name,
         ResolutionSettings resolution, RegionSettings region)

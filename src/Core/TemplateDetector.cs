@@ -6,8 +6,7 @@ public sealed record TemplateMatch(string Label, double Confidence, double Times
     int FrameNumber, PixelRegion BoundingBox);
 
 /// <summary>
-/// Personal kill-confirmation detection with OpenCV template matching
-/// (Python detection/template_detector.py).
+/// Personal kill-confirmation detection with OpenCV template matching.
 /// </summary>
 public sealed class TemplateMatcher : IDisposable
 {

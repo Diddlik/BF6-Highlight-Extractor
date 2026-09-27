@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "source": {
-    "implementation": "Python bf6_highlights",
+    "implementation": "reference implementation",
     "capture_script": "scripts/capture_detection_reference.py"
   },
   "normalization": [

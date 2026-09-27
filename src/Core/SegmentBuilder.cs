@@ -1,6 +1,6 @@
 namespace Bf6Highlights;
 
-/// <summary>Kill timestamps to clamped, merged clip segments (Python clips/segment_builder.py).</summary>
+/// <summary>Kill timestamps to clamped, merged clip segments.</summary>
 public static class SegmentBuilder
 {
     public static List<ClipSegment> Build(IReadOnlyList<KillCandidate> events, ClipSettings clips,

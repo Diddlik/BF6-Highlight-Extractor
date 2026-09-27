@@ -4,7 +4,7 @@ using Xunit;
 
 namespace Bf6Highlights.Tests;
 
-/// <summary>The written reports must match the Python baseline byte for byte.</summary>
+/// <summary>The written reports must match the baseline byte for byte.</summary>
 public sealed class ReportTests : IDisposable
 {
     private static readonly string Baseline =
@@ -16,7 +16,7 @@ public sealed class ReportTests : IDisposable
     private string Target(string name) => Path.Combine(folder, name);
 
     [Fact]
-    public void EventsJsonMatchesPythonBaseline()
+    public void EventsJsonMatchesTheBaseline()
     {
         var events = Reports.ReadEventsJson(Path.Combine(Baseline, "events.json"));
         Assert.Equal(7, events.Count);
@@ -26,7 +26,7 @@ public sealed class ReportTests : IDisposable
     }
 
     [Fact]
-    public void EventsCsvMatchesPythonBaseline()
+    public void EventsCsvMatchesTheBaseline()
     {
         Reports.WriteEventsCsv(Target("events.csv"),
             Reports.ReadEventsJson(Path.Combine(Baseline, "events.json")));
@@ -35,7 +35,7 @@ public sealed class ReportTests : IDisposable
     }
 
     [Fact]
-    public void SegmentsJsonMatchesPythonBaseline()
+    public void SegmentsJsonMatchesTheBaseline()
     {
         var path = Path.Combine(Baseline, "segments.json");
         using var document = JsonDocument.Parse(File.ReadAllBytes(path));
@@ -50,7 +50,7 @@ public sealed class ReportTests : IDisposable
     }
 
     [Fact]
-    public void SummaryJsonMatchesPythonBaseline()
+    public void SummaryJsonMatchesTheBaseline()
     {
         var path = Path.Combine(Baseline, "summary.json");
         using var document = JsonDocument.Parse(File.ReadAllBytes(path));
@@ -81,7 +81,7 @@ public sealed class ReportTests : IDisposable
     }
 
     [Fact]
-    public void RoundingAndFormattingFollowPython()
+    public void RoundingAndFormattingFollowTheBaseline()
     {
         var item = Candidate(0.9397846460342407, 90.90909090909091, 12.0004999, "a,b \"c\"\r\nd");
         Reports.WriteEventsJson(Target("events.json"), [item]);
@@ -102,7 +102,7 @@ public sealed class ReportTests : IDisposable
     [InlineData(-5, "00:00:00.000")]
     [InlineData(3723.4567, "01:02:03.457")]
     [InlineData(86400, "24:00:00.000")]
-    public void TimestampsUsePythonFormat(double seconds, string expected) =>
+    public void TimestampsUseTheReportFormat(double seconds, string expected) =>
         Assert.Equal(expected, Reports.FormatTimestamp(seconds));
 
     [Fact]

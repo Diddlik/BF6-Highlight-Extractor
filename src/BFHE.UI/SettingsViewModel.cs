@@ -157,7 +157,6 @@ public sealed class SettingsViewModel : Observable
             },
             Ocr = source.Ocr with
             {
-                Engine = "onnx", UseGpu = false,
                 PlayerNameSimilarityThreshold = Number(NameThreshold,
                     "ocr.player_name_similarity_threshold"),
             },

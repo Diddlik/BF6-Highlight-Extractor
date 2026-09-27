@@ -27,7 +27,7 @@ public sealed record AnalysisResult(VideoMetadata Video, IReadOnlyList<KillCandi
 }
 
 /// <summary>
-/// The detection pipeline (Python services/analysis_service.py): sample, cheap change detection,
+/// The detection pipeline: sample, cheap change detection,
 /// OCR only on changed crops or template matching, then deduplicate, group and report.
 /// </summary>
 public sealed class AnalysisService(Configuration configuration, Func<IOcrEngine> ocrEngineFactory)

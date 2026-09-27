@@ -6,8 +6,8 @@ using Xunit;
 namespace Bf6Highlights.Tests;
 
 /// <summary>
-/// End to end without real footage: the video is generated with FFmpeg and the OCR engine is a fake,
-/// exactly as the Python integration tests do it. Frame n has the luma value 4*n, so the fake can
+/// End to end without real footage: the video is generated with FFmpeg and the OCR engine is a fake.
+/// Frame n has the luma value 4*n, so the fake can
 /// tell from the pixels which frame it was handed.
 /// </summary>
 public sealed class AnalysisServiceTests : IAsyncLifetime

@@ -8,7 +8,7 @@ public sealed record FrameInspection(PixelRegion Region, double TimestampSeconds
 
 /// <summary>
 /// Runs the configured detection on a single frame so region and thresholds can be checked
-/// (Python cli.py inspect-frame). The crop is saved for a visual check.
+/// The crop is saved for a visual check.
 /// </summary>
 public static class FrameInspector
 {

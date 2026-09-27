@@ -3,7 +3,7 @@ using System.Text.RegularExpressions;
 
 namespace Bf6Highlights;
 
-/// <summary>Windows-safe clip file names (Python clips/naming.py).</summary>
+/// <summary>Windows-safe clip file names.</summary>
 public static partial class ClipNaming
 {
     private static readonly string[] Reserved =
@@ -59,7 +59,7 @@ public static partial class ClipNaming
 public sealed record ClipExportResult(IReadOnlyList<string> Written, IReadOnlyList<string> Failures);
 
 /// <summary>
-/// Clip export through FFmpeg (Python clips/ffmpeg_exporter.py): accurate re-encoding or fast
+/// Clip export through FFmpeg: accurate re-encoding or fast
 /// stream copy. Segments arrive as given, so a caller may export a selection with corrected bounds.
 /// </summary>
 public sealed class ClipExporter(ClipSettings settings)

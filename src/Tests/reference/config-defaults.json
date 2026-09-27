@@ -1,15 +1,10 @@
 {
-  "application": {
-    "log_level": "INFO",
-    "language": "de"
-  },
   "player": {
     "names": [
       "ReferencePlayer"
     ]
   },
   "video": {
-    "input": "",
     "output_directory": "output"
   },
   "killfeed": {
@@ -37,19 +32,7 @@
     "change_threshold": 0.08,
     "max_workers": 2
   },
-  "preprocessing": {
-    "upscale_factor": 2.0,
-    "grayscale": true,
-    "sharpen": true,
-    "adaptive_threshold": false,
-    "denoise": true,
-    "invert": false
-  },
   "ocr": {
-    "engine": "paddleocr",
-    "language": "en",
-    "use_gpu": false,
-    "fallback_to_cpu": true,
     "minimum_confidence": 0.45,
     "player_name_similarity_threshold": 82.0,
     "normalize_strip_special": true,
@@ -70,12 +53,5 @@
     "crf": 18,
     "audio_codec": "aac",
     "audio_bitrate": "192k"
-  },
-  "debug": {
-    "enabled": false,
-    "save_changed_frames": false,
-    "save_ocr_frames": true,
-    "save_detected_kills": true,
-    "save_rejected_matches": false
   }
 }

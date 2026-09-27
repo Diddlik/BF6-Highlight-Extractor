@@ -15,7 +15,7 @@ public sealed record AnalysisSummary(string SourceVideo, double DurationSeconds,
     int OcrCalls, int TemplateChecks, int KillsDetected, int ClipsCreated,
     double ProcessingDurationSeconds, double AverageProcessingFps, bool Interrupted = false);
 
-/// <summary>events.json, events.csv, segments.json and summary.json in the Python report format.</summary>
+/// <summary>events.json, events.csv, segments.json and summary.json.</summary>
 public static class Reports
 {
     public static readonly string[] CsvColumns =
@@ -161,7 +161,10 @@ public static class Reports
         writer.WriteRawValue(Decimal(value, digits), skipInputValidation: true);
     }
 
-    /// <summary>Python repr of the rounded value, so 6 stays "6.0" and 0.92035 becomes "0.9204".</summary>
+    /// <summary>
+    /// The rounded value with at least one decimal place, so 6 stays "6.0" and 0.92035 becomes
+    /// "0.9204".
+    /// </summary>
     private static string Decimal(double value, int? digits)
     {
         if (!double.IsFinite(value)) throw new ArgumentException("Ungültiger Zahlenwert im Bericht.");

@@ -35,7 +35,6 @@ public sealed class ViewModelTests : IDisposable
         Assert.False(configuration.Analysis.EnableChangeDetection);
         Assert.Equal(1.0, configuration.Clips.SecondsAfter);
         Assert.Equal("fast", configuration.Clips.ExportMode);
-        Assert.Equal("onnx", configuration.Ocr.Engine);
     }
 
     [Fact]

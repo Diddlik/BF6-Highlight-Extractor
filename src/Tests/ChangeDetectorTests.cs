@@ -5,7 +5,7 @@ using Xunit;
 
 namespace Bf6Highlights.Tests;
 
-/// <summary>Change detection must agree with Python; crops are built from the same formulas.</summary>
+/// <summary>Change detection must agree with the golden values; crops are built from the same formulas.</summary>
 public sealed class ChangeDetectorTests
 {
     public static TheoryData<string, JsonElement> Cases()
@@ -19,7 +19,7 @@ public sealed class ChangeDetectorTests
     }
 
     [Theory, MemberData(nameof(Cases))]
-    public void MatchesPython(string id, JsonElement data)
+    public void MatchesTheGoldenValues(string id, JsonElement data)
     {
         Assert.Equal(id, data.GetProperty("id").GetString());
         using var detector = new ChangeDetector(data.GetProperty("threshold").GetDouble());
@@ -38,7 +38,7 @@ public sealed class ChangeDetectorTests
     [InlineData(120.0, 3, 40)]
     [InlineData(30.0, 15, 2)]
     [InlineData(5.0, 15, 1)]
-    public void SampleStepMatchesPython(double fps, int samplesPerSecond, int expected) =>
+    public void SampleStepMatchesTheGoldenValues(double fps, int samplesPerSecond, int expected) =>
         Assert.Equal(expected, ChangeDetector.SampleStep(fps, samplesPerSecond));
 
     [Fact]

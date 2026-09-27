@@ -3,7 +3,7 @@ using OpenCvSharp;
 namespace Bf6Highlights;
 
 /// <summary>
-/// Stage one of the pipeline (Python vision/change_detection.py): the fraction of pixels that
+/// Stage one of the pipeline: the fraction of pixels that
 /// changed against the previously analysed crop, so OCR only runs on new killfeed content.
 /// </summary>
 public sealed class ChangeDetector : IDisposable

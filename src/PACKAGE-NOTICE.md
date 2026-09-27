@@ -1,7 +1,7 @@
 # Paketinhalt und Weitergabe
 
-Dieses Verzeichnis ist ein eigenständiges Windows-x64-Paket. Es braucht weder Python noch
-eine separat installierte .NET-Laufzeit oder FFmpeg.
+Dieses Verzeichnis ist ein eigenständiges Windows-x64-Paket. Es braucht weder eine separat
+installierte .NET-Laufzeit noch FFmpeg.
 
 | Bestandteil | Herkunft | Lizenz |
 | --- | --- | --- |
@@ -33,7 +33,7 @@ NVIDIA-Hardware verwendet, sofern der Build sie unterstützt.
 ## Erststart
 
 ```powershell
-.\bf6-highlights.exe config-import config.example.yaml config.yaml
+Copy-Item config.example.yaml config.yaml
 .\bf6-highlights.exe analyze "D:\Aufnahmen\match.mkv" config.yaml "D:\Aufnahmen\Highlights"
 ```
 

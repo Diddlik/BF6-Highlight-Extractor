@@ -478,8 +478,6 @@
                     <TextBlock Classes="h" Text="Konfigurationsdatei" />
                     <StackPanel Orientation="Horizontal" Spacing="10">
                       <Button Content="Laden …" Click="LoadConfig" IsEnabled="{Binding Idle}" />
-                      <Button Content="Python-Konfiguration übernehmen …" Click="ImportConfig"
-                              IsEnabled="{Binding Idle}" />
                       <Button Content="Speichern" Click="SaveConfigHere" IsEnabled="{Binding Idle}" />
                       <Button Content="Speichern unter …" Click="SaveConfig" IsEnabled="{Binding Idle}" />
                     </StackPanel>

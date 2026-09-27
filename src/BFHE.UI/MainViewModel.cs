@@ -883,23 +883,6 @@ public sealed class MainViewModel : Observable
         }
     }
 
-    /// <summary>Imports a Python configuration and shows every migration notice.</summary>
-    public void ImportSettings(string path)
-    {
-        try
-        {
-            var (configuration, notices) = ConfigurationFile.Import(path);
-            Settings.From(configuration, Settings.ConfigPath);
-            Problem = notices.Count == 0 ? null : string.Join("\n", notices);
-            Status = "Konfiguration übernommen aus " + path;
-        }
-        catch (ConfigurationException error)
-        {
-            Problem = error.Message;
-            Status = "Konfiguration nicht übernommen.";
-        }
-    }
-
     public void SaveSettings(string path)
     {
         try

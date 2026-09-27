@@ -24,7 +24,7 @@ public sealed class ConfigurationTests : IDisposable
         """;
 
     [Fact]
-    public void DefaultsMatchPythonBaseline()
+    public void DefaultsMatchTheBaseline()
     {
         using var reference = JsonDocument.Parse(
             File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "reference", "config-defaults.json")));
@@ -33,82 +33,35 @@ public sealed class ConfigurationTests : IDisposable
         var differences = new List<string>();
         Compare(reference.RootElement, actual.RootElement, "", differences);
         differences.Sort(StringComparer.Ordinal);
-        // Documented migration changes: the file is versioned, the OCR backend is the bundled
-        // ONNX pipeline, a player name has no usable default, and the packaged application
-        // keeps its update settings here.
-        Assert.Equal(["config_version", "ocr.engine", "player.names", "update"], differences);
+        // The file is versioned, a player name has no usable default, and the packaged
+        // application keeps its update settings here.
+        Assert.Equal(["config_version", "player.names", "update"], differences);
     }
 
     [Fact]
-    public void ExampleConfigurationImportsWithBackendNotice()
+    public void ObsoleteSettingsOfOlderFilesAreDropped()
     {
-        var (configuration, notices) =
-            ConfigurationFile.Import(Path.Combine(AppContext.BaseDirectory, "reference", "python-config.example.yaml"));
-        Assert.Equal(["BulletWaltz", "[CLAN]Diddlik"], configuration.Player.Names);
-        Assert.Equal(new RegionSettings { X = 1900, Y = 100, Width = 600, Height = 500 },
-            configuration.Killfeed.Region);
-        Assert.Equal(500, configuration.Detection.Region!.Width);
-        Assert.Equal(82.0, configuration.Deduplication.OpponentSimilarityThreshold);
-        Assert.Equal("onnx", configuration.Ocr.Engine);
-        Assert.Single(notices);
-        Assert.Contains("paddleocr", notices[0]);
-    }
+        var path = Write("older.yaml", Minimal + """
 
-    [Fact]
-    public void ImportReplacesUnsupportedEngineAndGpu()
-    {
-        var path = Write("python.yaml", Minimal + """
-
+            application:
+              log_level: INFO
+            video:
+              input: ''
+              output_directory: clips
+            preprocessing:
+              upscale_factor: 2.0
             ocr:
               engine: easyocr
+              language: en
               use_gpu: true
+              fallback_to_cpu: true
+              minimum_confidence: 0.5
+            debug:
+              enabled: false
             """);
-        var (configuration, notices) = ConfigurationFile.Import(path);
-        Assert.Equal("onnx", configuration.Ocr.Engine);
-        Assert.False(configuration.Ocr.UseGpu);
-        Assert.Equal(2, notices.Count);
-        Assert.Contains(notices, n => n.StartsWith("ocr.engine:") && n.Contains("easyocr"));
-        Assert.Contains(notices, n => n.StartsWith("ocr.use_gpu:") && n.Contains("CPU"));
-        Assert.Equal(Configuration.CurrentVersion, configuration.ConfigVersion);
-    }
-
-    [Fact]
-    public void ImportKeepsUnknownKeysOutOfTheWayAndLeavesTheSourceUntouched()
-    {
-        var path = Write("legacy.yaml", Minimal + """
-
-            experimental:
-              obs_live_mode: true
-            """);
-        var before = File.ReadAllBytes(path);
-        Assert.Empty(ConfigurationFile.Import(path).Notices);
-        Assert.Equal(before, File.ReadAllBytes(path));
-    }
-
-    [Fact]
-    public void ImportResolvesTemplatePathsAndReportsMissingFiles()
-    {
-        Directory.CreateDirectory(Path.Combine(folder, "templates"));
-        File.WriteAllBytes(Path.Combine(folder, "templates", "kill.png"), [1]);
-        var path = Write("template.yaml", Minimal + """
-
-            detection:
-              mode: template
-              region:
-                x: 0
-                y: 0
-                width: 100
-                height: 50
-              templates:
-              - path: templates/kill.png
-              - path: templates/headshot.png
-                label: headshot
-            """);
-        var (configuration, notices) = ConfigurationFile.Import(path);
-        Assert.Equal(Path.Combine(folder, "templates", "kill.png"), configuration.Detection.Templates[0].Path);
-        Assert.Equal("kill", configuration.Detection.Templates[0].Label);
-        Assert.DoesNotContain("fehlt", notices[0]);
-        Assert.Contains("fehlt", notices[1]);
+        var configuration = ConfigurationFile.Load(path);
+        Assert.Equal("clips", configuration.Video.OutputDirectory);
+        Assert.Equal(0.5, configuration.Ocr.MinimumConfidence);
     }
 
     [Fact]
@@ -142,8 +95,6 @@ public sealed class ConfigurationTests : IDisposable
         var path = Write("invalid.yaml", """
             player:
               names: []
-            application:
-              log_level: LOUD
             analysis:
               samples_per_second: 99
               max_workers: 0
@@ -156,13 +107,12 @@ public sealed class ConfigurationTests : IDisposable
                 x_min_ratio: 0.6
                 x_max_ratio: 0.4
             ocr:
-              engine: onnx
               minimum_confidence: 1.5
             """);
         var message = Assert.Throws<ConfigurationException>(() => ConfigurationFile.Load(path)).Message;
         foreach (var field in new[]
         {
-            "player.names", "application.log_level", "analysis.samples_per_second", "analysis.max_workers",
+            "player.names", "analysis.samples_per_second", "analysis.max_workers",
             "clips.crf", "clips.export_mode", "killfeed.killer_side", "killfeed.killer_region.x_max_ratio",
             "ocr.minimum_confidence",
         }) Assert.Contains(field, message);
@@ -182,24 +132,10 @@ public sealed class ConfigurationTests : IDisposable
     }
 
     [Fact]
-    public void GpuIsRejectedInAValidatedConfiguration()
-    {
-        var path = Write("gpu.yaml", Minimal + """
-
-            ocr:
-              use_gpu: true
-            """);
-        Assert.Contains("ocr.use_gpu", Assert.Throws<ConfigurationException>(
-            () => ConfigurationFile.Load(path)).Message);
-    }
-
-    [Fact]
     public void SavedConfigurationLoadsBackUnchanged()
     {
         var source = Write("source.yaml", Minimal + """
 
-            ocr:
-              engine: easyocr
             killfeed:
               region:
                 x: 1967
@@ -217,11 +153,11 @@ public sealed class ConfigurationTests : IDisposable
                   width: 600
                   height: 500
             """);
-        var imported = ConfigurationFile.Import(source).Configuration;
-        var target = Path.Combine(folder, "csharp", "config.yaml");
-        ConfigurationFile.Save(target, imported);
+        var loaded = ConfigurationFile.Load(source);
+        var target = Path.Combine(folder, "saved", "config.yaml");
+        ConfigurationFile.Save(target, loaded);
         // Records compare lists and dictionaries by reference, so compare the serialized values.
-        Assert.Equal(JsonSerializer.Serialize(imported),
+        Assert.Equal(JsonSerializer.Serialize(loaded),
             JsonSerializer.Serialize(ConfigurationFile.Load(target)));
         Assert.Contains("config_version: 1", File.ReadAllText(target));
         Assert.Equal(2560, ConfigurationFile.Load(target).Profiles["bf6_2560x1440"].Resolution.Width);

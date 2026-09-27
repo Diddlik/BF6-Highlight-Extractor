@@ -27,7 +27,7 @@ public sealed class ClipNamingTests
         Assert.Equal(expected, ClipNaming.TimestampForFileName(seconds));
 
     [Fact]
-    public void ClipNamesFollowThePythonScheme()
+    public void ClipNamesFollowTheScheme()
     {
         Assert.Equal("stream_00-15-42_single-kill.mp4",
             ClipNaming.ClipFileName(@"D:\Streams\stream.mkv", Segment(942.6, 947.6, 1, "single_kill")));

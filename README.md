@@ -135,9 +135,6 @@ Zwei Werte lohnen die Aufmerksamkeit:
 - **Parallele OCR** beschleunigt die Analyse, kostet aber Speicher: jede gleichzeitige
   Erkennung hält eine eigene Modellsitzung von gut 100 MB.
 
-Eine vorhandene Konfiguration der alten Python-Fassung lässt sich übernehmen; dabei wird
-gemeldet, was sich ändert, etwa ein nicht mehr unterstütztes Erkennungs-Backend.
-
 ## Aktualisierung
 
 Die installierte Fassung sucht beim Start nach neuen Releases dieses Repositorys. Die Suche
@@ -151,7 +148,7 @@ heraus gestartet aktualisiert sich nichts.
 Dieselben Abläufe ohne Fenster, etwa für Stapelverarbeitung:
 
 ```powershell
-bf6-highlights.exe config-import config.example.yaml config.yaml
+Copy-Item config.example.yaml config.yaml
 bf6-highlights.exe analyze "D:\Aufnahmen\match.mkv" config.yaml "D:\Highlights" --export
 ```
 
@@ -221,10 +218,9 @@ Dasselbe läuft in GitHub Actions, ausgelöst durch einen Tag `v*` oder von Hand
 
 ## Stand und Grenzen
 
-Die Anwendung ist die Portierung einer früheren Python-Fassung. Deren Entscheidungen sind
-über eingefrorene Referenzdaten abgesichert: Normalisierung, Ähnlichkeitsvergleich,
-Killer-Seite, Zusammenfassung, Clip-Grenzen und die Berichtsformate werden Feld für Feld
-gegen die Originalausgabe geprüft.
+Normalisierung, Ähnlichkeitsvergleich, Killer-Seite, Zusammenfassung, Clip-Grenzen und die
+Berichtsformate sind über eingefrorene Referenzdaten abgesichert und werden Feld für Feld
+geprüft.
 
 Ehrlich benannt gehört dazu:
 
@@ -232,9 +228,9 @@ Ehrlich benannt gehört dazu:
   markierten Kills findet die Erkennung 87 von 88 Kill-Zeitpunkten und meldet 163 statt
   früher 282 Kandidaten. Ein Teil davon sind echte, nicht markierte Kills, ein Teil noch
   doppelte Lesungen stark verstümmelter Namen.
-- **Gemessen ist bisher nur ein kurzer Ausschnitt.** Dort war die C#-Fassung rund 17-mal
-  schneller als die Python-Fassung und brauchte ein Siebtel des Speichers. Ein Langlauf über
-  Stunden steht aus.
+- **Gemessen ist bisher nur wenig.** Eine AV1-Aufnahme von gut sechs Minuten in 1440p mit
+  120 fps ist mit GPU-Dekodierung (RTX 3090) in 34 s analysiert. Ein Langlauf über Stunden
+  steht aus.
 - **Keine Codesignatur**, daher die SmartScreen-Meldung.
 - Bewertung von Szenen, Zeitleiste und ein eigener Exportdialog fehlen noch.
 

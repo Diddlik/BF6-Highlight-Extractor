@@ -81,7 +81,7 @@ public sealed class SegmentBuilderTests
         Assert.Equal([100.0, 102.0, 105.0], segments[0].Events.Select(e => e.TimestampSeconds));
     }
 
-    /// <summary>The Python run behind the baseline used 3 s before, 1 s after and a 1.5 s gap.</summary>
+    /// <summary>The run behind the baseline used 3 s before, 1 s after and a 1.5 s gap.</summary>
     [Fact]
     public void BaselineSegmentsAreReproducedFromTheBaselineEvents()
     {

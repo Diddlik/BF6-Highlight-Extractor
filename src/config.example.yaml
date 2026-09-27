@@ -1,9 +1,5 @@
 # bf6-highlights configuration. Copy to config.yaml and adjust.
 
-application:
-  log_level: "INFO"          # DEBUG | INFO | WARNING | ERROR
-  language: "de"
-
 player:
   # Every spelling that can appear in the killfeed. OCR errors are tolerated via fuzzy matching.
   names:
@@ -11,7 +7,6 @@ player:
     - "[CLAN]Diddlik"
 
 video:
-  input: ""
   output_directory: "./output"
 
 # Personal kill-confirmation template matching. Keep mode "ocr" until region and templates
@@ -79,19 +74,7 @@ analysis:
   change_threshold: 0.08      # fraction of changed pixels that triggers OCR
   max_workers: 2              # parallel OCR tasks
 
-preprocessing:
-  upscale_factor: 2.0
-  grayscale: true
-  sharpen: true
-  adaptive_threshold: false
-  denoise: true
-  invert: false
-
 ocr:
-  engine: "paddleocr"         # paddleocr (in der EXE enthalten) | easyocr | tesseract
-  language: "en"
-  use_gpu: false             # portable EXE enthaelt die CPU-Ausgabe von PaddlePaddle
-  fallback_to_cpu: true
   minimum_confidence: 0.45
   player_name_similarity_threshold: 82
   normalize_strip_special: true
@@ -115,10 +98,3 @@ clips:
   crf: 18
   audio_codec: "aac"
   audio_bitrate: "192k"
-
-debug:
-  enabled: false
-  save_changed_frames: false
-  save_ocr_frames: true
-  save_detected_kills: true
-  save_rejected_matches: false

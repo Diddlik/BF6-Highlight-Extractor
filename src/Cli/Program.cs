@@ -35,14 +35,6 @@ try
             ConfigurationFile.Load(configuration);
             Console.WriteLine("Konfiguration ist gültig: " + Path.GetFullPath(configuration));
             break;
-        case ["config-import", var source, var target]:
-            var imported = ConfigurationFile.Import(source);
-            if (Path.GetFullPath(source) == Path.GetFullPath(target))
-                throw new IOException("Quell- und Zieldatei dürfen nicht identisch sein.");
-            ConfigurationFile.Save(target, imported.Configuration);
-            foreach (var notice in imported.Notices) Console.WriteLine("Hinweis: " + notice);
-            Console.WriteLine(Path.GetFullPath(target));
-            break;
         case ["export-rows", var input, var configuration, var destination]:
             var rowsVideo = await new VideoService().ProbeAsync(input, cancel.Token);
             var rowCount = await RowExporter.RunAsync(ConfigurationFile.Load(configuration), rowsVideo,
@@ -238,7 +230,6 @@ try
                 train-profile SAMPLE-ORDNER KONFIG.yaml [--allow-hints] [--activate]
                 profiles | profile-activate PROFIL.json | profile-off
                 config-check KONFIG.yaml
-                config-import PYTHON-KONFIG.yaml ZIEL-KONFIG.yaml
                 frame-check VIDEO ZEIT
                 ocr BILD [X Y BREITE HÖHE]
                 detect-samples ORDNER SPIELER X Y BREITE HÖHE BERICHT.json
@@ -253,7 +244,7 @@ try
                 Ergebnis: clip.mp4 + frame.png + sample.json. Keine OCR nötig.
                 Labels sind Hinweise: vor Training/Abnahme manuell prüfen.
                 Bestehende Ziele werden nie überschrieben. Abbruch: Strg+C.
-                Anleitung: docs/TRAINING_DATA.md. Noch keine Python-CLI-Parität.
+                Anleitung: docs/TRAINING_DATA.md.
                 """);
             return args is [] or ["--help"] or ["help"] ? 0 : 2;
     }

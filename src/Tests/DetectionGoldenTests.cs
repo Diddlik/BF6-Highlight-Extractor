@@ -15,7 +15,7 @@ public sealed class DetectionGoldenTests
     }
 
     [Theory, MemberData(nameof(Cases), "normalization")]
-    public void NormalizeMatchesPython(string id, JsonElement data)
+    public void NormalizeMatchesTheGoldenValues(string id, JsonElement data)
     {
         Assert.Equal(id, data.GetProperty("id").GetString());
         var input = data.GetProperty("input");
@@ -38,7 +38,7 @@ public sealed class DetectionGoldenTests
     }
 
     [Theory, MemberData(nameof(Cases), "detector")]
-    public void DetectorMatchesPythonIncludingRejectionReasons(string id, JsonElement data)
+    public void DetectorMatchesTheGoldenValuesIncludingRejectionReasons(string id, JsonElement data)
     {
         Assert.Equal(id, data.GetProperty("id").GetString());
         var input = data.GetProperty("input");

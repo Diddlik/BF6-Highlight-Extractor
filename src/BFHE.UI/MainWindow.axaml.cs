@@ -133,13 +133,6 @@ public sealed partial class MainWindow : Window
         finally { dialogOpen = false; }
     }
 
-    private async void ImportConfig(object? sender, RoutedEventArgs e)
-    {
-        if (!BeginDialog()) return;
-        try { if (await PickConfig("Python-Konfiguration übernehmen") is { } path) model.ImportSettings(path); }
-        finally { dialogOpen = false; }
-    }
-
     private void SaveConfigHere(object? sender, RoutedEventArgs e) => model.SaveUserSettings();
 
     private async void SaveConfig(object? sender, RoutedEventArgs e)

@@ -7,8 +7,8 @@ Diese Datei beschreibt das Bauen und den Aufbau der Projekte. Was die Anwendung 
 Analysiert lange Battlefield-6-Aufnahmen, erkennt eigene Kills und schneidet daraus Clips.
 Alles läuft lokal: keine Cloud-OCR, kein Download zur Laufzeit, keine Telemetrie.
 
-Die Anwendung ist die C#-Portierung einer Python-Version. Das Verhalten ist an deren
-Referenzdaten geprüft; die Vergleichsdateien liegen unter `Tests/reference/`.
+Das Verhalten ist an eingefrorenen Referenzdaten geprüft; die Vergleichsdateien liegen unter
+`Tests/reference/`.
 
 ## Was sie tut
 
@@ -69,7 +69,7 @@ Beschriftete Prüfdaten lassen sich unabhängig von einem Analyseergebnis sammel
 ## Kommandozeile
 
 ```powershell
-bf6-highlights.exe config-import config.example.yaml config.yaml
+Copy-Item config.example.yaml config.yaml
 bf6-highlights.exe analyze "D:\Aufnahmen\match.mkv" config.yaml "D:\Highlights" --export
 ```
 
@@ -82,7 +82,6 @@ bf6-highlights.exe analyze "D:\Aufnahmen\match.mkv" config.yaml "D:\Highlights" 
 | `next-death VIDEO KONFIG ZEIT` | nächsten eigenen Tod suchen, für Negativbeispiele |
 | `configure-region VIDEO KONFIG [ZEIT] [NAME]` | Killfeed-Bereich mit der Maus festlegen |
 | `config-check KONFIG` | Konfiguration prüfen, Fehler je Feld |
-| `config-import PYTHON.yaml ZIEL.yaml` | Python-Konfiguration übernehmen |
 | `sample VIDEO START ENDE ZEIT LABEL ZIEL` | Prüfdaten sammeln |
 | `probe`, `frame`, `clip`, `ocr`, `frame-check` | Einzelschritte zur Diagnose |
 
@@ -91,8 +90,7 @@ hinterlassen; bereits gefundene Ereignisse bleiben erhalten.
 
 ## Ausgabe
 
-Je Aufnahme entstehen `events.json`, `events.csv`, `segments.json` und `summary.json` im
-Format der Python-Referenz, dazu `clips/` beim Export. Vorhandene Clips werden nie
+Je Aufnahme entstehen `events.json`, `events.csv`, `segments.json` und `summary.json`, dazu `clips/` beim Export. Vorhandene Clips werden nie
 überschrieben, Quellvideos nie verändert.
 
 ## Aufbau
