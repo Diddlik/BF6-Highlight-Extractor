@@ -61,6 +61,7 @@ public sealed class OnnxOcrEngine : IOcrEngine
         using var bitmap = SKBitmap.Decode(crop.ToBytes(".png"));
         var result = await engine.DetectAsync(bitmap, RapidOcrOptions.Default,
             progress: null, cancellationToken: token);
+        // A box clipped at the crop edge can come back without height; it has no position to judge.
         return result.TextBlocks.Select(block =>
         {
             var left = block.BoxPoints.Min(p => p.X);
@@ -70,7 +71,7 @@ public sealed class OnnxOcrEngine : IOcrEngine
             return new OcrLine(block.Text, block.CharScores is { Length: > 0 }
                 ? block.CharScores.Average() : 0,
                 new(origin.X + left, origin.Y + top, right - left, bottom - top));
-        }).ToArray();
+        }).Where(line => line.BoundingBox is { Width: > 0, Height: > 0 }).ToArray();
     }
 
     public void Dispose() => engine.Dispose();

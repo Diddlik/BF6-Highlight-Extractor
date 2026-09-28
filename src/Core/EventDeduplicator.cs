@@ -20,7 +20,19 @@ public sealed class EventDeduplicator
     // The OCR splits a name at random ("Bad Tfip95" for "BadTrip95"), so spaces do not count.
     private bool SameOpponent(string opponent, string known) =>
         NameMatching.TokenSortRatio(opponent, known) >= settings.OpponentThreshold
-        || NameMatching.Ratio(opponent.Replace(" ", ""), known.Replace(" ", "")) >= settings.OpponentThreshold;
+        || NameMatching.Ratio(opponent.Replace(" ", ""), known.Replace(" ", "")) >= settings.OpponentThreshold
+        || MostlyContained(opponent.Replace(" ", ""), known.Replace(" ", ""));
+
+    // A blurred or covered name loses or garbles letters ("WRanger" for "SlyRanger", "pufs" for
+    // "pufu"), which the ratio punishes twice over the combined length. Most of the shorter
+    // reading still appears in order in the other.
+    private static bool MostlyContained(string left, string right)
+    {
+        var (a, b) = (left.EnumerateRunes().Count(), right.EnumerateRunes().Count());
+        var shorter = Math.Min(a, b);
+        var common = NameMatching.Ratio(left, right) * (a + b) / 200;
+        return shorter >= 4 && common >= .75 * shorter - 1e-9;
+    }
 
     /// <summary>Feeds the rejections of a frame, so a ping read without its sentence is not taken for a kill.</summary>
     public void Observe(IEnumerable<DetectionRejection> rejections, string source)

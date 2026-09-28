@@ -62,6 +62,51 @@ public sealed class DetectionSafetyTests
         Assert.Equal(["SyphzonSPW", "Real_Chillfe", "dankrabbit", "yung_mygeL"], accepted);
     }
 
+    // Misreadings of a blurred or covered opponent from a real recording, next to kills of other
+    // opponents within the same window.
+    [Fact]
+    public void AMostlyContainedReadingIsTheSameOpponent()
+    {
+        (double Time, string Opponent)[] reads =
+        [
+            (892.33, "SlyRanger"), (894.67, "WRanger"), (897.0, "Blackout"), (897.33, "jiggymacswag"),
+            (2602.67, "Quarantine"), (2607.67, "BLQuäranfine"),
+            (1014.67, "10Philip98"), (1015.0, "ioPhifp98"), (1038.67, "Sequoia121299"),
+        ];
+        var dedup = new EventDeduplicator(Settings with { OpponentThreshold = 85 });
+        var accepted = reads.Order().Where(read => dedup.Accept(Candidate with
+        {
+            TimestampSeconds = read.Time, RawText = "BulletWaltz " + read.Opponent, OpponentName = read.Opponent,
+        })).Select(read => read.Opponent).ToArray();
+        Assert.Equal(["SlyRanger", "Blackout", "jiggymacswag", "10Philip98", "Sequoia121299", "Quarantine"],
+            accepted);
+    }
+
+    // Boxes as the OCR returned them at 2560x1440: an icon read as a tall box across two rows, and
+    // a squad marker just below the own row.
+    [Fact]
+    public void BoxesReachingIntoANeighbouringRowDoNotJoinIt()
+    {
+        var region = new PixelRegion(1763, 175, 790, 96);
+        var detector = new KillfeedDetector(Settings);
+        OcrLine[] tallIcon =
+        [
+            new("gläl", .64, new(1763, 175, 204, 79)), new("Sequoia121299", .98, new(2004, 175, 171, 38)),
+            new("ty455555", .95, new(2247, 175, 107, 37)), new("BulletWaltz", .97, new(1974, 215, 124, 35)),
+            new("ne", .84, new(2110, 225, 42, 23)), new("Sequoia121299", 1, new(2189, 218, 164, 33)),
+        ];
+        Assert.Equal("Sequoia121299", Assert.Single(
+            detector.Detect(tallIcon, region, 1039, 62360, "video").Candidates).OpponentName);
+        OcrLine[] marker =
+        [
+            new("BUBBUKA", 1, new(2034, 176, 119, 31)), new("QuietMoon", .95, new(2235, 175, 117, 36)),
+            new("BulletWaltz", .95, new(2022, 216, 124, 31)), new("BUBBUKA", 1, new(2236, 216, 112, 30)),
+            new("Errar 701: Pany Hangs Up[2/6]", .84, new(2053, 231, 288, 36)),
+        ];
+        Assert.Equal("BUBBUKA", Assert.Single(
+            detector.Detect(marker, region, 1768, 106100, "video").Candidates).OpponentName);
+    }
+
     // Rows as the OCR read them from real recordings, damage included.
     [Theory]
     [InlineData("hat eine Gefahr gepingt")]

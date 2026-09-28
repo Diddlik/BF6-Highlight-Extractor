@@ -120,10 +120,12 @@ public sealed class KillfeedDetector
             }
         }
         var rows = new List<List<Token>>();
+        // Measured against the row's centre with the smaller height: an icon box that spans two rows
+        // or a squad marker just below a row would otherwise chain rows into one ("gläl", "Error 701").
         foreach (var token in tokens.OrderBy(t => t.Y).ThenBy(t => t.X0))
         {
-            if (rows.Count == 0 || Math.Abs(token.Y - rows[^1][^1].Y) >
-                Math.Max(1, .6 * Math.Max(token.Height, rows[^1][^1].Height))) rows.Add([]);
+            if (rows.Count == 0 || Math.Abs(token.Y - rows[^1].Average(t => t.Y)) >
+                Math.Max(1, .5 * Math.Min(token.Height, rows[^1].Min(t => t.Height)))) rows.Add([]);
             rows[^1].Add(token);
         }
         var events = new List<KillCandidate>();
