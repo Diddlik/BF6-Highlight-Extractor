@@ -92,9 +92,3 @@ clips:
   seconds_before: 3.0
   seconds_after: 2.0
   merge_gap_seconds: 1.5
-  export_mode: "accurate"     # accurate = re-encode (frame exact) | fast = stream copy
-  video_codec: "libx264"      # e.g. h264_nvenc for NVIDIA hardware encoding
-  preset: "fast"
-  crf: 18
-  audio_codec: "aac"
-  audio_bitrate: "192k"

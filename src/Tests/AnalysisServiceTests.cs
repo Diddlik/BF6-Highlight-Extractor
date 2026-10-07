@@ -23,7 +23,8 @@ public sealed class AnalysisServiceTests : IAsyncLifetime
         video = Path.Combine(directory, "match.mkv");
         await MediaProcess.RunAsync("ffmpeg", ["-v", "error", "-f", "lavfi", "-i",
             $"color=c=black:size=128x64:rate={Fps}", "-t", "6",
-            "-vf", "format=gray,geq=lum='clip(4*N,0,255)'", "-c:v", "ffv1", "-pix_fmt", "gray", video],
+            "-vf", "format=gray,geq=lum='clip(4*N,0,255)'", "-c:v", "libx264", "-qp", "0",
+            "-g", "10", "-pix_fmt", "gray", video],
             TimeSpan.FromSeconds(60));
     }
 
@@ -230,7 +231,7 @@ public sealed class AnalysisServiceTests : IAsyncLifetime
     {
         var output = Path.Combine(directory, "with-clips");
         var ocr = new FakeOcr(new() { [20] = ("BulletWaltz Gegner1", 4) });
-        var configuration = Config() with { Clips = Config().Clips with { Preset = "ultrafast" } };
+        var configuration = Config();
         var reports = await new AnalysisService(configuration, () => ocr)
             .RunAsync(video, Path.Combine(directory, "no-clips"));
         Assert.Empty(reports.Clips);

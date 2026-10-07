@@ -182,7 +182,7 @@ public sealed class AnalysisService(Configuration configuration, Func<IOcrEngine
         if (exportClips && segments.Count > 0)
         {
             Report("exporting");
-            clips = (await new ClipExporter(active.Clips).ExportAsync(video.Path, segments,
+            clips = (await new ClipExporter().ExportAsync(video.Path, segments,
                 Path.Combine(outputDirectory, "clips"), null, CancellationToken.None)).Written;
         }
         var elapsed = started.Elapsed.TotalSeconds;

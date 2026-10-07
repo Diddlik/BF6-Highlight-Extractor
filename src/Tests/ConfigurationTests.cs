@@ -58,8 +58,17 @@ public sealed class ConfigurationTests : IDisposable
               minimum_confidence: 0.5
             debug:
               enabled: false
+            clips:
+              seconds_before: 4
+              export_mode: accurate
+              video_codec: libx264
+              preset: fast
+              crf: 18
+              audio_codec: aac
+              audio_bitrate: 192k
             """);
         var configuration = ConfigurationFile.Load(path);
+        Assert.Equal(4, configuration.Clips.SecondsBefore);
         Assert.Equal("clips", configuration.Video.OutputDirectory);
         Assert.Equal(0.5, configuration.Ocr.MinimumConfidence);
     }
@@ -98,9 +107,6 @@ public sealed class ConfigurationTests : IDisposable
             analysis:
               samples_per_second: 99
               max_workers: 0
-            clips:
-              crf: 80
-              export_mode: turbo
             killfeed:
               killer_side: middle
               killer_region:
@@ -113,7 +119,7 @@ public sealed class ConfigurationTests : IDisposable
         foreach (var field in new[]
         {
             "player.names", "analysis.samples_per_second", "analysis.max_workers",
-            "clips.crf", "clips.export_mode", "killfeed.killer_side", "killfeed.killer_region.x_max_ratio",
+            "killfeed.killer_side", "killfeed.killer_region.x_max_ratio",
             "ocr.minimum_confidence",
         }) Assert.Contains(field, message);
     }

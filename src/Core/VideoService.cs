@@ -59,12 +59,13 @@ public sealed class VideoService
     }
 
     /// <summary>
-    /// The keyframe positions from <paramref name="startSeconds"/> on. Only the packets are read,
+    /// The keyframe positions from <paramref name="startSeconds"/> on, up to
+    /// <paramref name="endSeconds"/> when given. Only the packets are read,
     /// nothing is decoded, so this stays cheap even for a long recording. An empty result means
     /// the positions are unknown, not that the recording has no keyframes.
     /// </summary>
     public async Task<IReadOnlyList<double>> KeyframesAsync(string source, double startSeconds = 0,
-        CancellationToken token = default)
+        CancellationToken token = default, double? endSeconds = null)
     {
         if (!double.IsFinite(startSeconds) || startSeconds < 0)
             throw new ArgumentException("Startzeit liegt außerhalb des Videos.");
@@ -75,7 +76,8 @@ public sealed class VideoService
         {
             var output = await MediaProcess.RunAsync(Tool("ffprobe"),
                 ["-v", "error", "-select_streams", "v:0", "-show_entries", "packet=pts_time,flags",
-                    "-of", "csv=p=0", "-read_intervals", Number(startSeconds) + "%", path],
+                    "-of", "csv=p=0", "-read_intervals",
+                    Number(startSeconds) + "%" + (endSeconds is { } end ? Number(end) : ""), path],
                 TimeSpan.FromMinutes(5), token);
             var keyframes = new List<double>();
             foreach (var line in output.Split('\n', StringSplitOptions.TrimEntries
@@ -103,8 +105,36 @@ public sealed class VideoService
             ["-ss", Number(timestamp), "-i", video.Path, "-map", "0:v:0", "-frames:v", "1"], token);
     }
 
-    public async Task ClipAsync(string source, double start, double end, string destination,
-        CancellationToken token = default)
+    /// <summary>
+    /// Stream copy can only start a clip at a keyframe, so the start moves back to the last
+    /// keyframe at or before it and the end forward to the first keyframe at or after it. A bound
+    /// without a keyframe within <see cref="KeyframeSearchSeconds"/> stays as requested.
+    /// </summary>
+    public async Task<(double Start, double End)> KeyframeBoundsAsync(string source, double start,
+        double end, CancellationToken token = default)
+    {
+        var keyframes = await KeyframesAsync(source, Math.Max(0, start - KeyframeSearchSeconds), token,
+            end + KeyframeSearchSeconds);
+        return (keyframes.LastOrDefault(position => position <= start, start),
+            keyframes.FirstOrDefault(position => position >= end, end));
+    }
+
+    /// <summary>Input arguments that copy [start, end) without re-encoding.</summary>
+    internal static string[] CopyArguments(string source, double start, double end)
+    {
+        // ffprobe rounds pts_time to microseconds, which can put a seek exactly on a keyframe a
+        // hair before it and make FFmpeg start at the previous one; 1 ms is shorter than any frame.
+        // The duration shrinks by the same amount so the keyframe at the end stays outside.
+        const double nudge = 0.001;
+        return ["-ss", Number(start + nudge), "-i", source, "-t", Number(end - start - nudge),
+            "-c", "copy"];
+    }
+
+    private const double KeyframeSearchSeconds = 10;
+
+    /// <summary>Copies the streams without re-encoding; returns the keyframe bounds it used.</summary>
+    public async Task<(double Start, double End)> ClipAsync(string source, double start, double end,
+        string destination, CancellationToken token = default)
     {
         var video = await ProbeAsync(source, token);
         if (!double.IsFinite(start) || !double.IsFinite(end) || start < 0 || end <= start
@@ -112,10 +142,11 @@ public sealed class VideoService
             throw new ArgumentException("Clip-Grenzen liegen außerhalb des Videos oder sind vertauscht.");
         if (!destination.EndsWith(".mp4", StringComparison.OrdinalIgnoreCase))
             throw new ArgumentException("Clip-Ziel muss .mp4 sein.");
+        var bounds = await KeyframeBoundsAsync(video.Path, start, end, token);
         await WriteAsync(destination,
-            ["-ss", Number(start), "-i", video.Path, "-t", Number(end - start),
-             "-map", "0:v:0", "-map", "0:a:0?", "-c:v", "libx264", "-preset", "fast",
-             "-crf", "18", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "192k"], token);
+            [.. CopyArguments(video.Path, bounds.Start, bounds.End), "-map", "0:v:0", "-map", "0:a:0?"],
+            token);
+        return bounds;
     }
 
     private static async Task WriteAsync(string destination, string[] arguments, CancellationToken token)

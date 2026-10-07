@@ -125,8 +125,9 @@ hinterlässt keine halbfertigen Dateien.
 Die Einstellungen sind in Tabs gegliedert: **Erkennung** (Spielernamen, Erkennungsmodus,
 Killfeed-Bereich, Ähnlichkeitsschwellen), **Profil** (persönliches Erkennungsprofil),
 **Leistung** (Abtastrate, parallele Erkennung), **Clips** (Vor- und Nachlauf,
-Zusammenführungsabstand, Schnittart, Ausgabeordner) und **Allgemein** (Konfigurationsdatei,
-Aktualisierung). Die Werte landen in einer
+Zusammenführungsabstand, Ausgabeordner) und **Allgemein** (Konfigurationsdatei,
+Aktualisierung). Clips werden ohne Neukodierung kopiert; Start und Ende rücken dafür auf das
+umgebende Schlüsselbild. Die Werte landen in einer
 YAML-Datei unter `%APPDATA%\BF6-Highlight-Extractor\config.yaml`.
 
 Zwei Werte lohnen die Aufmerksamkeit:

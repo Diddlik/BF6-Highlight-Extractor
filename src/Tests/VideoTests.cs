@@ -16,7 +16,7 @@ public sealed class VideoTests : IAsyncLifetime
         await MediaProcess.RunAsync("ffmpeg",
             ["-nostdin", "-loglevel", "error", "-f", "lavfi", "-i", "testsrc2=size=160x120:rate=30",
              "-f", "lavfi", "-i", "sine=frequency=440", "-t", "3", "-c:v", "libx264",
-             "-c:a", "aac", Source], TimeSpan.FromSeconds(30));
+             "-g", "15", "-sc_threshold", "0", "-c:a", "aac", Source], TimeSpan.FromSeconds(30));
     }
 
     public Task DisposeAsync() { Directory.Delete(directory, recursive: true); return Task.CompletedTask; }
@@ -35,7 +35,18 @@ public sealed class VideoTests : IAsyncLifetime
         await service.ClipAsync(Source, 0.5, 1.5, clip);
         var exported = await service.ProbeAsync(clip);
         Assert.Equal("aac", exported.AudioCodec);
-        Assert.InRange(exported.DurationSeconds, 1 - 1d / 30, 1 + 1d / 30);
+        // Stream copy stops by decode time, so B-frames can carry a few frames past the end.
+        Assert.InRange(exported.DurationSeconds, 1 - 1d / 30, 1 + 3d / 30);
+    }
+
+    [Fact]
+    public async Task ClipBoundsWidenToTheSurroundingKeyframes()
+    {
+        var clip = Path.Combine(directory, "widened.mp4");
+        var (start, end) = await service.ClipAsync(Source, 0.6, 1.4, clip);
+        Assert.Equal(0.5, start, 0.002);
+        Assert.Equal(1.5, end, 0.002);
+        Assert.InRange((await service.ProbeAsync(clip)).DurationSeconds, 1 - 1d / 30, 1 + 3d / 30);
     }
 
     [Fact]
@@ -88,12 +99,14 @@ public sealed class VideoTests : IAsyncLifetime
     public async Task SampleContainsUnreviewedProvenanceAndRefusesOverwrite()
     {
         var target = Path.Combine(directory, "sample");
-        await SampleExporter.ExportAsync(Source, 0.5, 1.5, 1, "own_death", target);
+        // The window widens to the keyframes at 0.5 and 1.5, and the manifest follows the clip.
+        await SampleExporter.ExportAsync(Source, 0.6, 1.4, 1, "own_death", target);
         using var manifest = JsonDocument.Parse(await File.ReadAllTextAsync(Path.Combine(target, "sample.json")));
         Assert.Equal("needs_review", manifest.RootElement.GetProperty("status").GetString());
         Assert.Equal(JsonValueKind.Null, manifest.RootElement.GetProperty("expected_events").ValueKind);
         Assert.Equal(64, manifest.RootElement.GetProperty("source_sha256").GetString()!.Length);
-        Assert.Equal(0.5, manifest.RootElement.GetProperty("frame_in_clip_seconds").GetDouble());
+        Assert.Equal(0.5, manifest.RootElement.GetProperty("frame_in_clip_seconds").GetDouble(), 0.002);
+        Assert.Equal(0.5, manifest.RootElement.GetProperty("window_start_seconds").GetDouble(), 0.002);
         Assert.True(File.Exists(Path.Combine(target, "clip.mp4")));
         Assert.True(File.Exists(Path.Combine(target, "frame.png")));
         await Assert.ThrowsAsync<IOException>(() => SampleExporter.ExportAsync(Source, 0, 1, 0.5, "own_kill", target));

@@ -710,7 +710,7 @@ public sealed class MainViewModel : Observable
         cancellation = cancel;
         try
         {
-            var exporter = new ClipExporter(Settings.ToConfiguration().Clips);
+            var exporter = new ClipExporter();
             var directory = System.IO.Path.Combine(Settings.OutputDirectory, "clips");
             var written = 0;
             var failures = new List<string>();

@@ -120,12 +120,6 @@ public sealed record ClipSettings
     public double SecondsBefore { get; init; } = 3.0;
     public double SecondsAfter { get; init; } = 2.0;
     public double MergeGapSeconds { get; init; } = 1.5;
-    public string ExportMode { get; init; } = "accurate";
-    public string VideoCodec { get; init; } = "libx264";
-    public string Preset { get; init; } = "fast";
-    public int Crf { get; init; } = 18;
-    public string AudioCodec { get; init; } = "aac";
-    public string AudioBitrate { get; init; } = "192k";
 }
 
 /// <summary>
@@ -231,6 +225,8 @@ public static class ConfigurationFile
     [
         ["application"], ["preprocessing"], ["debug"], ["video", "input"], ["ocr", "engine"],
         ["ocr", "language"], ["ocr", "use_gpu"], ["ocr", "fallback_to_cpu"],
+        ["clips", "export_mode"], ["clips", "video_codec"], ["clips", "preset"], ["clips", "crf"],
+        ["clips", "audio_codec"], ["clips", "audio_bitrate"],
     ];
 
     /// <summary>
@@ -371,15 +367,6 @@ public static class ConfigurationFile
             "clips.seconds_after", "Wert darf nicht negativ sein");
         Check(double.IsFinite(settings.Clips.MergeGapSeconds) && settings.Clips.MergeGapSeconds >= 0,
             "clips.merge_gap_seconds", "Wert darf nicht negativ sein");
-        Check(settings.Clips.ExportMode is "accurate" or "fast", "clips.export_mode",
-            "Erlaubt sind accurate, fast");
-        Check(settings.Clips.Crf is >= 0 and <= 51, "clips.crf",
-            "Wert muss zwischen 0 und 51 liegen (" + settings.Clips.Crf + ")");
-        foreach (var (value, field) in new[]
-        {
-            (settings.Clips.VideoCodec, "clips.video_codec"), (settings.Clips.Preset, "clips.preset"),
-            (settings.Clips.AudioCodec, "clips.audio_codec"), (settings.Clips.AudioBitrate, "clips.audio_bitrate"),
-        }) Check(!string.IsNullOrWhiteSpace(value), field, "Wert darf nicht leer sein");
 
         Check(!settings.Update.Automatic || Uri.TryCreate(settings.Update.RepositoryUrl,
                 UriKind.Absolute, out var repository)

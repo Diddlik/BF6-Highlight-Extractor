@@ -449,15 +449,6 @@
                       </StackPanel>
                     </StackPanel>
                     <StackPanel Spacing="4">
-                      <TextBlock Classes="dim" Text="Schnittart" />
-                      <StackPanel Orientation="Horizontal" Spacing="20">
-                        <RadioButton GroupName="export" Content="Präziser Schnitt (neu kodieren)"
-                                     IsChecked="{Binding Settings.AccurateExport}" />
-                        <RadioButton GroupName="export" Content="Schnell (Stream kopieren)"
-                                     IsChecked="{Binding Settings.FastExport}" />
-                      </StackPanel>
-                    </StackPanel>
-                    <StackPanel Spacing="4">
                       <TextBlock Classes="dim" Text="Ausgabeordner" />
                       <StackPanel Orientation="Horizontal" Spacing="8">
                         <TextBox Text="{Binding Settings.OutputDirectory}" MinWidth="380"

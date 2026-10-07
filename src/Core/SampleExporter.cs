@@ -70,7 +70,8 @@ public static class SampleExporter
         Directory.CreateDirectory(temporary);
         try
         {
-            await service.ClipAsync(metadata.Path, start, end, Path.Combine(temporary, "clip.mp4"), token);
+            (start, end) = await service.ClipAsync(metadata.Path, start, end,
+                Path.Combine(temporary, "clip.mp4"), token);
             await service.FrameAsync(metadata.Path, timestamp, Path.Combine(temporary, "frame.png"), token);
             source.EnsureUnchanged();
             var manifest = new

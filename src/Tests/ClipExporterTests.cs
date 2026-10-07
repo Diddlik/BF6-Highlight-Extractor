@@ -1,3 +1,4 @@
+using System.Globalization;
 using Bf6Highlights;
 using Xunit;
 
@@ -53,33 +54,15 @@ public sealed class ClipNamingTests
     }
 
     [Fact]
-    public void AccurateModeReencodesWithAudio()
+    public void ClipsAreStreamCopied()
     {
-        var command = ClipExporter.BuildArguments("in.mkv", Segment(97.0, 105.0, 2, "double_kill"),
-            "out.mp4", new ClipSettings());
-        Assert.Equal("97.000", command[Array.IndexOf(command, "-ss") + 1]);
-        Assert.Equal("8.000", command[Array.IndexOf(command, "-t") + 1]);
-        Assert.Equal("libx264", command[Array.IndexOf(command, "-c:v") + 1]);
-        Assert.Equal("aac", command[Array.IndexOf(command, "-c:a") + 1]);
-        Assert.Equal("out.mp4", command[^1]);
-    }
-
-    [Fact]
-    public void FastModeUsesStreamCopy()
-    {
-        var command = ClipExporter.BuildArguments("in.mkv", Segment(97.0, 105.0, 1, "single_kill"),
-            "out.mp4", new ClipSettings { ExportMode = "fast" });
+        var command = ClipExporter.BuildArguments("in.mkv", 97.0, 105.0, "out.mp4");
+        Assert.Equal(97.001, double.Parse(command[Array.IndexOf(command, "-ss") + 1],
+            CultureInfo.InvariantCulture), 6);
+        Assert.Equal(7.999, double.Parse(command[Array.IndexOf(command, "-t") + 1],
+            CultureInfo.InvariantCulture), 6);
         Assert.Equal("copy", command[Array.IndexOf(command, "-c") + 1]);
-        Assert.DoesNotContain("-crf", command);
-    }
-
-    [Fact]
-    public void HardwareEncodersArePassedThrough()
-    {
-        var command = ClipExporter.BuildArguments("in.mkv", Segment(97.0, 105.0, 1, "single_kill"),
-            "out.mp4", new ClipSettings { VideoCodec = "h264_nvenc", Preset = "p5" });
-        Assert.Equal("h264_nvenc", command[Array.IndexOf(command, "-c:v") + 1]);
-        Assert.Equal("p5", command[Array.IndexOf(command, "-preset") + 1]);
+        Assert.Equal("out.mp4", command[^1]);
     }
 }
 
@@ -96,7 +79,7 @@ public sealed class ClipExporterTests : IAsyncLifetime
         await MediaProcess.RunAsync("ffmpeg", ["-v", "error",
             "-f", "lavfi", "-i", "testsrc2=size=128x96:rate=30", "-f", "lavfi", "-i",
             "sine=frequency=440:sample_rate=48000", "-t", "10", "-c:v", "libx264", "-preset",
-            "ultrafast", "-pix_fmt", "yuv420p", "-c:a", "aac", "-shortest", video],
+            "ultrafast", "-g", "30", "-sc_threshold", "0", "-pix_fmt", "yuv420p", "-c:a", "aac", "-shortest", video],
             TimeSpan.FromSeconds(120));
     }
 
@@ -112,13 +95,10 @@ public sealed class ClipExporterTests : IAsyncLifetime
 
     private string Clips => Path.Combine(directory, "clips");
 
-    [Theory]
-    [InlineData("accurate")]
-    [InlineData("fast")]
-    public async Task ClipsArePlayableAndKeepTheirAudio(string mode)
+    [Fact]
+    public async Task ClipsArePlayableAndKeepTheirAudio()
     {
-        var result = await new ClipExporter(new ClipSettings { ExportMode = mode, Preset = "ultrafast" })
-            .ExportAsync(video, [Segment(2.0, 5.0)], Path.Combine(Clips, mode));
+        var result = await new ClipExporter().ExportAsync(video, [Segment(2.0, 5.0)], Clips);
         var clip = Assert.Single(result.Written);
         Assert.Empty(result.Failures);
         var exported = await new VideoService().ProbeAsync(clip);
@@ -131,18 +111,25 @@ public sealed class ClipExporterTests : IAsyncLifetime
     public async Task ASelectionWithCorrectedBoundsIsExportedAsGiven()
     {
         var segments = new[] { Segment(1.0, 9.0), Segment(2.0, 4.0) };
-        // Only the second candidate, and its start moved by half a second.
-        var selected = segments[1] with { StartSeconds = 2.5 };
-        var result = await new ClipExporter(new ClipSettings { Preset = "ultrafast" })
-            .ExportAsync(video, [selected], Clips);
+        // Only the second candidate, and its start moved by a keyframe interval.
+        var selected = segments[1] with { StartSeconds = 3.0 };
+        var result = await new ClipExporter().ExportAsync(video, [selected], Clips);
         var exported = await new VideoService().ProbeAsync(Assert.Single(result.Written));
-        Assert.InRange(exported.DurationSeconds, 1.0, 2.0);
+        Assert.InRange(exported.DurationSeconds, 0.95, 1.05);
+    }
+
+    [Fact]
+    public async Task BoundsBetweenKeyframesWidenToTheSurroundingKeyframes()
+    {
+        var result = await new ClipExporter().ExportAsync(video, [Segment(2.4, 4.6)], Clips);
+        var exported = await new VideoService().ProbeAsync(Assert.Single(result.Written));
+        Assert.InRange(exported.DurationSeconds, 2.95, 3.05);
     }
 
     [Fact]
     public async Task ASecondExportDoesNotOverwriteTheFirstClip()
     {
-        var exporter = new ClipExporter(new ClipSettings { Preset = "ultrafast" });
+        var exporter = new ClipExporter();
         var first = await exporter.ExportAsync(video, [Segment(2.0, 4.0)], Clips);
         var second = await exporter.ExportAsync(video, [Segment(2.0, 4.0)], Clips);
         Assert.EndsWith("_single-kill.mp4", first.Written[0]);
@@ -153,7 +140,7 @@ public sealed class ClipExporterTests : IAsyncLifetime
     [Fact]
     public async Task BoundsOutsideTheVideoAreRejectedBeforeAnythingIsWritten()
     {
-        await Assert.ThrowsAsync<ArgumentException>(() => new ClipExporter(new ClipSettings())
+        await Assert.ThrowsAsync<ArgumentException>(() => new ClipExporter()
             .ExportAsync(video, [Segment(2.0, 4.0), Segment(9.0, 30.0)], Clips));
         Assert.False(Directory.Exists(Clips));
     }
@@ -161,8 +148,10 @@ public sealed class ClipExporterTests : IAsyncLifetime
     [Fact]
     public async Task AFailedClipLeavesNoFileBehind()
     {
-        var error = await Assert.ThrowsAsync<IOException>(() => new ClipExporter(
-            new ClipSettings { VideoCodec = "kein_codec" }).ExportAsync(video, [Segment(2.0, 4.0)], Clips));
+        // A directory blocks the only clip's name, so FFmpeg's output cannot be published.
+        Directory.CreateDirectory(Path.Combine(Clips, "match_00-00-03_single-kill.mp4"));
+        var error = await Assert.ThrowsAsync<IOException>(() => new ClipExporter()
+            .ExportAsync(video, [Segment(2.0, 4.0)], Clips));
         Assert.Contains("Kein Clip", error.Message);
         Assert.Empty(Directory.GetFiles(Clips));
     }
@@ -170,7 +159,7 @@ public sealed class ClipExporterTests : IAsyncLifetime
     [Fact]
     public async Task OneFailedClipDoesNotStopTheOthers()
     {
-        var exporter = new ClipExporter(new ClipSettings { Preset = "ultrafast" });
+        var exporter = new ClipExporter();
         Directory.CreateDirectory(Clips);
         // A directory blocks exactly the name the second segment would use.
         Directory.CreateDirectory(Path.Combine(Clips, "match_00-00-06_single-kill.mp4"));
@@ -183,7 +172,7 @@ public sealed class ClipExporterTests : IAsyncLifetime
     [Fact]
     public async Task NoSegmentsMeansNoClips()
     {
-        var result = await new ClipExporter(new ClipSettings()).ExportAsync(video, [], Clips);
+        var result = await new ClipExporter().ExportAsync(video, [], Clips);
         Assert.Empty(result.Written);
         Assert.Empty(result.Failures);
     }

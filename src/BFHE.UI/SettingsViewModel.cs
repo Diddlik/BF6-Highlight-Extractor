@@ -65,19 +65,6 @@ public sealed class SettingsViewModel : Observable
     private string mergeGap = "1.5";
     public string MergeGap { get => mergeGap; set => Set(ref mergeGap, value); }
 
-    private string exportMode = "accurate";
-    public string ExportMode { get => exportMode; set => Set(ref exportMode, value); }
-    public bool AccurateExport
-    {
-        get => exportMode == "accurate";
-        set { if (value) { ExportMode = "accurate"; Raise(nameof(AccurateExport)); Raise(nameof(FastExport)); } }
-    }
-    public bool FastExport
-    {
-        get => exportMode == "fast";
-        set { if (value) { ExportMode = "fast"; Raise(nameof(AccurateExport)); Raise(nameof(FastExport)); } }
-    }
-
     private string nameThreshold = "82";
     public string NameThreshold { get => nameThreshold; set => Set(ref nameThreshold, value); }
     private string textThreshold = "88";
@@ -114,17 +101,14 @@ public sealed class SettingsViewModel : Observable
         SecondsBefore = Text(configuration.Clips.SecondsBefore);
         SecondsAfter = Text(configuration.Clips.SecondsAfter);
         MergeGap = Text(configuration.Clips.MergeGapSeconds);
-        ExportMode = configuration.Clips.ExportMode;
         AutomaticUpdates = configuration.Update.Automatic;
         PrereleaseUpdates = configuration.Update.Prerelease;
         RepositoryUrl = configuration.Update.RepositoryUrl;
         NameThreshold = Text(configuration.Ocr.PlayerNameSimilarityThreshold);
         TextThreshold = Text(configuration.Deduplication.TextSimilarityThreshold);
         OpponentThreshold = Text(configuration.Deduplication.OpponentSimilarityThreshold);
-        foreach (var name in new[]
-        {
-            nameof(OcrMode), nameof(TemplateMode), nameof(AccurateExport), nameof(FastExport),
-        }) Raise(name);
+        Raise(nameof(OcrMode));
+        Raise(nameof(TemplateMode));
     }
 
     /// <summary>Builds the configuration and validates it, so bad input is reported per field.</summary>
@@ -172,7 +156,6 @@ public sealed class SettingsViewModel : Observable
                 SecondsBefore = Number(SecondsBefore, "clips.seconds_before"),
                 SecondsAfter = Number(SecondsAfter, "clips.seconds_after"),
                 MergeGapSeconds = Number(MergeGap, "clips.merge_gap_seconds"),
-                ExportMode = ExportMode,
             },
         });
     }

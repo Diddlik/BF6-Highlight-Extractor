@@ -59,25 +59,14 @@ public static partial class ClipNaming
 public sealed record ClipExportResult(IReadOnlyList<string> Written, IReadOnlyList<string> Failures);
 
 /// <summary>
-/// Clip export through FFmpeg: accurate re-encoding or fast
-/// stream copy. Segments arrive as given, so a caller may export a selection with corrected bounds.
+/// Clip export through FFmpeg stream copy, never re-encoded. Segments arrive as given, so a caller
+/// may export a selection with corrected bounds; each is widened to the surrounding keyframes.
 /// </summary>
-public sealed class ClipExporter(ClipSettings settings)
+public sealed class ClipExporter
 {
-    public static string[] BuildArguments(string source, ClipSegment segment, string output,
-        ClipSettings settings)
-    {
-        string[] mode = settings.ExportMode == "fast" ? ["-c", "copy"]
-            : ["-c:v", settings.VideoCodec, "-preset", settings.Preset,
-               "-crf", settings.Crf.ToString(CultureInfo.InvariantCulture),
-               "-c:a", settings.AudioCodec, "-b:a", settings.AudioBitrate];
-        return ["-hide_banner", "-loglevel", "error", "-y",
-                "-ss", Seconds(segment.StartSeconds), "-i", source,
-                "-t", Seconds(segment.DurationSeconds), .. mode, output];
-    }
-
-    private static string Seconds(double value) =>
-        value.ToString("0.000", CultureInfo.InvariantCulture);
+    public static string[] BuildArguments(string source, double start, double end, string output) =>
+        ["-hide_banner", "-loglevel", "error", "-y", .. VideoService.CopyArguments(source, start, end),
+         output];
 
     /// <summary>
     /// Exports every segment into the directory. A single failed clip is reported and skipped;
@@ -86,7 +75,8 @@ public sealed class ClipExporter(ClipSettings settings)
     public async Task<ClipExportResult> ExportAsync(string source, IReadOnlyList<ClipSegment> segments,
         string directory, IProgress<string>? progress = null, CancellationToken token = default)
     {
-        var video = await new VideoService().ProbeAsync(source, token);
+        var service = new VideoService();
+        var video = await service.ProbeAsync(source, token);
         foreach (var segment in segments)
             if (!double.IsFinite(segment.StartSeconds) || !double.IsFinite(segment.EndSeconds)
                 || segment.StartSeconds < 0 || segment.EndSeconds <= segment.StartSeconds
@@ -104,8 +94,10 @@ public sealed class ClipExporter(ClipSettings settings)
             var temporary = Path.Combine(directory, $".bf6-clip-{Guid.NewGuid():N}.mp4");
             try
             {
+                var (start, end) = await service.KeyframeBoundsAsync(video.Path, segment.StartSeconds,
+                    segment.EndSeconds, token);
                 await MediaProcess.RunAsync(VideoService.Tool("ffmpeg"),
-                    BuildArguments(video.Path, segment, temporary, settings),
+                    BuildArguments(video.Path, start, end, temporary),
                     TimeSpan.FromMinutes(10), token);
                 token.ThrowIfCancellationRequested();
                 if (!File.Exists(temporary) || new FileInfo(temporary).Length == 0)

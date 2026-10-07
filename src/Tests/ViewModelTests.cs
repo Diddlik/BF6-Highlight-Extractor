@@ -18,7 +18,7 @@ public sealed class ViewModelTests : IDisposable
             Player = new() { Names = ["BulletWaltz", "[CLAN]Diddlik"] },
             Killfeed = new() { Region = new() { X = 1967, Y = 173, Width = 593, Height = 295 } },
             Analysis = new() { SamplesPerSecond = 5, MaxWorkers = 8, EnableChangeDetection = false },
-            Clips = new() { SecondsBefore = 3, SecondsAfter = 1, MergeGapSeconds = 1.5, ExportMode = "fast" },
+            Clips = new() { SecondsBefore = 3, SecondsAfter = 1, MergeGapSeconds = 1.5 },
         }, "config.yaml");
         return settings;
     }
@@ -34,7 +34,6 @@ public sealed class ViewModelTests : IDisposable
         Assert.Equal(8, configuration.Analysis.MaxWorkers);
         Assert.False(configuration.Analysis.EnableChangeDetection);
         Assert.Equal(1.0, configuration.Clips.SecondsAfter);
-        Assert.Equal("fast", configuration.Clips.ExportMode);
     }
 
     [Fact]
@@ -44,13 +43,11 @@ public sealed class ViewModelTests : IDisposable
         settings.PlayerNames = " Neuer Name , Zweiter ";
         settings.SamplesPerSecond = "7";
         settings.SecondsBefore = "4.5";
-        settings.AccurateExport = true;
         settings.TemplateMode = false;
         var configuration = settings.ToConfiguration();
         Assert.Equal(["Neuer Name", "Zweiter"], configuration.Player.Names);
         Assert.Equal(7, configuration.Analysis.SamplesPerSecond);
         Assert.Equal(4.5, configuration.Clips.SecondsBefore);
-        Assert.Equal("accurate", configuration.Clips.ExportMode);
         Assert.Equal("ocr", configuration.Detection.Mode);
     }
 

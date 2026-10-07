@@ -72,7 +72,7 @@ try
             var clipSegments = SegmentBuilder.Build(Reports.ReadEventsJson(eventFile),
                 clipSettings.Clips, probe.DurationSeconds);
             Reports.WriteSegmentsJson(Path.Combine(destination, "segments.json"), clipSegments);
-            var exported = await new ClipExporter(clipSettings.Clips).ExportAsync(probe.Path,
+            var exported = await new ClipExporter().ExportAsync(probe.Path,
                 clipSegments, Path.Combine(destination, "clips"),
                 new Progress<string>(clip => Console.WriteLine("Clip: " + clip)), cancel.Token);
             foreach (var failure in exported.Failures) Console.Error.WriteLine("Fehler: " + failure);

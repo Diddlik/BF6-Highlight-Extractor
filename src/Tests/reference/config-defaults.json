@@ -46,12 +46,6 @@
   "clips": {
     "seconds_before": 3.0,
     "seconds_after": 2.0,
-    "merge_gap_seconds": 1.5,
-    "export_mode": "accurate",
-    "video_codec": "libx264",
-    "preset": "fast",
-    "crf": 18,
-    "audio_codec": "aac",
-    "audio_bitrate": "192k"
+    "merge_gap_seconds": 1.5
   }
 }
