@@ -25,9 +25,10 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      # The SDK pinned in global.json; '10.0.x' moved on to a newer patch that the pin rejects.
       - uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: '10.0.x'
+          global-json-file: src/global.json
 
       # FFmpeg is needed for the tests and is shipped inside the package. The full build, because
       # only it has dav1d; the essentials build's libaom rejects the NVIDIA app's AV1 recordings.
