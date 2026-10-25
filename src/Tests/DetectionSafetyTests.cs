@@ -38,6 +38,21 @@ public sealed class DetectionSafetyTests
         Assert.Empty(detector.Detect(lines, new(0, 0, 600, 300), 10, 600, "video").Candidates);
     }
 
+    // From a CoD recording: the red victim name over a bright wall came out as "Dicrtys Haren" at
+    // 0.58; taken as a name, it split one kill in two.
+    [Fact]
+    public void AnUncertainVictimCountsAsUnread()
+    {
+        OcrLine[] lines = [new("BulletWaltz", 1, new(13, 232, 164, 29)), new("Dicrtys Haren", .58, new(352, 229, 150, 30))];
+        var region = new PixelRegion(0, 0, 640, 270);
+        var uncertain = new KillfeedDetector(Settings with { MinimumOpponentConfidence = .8 })
+            .Detect(lines, region, 10, 600, "video").Candidates.Single();
+        Assert.Null(uncertain.OpponentName);
+        Assert.Equal("Dicrtys Haren", uncertain.WeaponText);
+        Assert.Equal("Dicrtys Haren", new KillfeedDetector(Settings)
+            .Detect(lines, region, 10, 600, "video").Candidates.Single().OpponentName);
+    }
+
     // A sequence from a real recording: three kills, each read several times with OCR damage.
     [Fact]
     public void RepeatedReadsOfOneKillfeedRowCountOnce()

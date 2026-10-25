@@ -95,7 +95,7 @@ public static class PotentialFrameFinder
         // nothing in between; a recording whose keyframes are further apart than an entry lives
         // falls back to a fixed step, and that one keeps half the window as a margin. Change
         // detection is pointless between coarse frames, they always differ.
-        var lifetime = active.Deduplication.DuplicateWindowSeconds;
+        var lifetime = active.ResolveDuplicateWindowSeconds();
         var keyframes = await new VideoService().KeyframesAsync(video.Path, afterSeconds, token);
         var widestGap = keyframes.Count == 0 ? double.PositiveInfinity
             : keyframes.Zip(keyframes.Skip(1)).Aggregate(keyframes[0] - afterSeconds,

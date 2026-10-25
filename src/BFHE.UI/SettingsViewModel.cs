@@ -12,6 +12,9 @@ public sealed class SettingsViewModel : Observable
 
     public string ConfigPath { get; set; } = "";
 
+    private string game = "bf6";
+    public string Game { get => game; private set => Set(ref game, value); }
+
     private string playerNames = "Spielername";
     public string PlayerNames { get => playerNames; set => Set(ref playerNames, value); }
 
@@ -89,6 +92,7 @@ public sealed class SettingsViewModel : Observable
     {
         source = configuration;
         ConfigPath = path;
+        Game = configuration.Game;
         PlayerNames = string.Join(", ", configuration.Player.Names);
         OutputDirectory = configuration.Video.OutputDirectory;
         Mode = configuration.Detection.Mode;
@@ -122,6 +126,7 @@ public sealed class SettingsViewModel : Observable
         };
         return ConfigurationFile.Validated(source with
         {
+            Game = Game,
             Player = new()
             {
                 Names = [.. PlayerNames.Split(',', StringSplitOptions.RemoveEmptyEntries

@@ -1,4 +1,5 @@
 {
+  "game": "bf6",
   "player": {
     "names": [
       "ReferencePlayer"
@@ -14,7 +15,7 @@
     "region_normalized": null,
     "killer_region": {
       "x_min_ratio": 0.0,
-      "x_max_ratio": 0.48
+      "x_max_ratio": null
     }
   },
   "detection": {
@@ -39,7 +40,7 @@
     "normalize_confusables": true
   },
   "deduplication": {
-    "duplicate_window_seconds": 8.0,
+    "duplicate_window_seconds": null,
     "text_similarity_threshold": 88.0,
     "opponent_similarity_threshold": 85.0
   },

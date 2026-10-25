@@ -127,6 +127,9 @@ public static class PersonalProfileStore
         {
             return (configuration, "Standarderkennung, weil das Profil nicht lesbar ist: " + error.Message);
         }
+        if (profile.Game != configuration.Game)
+            return (configuration, $"Standarderkennung, weil das Profil für {profile.Game} gilt, "
+                + $"die Konfiguration aber für {configuration.Game}.");
         if (!profile.Fits(videoWidth, videoHeight))
             return (configuration, $"Standarderkennung, weil das Profil für "
                 + $"{profile.SourceWidth}×{profile.SourceHeight} gilt, die Aufnahme aber "

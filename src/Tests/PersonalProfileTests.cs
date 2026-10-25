@@ -155,6 +155,11 @@ public sealed class PersonalProfileTests : IDisposable
         Assert.Contains("Standarderkennung", mismatch);
         Assert.Equal(configuration.Ocr.MinimumConfidence, other.Ocr.MinimumConfidence);
 
+        var (otherGame, gameMismatch) = PersonalProfileStore.Apply(configuration with { Game = "cod" },
+            path, 2560, 1440);
+        Assert.Contains("bf6", gameMismatch);
+        Assert.Equal(configuration.Ocr.MinimumConfidence, otherGame.Ocr.MinimumConfidence);
+
         var broken = Path.Combine(directory, "kaputt.json");
         File.WriteAllText(broken, "{ kein json");
         Assert.Contains("nicht lesbar", PersonalProfileStore.Apply(configuration, broken, 2560, 1440).Note);

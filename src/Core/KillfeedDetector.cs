@@ -11,6 +11,8 @@ public sealed record DetectionSettings
     public string Direction { get; init; } = "left_to_right";
     public double KillerMinRatio { get; init; } = 0;
     public double KillerMaxRatio { get; init; } = 0.48;
+    /// <summary>A victim read below this confidence counts as unread.</summary>
+    public double MinimumOpponentConfidence { get; init; }
     public double DuplicateWindowSeconds { get; init; } = 8;
     public double TextThreshold { get; init; } = 88;
     public double OpponentThreshold { get; init; } = 85;
@@ -23,6 +25,7 @@ public sealed record DetectionSettings
             throw new ArgumentException("Ungültige Killer-Seite oder Leserichtung.");
         if (!double.IsFinite(NameThreshold) || NameThreshold is < 0 or > 100 ||
             !double.IsFinite(MinimumConfidence) || MinimumConfidence is < 0 or > 1 ||
+            !double.IsFinite(MinimumOpponentConfidence) || MinimumOpponentConfidence is < 0 or > 1 ||
             !double.IsFinite(KillerMinRatio) || !double.IsFinite(KillerMaxRatio) ||
             KillerMinRatio < 0 || KillerMaxRatio > 1 || KillerMinRatio >= KillerMaxRatio ||
             !double.IsFinite(DuplicateWindowSeconds) || DuplicateWindowSeconds < 0 ||
@@ -171,7 +174,7 @@ public sealed class KillfeedDetector
             // A victim name with a space ("Mahmoud Samy", or "Bad Trip95" as the OCR splits it) arrives as a
             // line of its own; only when that line also holds the own name is the last word the victim.
             var edge = rest.Length == 0 ? null : settings.KillerSide == "left" ? rest[^1] : rest[0];
-            var victim = edge is null ? []
+            var victim = edge is null || edge.Confidence < settings.MinimumOpponentConfidence ? []
                 : matched.Any(t => ReferenceEquals(t.Line, edge.Line)) ? [edge]
                 : rest.Where(t => ReferenceEquals(t.Line, edge.Line)).ToArray();
             var opponent = victim.Length == 0 ? null : string.Join(' ', victim.Select(t => t.Text));

@@ -47,7 +47,7 @@ try
         {
             var settings = ConfigurationFile.Load(configuration);
             var withClips = options.Length == 1;
-            using var rowClassifier = RowClassifier.Load(settings.Player.Names);
+            using var rowClassifier = RowClassifier.For(settings);
             var analysisService = new AnalysisService(settings, () => new OnnxOcrEngine())
             {
                 ProfilePath = PersonalProfileStore.ActivePath,

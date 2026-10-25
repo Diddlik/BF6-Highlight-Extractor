@@ -133,6 +133,13 @@
           </StackPanel>
         </StackPanel>
 
+        <StackPanel DockPanel.Dock="Top" Margin="20,0,20,16" Spacing="4">
+          <TextBlock Classes="dim" Text="Spiel" />
+          <ComboBox ItemsSource="{Binding Games}" SelectedIndex="{Binding GameIndex}"
+                    IsEnabled="{Binding Idle}" HorizontalAlignment="Stretch"
+                    AutomationProperties.Name="Spiel" />
+        </StackPanel>
+
         <StackPanel DockPanel.Dock="Bottom" Margin="20,10,20,18">
           <TextBlock Classes="dim" Text="{Binding Settings.ConfigPath}" TextWrapping="Wrap" />
         </StackPanel>

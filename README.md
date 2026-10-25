@@ -3,6 +3,7 @@
 # BF6 Highlight Extractor
 
 Findet in langen Battlefield-6-Aufnahmen die eigenen Kills und schneidet daraus Clips.
+Aufnahmen aus Call of Duty werden ebenfalls unterstützt, siehe [Spiele](#spiele).
 Die Anwendung läuft vollständig auf dem eigenen Rechner: keine Cloud-Erkennung, kein
 Konto, kein Upload, keine Telemetrie. Windows 11, 64 Bit.
 
@@ -47,8 +48,9 @@ sicher ist; einen Kill fügt es nie hinzu.
   Kills für Tode.
 
 In zwei Messläufen auf zurückgehaltenen Aufnahmen (98 und 222 von Hand geprüfte Zeilen) ging
-kein echter Kill verloren. Das Modell kennt bisher nur Aufnahmen in 2560×1440 mit
-Standard-HUD. Es läuft lokal über ONNX Runtime, wie die Texterkennung.
+kein echter Kill verloren. Das Modell kennt bisher nur BF6-Aufnahmen in 2560×1440 mit
+Standard-HUD und ist für Call of Duty abgeschaltet. Es läuft lokal über ONNX Runtime, wie die
+Texterkennung.
 
 Aus den Zeitpunkten entstehen Clip-Abschnitte, standardmäßig drei Sekunden davor und zwei
 danach. Liegen Abschnitte dicht beieinander, werden sie zu einem Mehrfachkill-Clip
@@ -118,6 +120,33 @@ Je Aufnahme entsteht ein Ordner im gewählten Ausgabeziel:
 Ein Abbruch mit Strg+C oder über die Schaltfläche behält alles bereits Gefundene und
 hinterlässt keine halbfertigen Dateien.
 
+## Spiele
+
+Oben links in der Navigation wird das Spiel gewählt: **Battlefield 6** oder **Call of Duty**.
+Jedes Spiel hat eine eigene Konfiguration (`config.yaml` für BF6, `config-cod.yaml` für CoD).
+Beim Wechsel werden die Einstellungen des bisherigen Spiels gespeichert und die des anderen
+geladen. Gibt es für ein Spiel noch keine, übernimmt es die aktuellen Einstellungen ohne
+Killfeed-Bereich und Vorlagen. Die Anwendung startet mit dem zuletzt gewählten Spiel.
+
+Das Spiel bestimmt die Standardwerte der Erkennung, solange die Datei keine eigenen setzt:
+
+| | Battlefield 6 | Call of Duty |
+| --- | --- | --- |
+| Killfeed-Bereich bei 2560×1440 | oben rechts, 1850,173 710×295 | links über der Mitte, 40,650 640×270 |
+| eigener Name als Killer bis | 48 % der Bereichsbreite | 33 % |
+| Zeitfenster für denselben Kill | 8 s | 4 s, weil Gegner in CoD nach Sekunden wieder da sind |
+| Bildmodell für Zeilen | an | aus, es kennt nur BF6-Zeilen |
+| unsicher gelesener Gegner (Konfidenz < 0,8) | gilt als Name | gilt als ungelesen |
+
+CoD zeichnet Gegnernamen rot direkt ins Bild. Über hellem Grund liest die Texterkennung sie
+öfter falsch („Dicrtys Haren“ statt „Dirrty-Harry“); solche Lesungen haben eine niedrige
+Konfidenz und würden sonst einen Kill doppelt zählen. Auf drei CoD-Aufnahmen (15 Minuten,
+24 eigene Kills) wurden alle Kills gefunden; zwei erschienen zusätzlich doppelt, weil der
+Gegnername auch mit hoher Konfidenz falsch gelesen wurde. Ein persönliches Profil gilt nur
+für das Spiel, auf dem es kalibriert wurde.
+
+In einer Konfigurationsdatei für die Kommandozeile wählt `game: cod` das Spiel.
+
 ## Einstellungen
 
 ![Einstellungen](.github/media/oberflaeche-einstellungen.png)
@@ -128,7 +157,8 @@ Killfeed-Bereich, Ähnlichkeitsschwellen), **Profil** (persönliches Erkennungsp
 Zusammenführungsabstand, Ausgabeordner) und **Allgemein** (Konfigurationsdatei,
 Aktualisierung). Clips werden ohne Neukodierung kopiert; Start und Ende rücken dafür auf das
 umgebende Schlüsselbild. Die Werte landen in einer
-YAML-Datei unter `%APPDATA%\BF6-Highlight-Extractor\config.yaml`.
+YAML-Datei unter `%APPDATA%\BF6-Highlight-Extractor\config.yaml`, für Call of Duty in
+`config-cod.yaml` daneben.
 
 Zwei Werte lohnen die Aufmerksamkeit:
 
@@ -193,7 +223,7 @@ Nötig sind das .NET-10-SDK sowie FFmpeg und ffprobe auf dem PATH.
 ```powershell
 cd src
 dotnet build -m:1
-dotnet test -m:1                # 234 Tests
+dotnet test -m:1                # 257 Tests
 dotnet run --project BFHE.UI    # Oberfläche starten
 ```
 

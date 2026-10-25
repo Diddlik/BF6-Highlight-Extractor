@@ -618,7 +618,7 @@ public sealed class MainViewModel : Observable
         try
         {
             var configuration = Settings.ToConfiguration();
-            using var rowClassifier = RowClassifier.Load(configuration.Player.Names);
+            using var rowClassifier = RowClassifier.For(configuration);
             var service = new AnalysisService(configuration, () => new OnnxOcrEngine())
             {
                 ProfilePath = PersonalProfileStore.ActivePath,
@@ -838,7 +838,7 @@ public sealed class MainViewModel : Observable
         var region = Settings.RegionForEditor();
         return region is not null && region.Width <= video.Width && region.Height <= video.Height
             && region.X <= video.Width - region.Width && region.Y <= video.Height - region.Height
-            ? region : Configuration.DefaultKillfeedRegion(video.Width, video.Height);
+            ? region : Configuration.DefaultKillfeedRegion(Settings.Game, video.Width, video.Height);
     }
 
     /// <summary>Takes the picked region and reports which resolution it belongs to.</summary>
@@ -858,10 +858,59 @@ public sealed class MainViewModel : Observable
     /// </summary>
     public void LoadUserSettings()
     {
-        var path = ConfigurationFile.DefaultUserConfigPath;
+        var path = ConfigurationFile.UserConfigPath(ConfigurationFile.ActiveGame);
+        if (!File.Exists(path)) path = ConfigurationFile.DefaultUserConfigPath;
         if (File.Exists(path)) { LoadSettings(path); return; }
         Settings.ConfigPath = path;
         Status = "Noch keine gespeicherte Konfiguration. Einstellungen prüfen und speichern.";
+    }
+
+    private static readonly string[] GameIds = ["bf6", "cod"];
+    public IReadOnlyList<string> Games { get; } = ["Battlefield 6", "Call of Duty"];
+
+    /// <summary>The game in <see cref="Games"/>; choosing another one switches the configuration.</summary>
+    public int GameIndex
+    {
+        get => Array.IndexOf(GameIds, Settings.Game);
+        set
+        {
+            if (value >= 0) SwitchGame(GameIds[value]);
+            // Also after a failed switch, so the selection falls back to the game still shown.
+            Raise(nameof(GameIndex));
+        }
+    }
+
+    /// <summary>
+    /// Saves the settings of the current game and shows those of the chosen one. A game without a
+    /// configuration yet starts from the current settings, but with its own killfeed region.
+    /// </summary>
+    public void SwitchGame(string game)
+    {
+        if (game == Settings.Game || Busy) return;
+        SaveUserSettings();
+        if (Problem is not null) return;
+        var path = ConfigurationFile.UserConfigPath(game);
+        if (File.Exists(path)) LoadSettings(path);
+        else
+        {
+            var current = Settings.ToConfiguration();
+            // Regions and templates describe the other game's HUD.
+            Settings.From(current with
+            {
+                Game = game,
+                Killfeed = current.Killfeed with { Region = null, RegionNormalized = null },
+                Detection = new(),
+                Profiles = [],
+            }, path);
+            SaveSettings(path);
+        }
+        if (Problem is not null) return;
+        try { ConfigurationFile.ActiveGame = game; }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+        {
+            Problem = "Spielwahl nicht gespeichert: " + error.Message;
+        }
+        Raise(nameof(SettingsState));
     }
 
     /// <summary>Saves to the loaded file, or to the user folder when none was opened yet.</summary>

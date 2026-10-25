@@ -1,5 +1,9 @@
 # bf6-highlights configuration. Copy to config.yaml and adjust.
 
+# Which game's killfeed the recordings show: bf6 | cod. Sets the default killfeed region and
+# killer_region, and enables the row classifier, which only knows Battlefield 6 rows.
+game: "bf6"
+
 player:
   # Every spelling that can appear in the killfeed. OCR errors are tolerated via fuzzy matching.
   names:
@@ -54,7 +58,7 @@ killfeed:
   # Mirror these values when killer_side is "right".
   killer_region:
     x_min_ratio: 0.0
-    x_max_ratio: 0.48
+    x_max_ratio: 0.48        # default: 0.48 for bf6, 0.33 for cod
 
 # Written by `bf6-highlights configure-region`; matched against the video resolution.
 profiles: {}
@@ -81,7 +85,7 @@ ocr:
   normalize_confusables: true  # fold 1/I/| -> l and 0 -> o before comparing
 
 deduplication:
-  duplicate_window_seconds: 8    # gap tolerance: refreshed on every repeat of the same line
+  duplicate_window_seconds: 8    # gap tolerance: refreshed on every repeat of the same line; default 8 for bf6, 4 for cod
   text_similarity_threshold: 88  # full killfeed row (killer + weapon + opponent)
   # Opponent name alone - keep lower than the row threshold, since a short name loses a lot of
   # ratio to one wrong OCR character (Steini3/Steinia score ~86). Lower to merge more variants;

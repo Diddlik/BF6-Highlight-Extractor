@@ -26,6 +26,15 @@ public sealed class RowClassifierTests
             Assert.Equal(expected[index], actual[classes[index]], 3);
     }
 
+    [Fact]
+    public void OnlyBattlefieldRowsAreClassified()
+    {
+        var player = new PlayerSettings { Names = ["BulletWaltz"] };
+        using var battlefield = RowClassifier.For(new Configuration { Player = player });
+        Assert.NotNull(battlefield);
+        Assert.Null(RowClassifier.For(new Configuration { Game = "cod", Player = player }));
+    }
+
     // Measured on rows of other players: pings were recognised, kills were taken for deaths, because
     // the model only knows its own training names. So everyone else gets the ping veto alone.
     [Fact]

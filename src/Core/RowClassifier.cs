@@ -47,6 +47,13 @@ public sealed class RowClassifier : IDisposable
         return probability >= VetoConfidence && (label == "ping" || trained && label != "kill");
     }
 
+    /// <summary>
+    /// The classifier for this configuration, or null for another game: the model has only seen
+    /// Battlefield 6 rows and would veto kills from any other killfeed.
+    /// </summary>
+    public static RowClassifier? For(Configuration configuration) =>
+        configuration.Game == "bf6" ? Load(configuration.Player.Names) : null;
+
     /// <summary>The classifier, or null when the application ships without the model.</summary>
     public static RowClassifier? Load(IEnumerable<string> playerNames, string? path = null)
     {

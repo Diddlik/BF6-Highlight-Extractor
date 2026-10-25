@@ -41,6 +41,8 @@ public sealed record PersonalProfile
     public required int SourceHeight { get; init; }
     public required RegionSettings Region { get; init; }
     public required string Mode { get; init; }
+    // Profiles written before CoD support carry no game; they were all calibrated on BF6.
+    public string Game { get; init; } = "bf6";
 
     // Calibrated values.
     public required double MinimumConfidence { get; init; }
@@ -137,6 +139,7 @@ public static partial class PersonalProfileTrainer
                 Width = development[0].Region.Width, Height = development[0].Region.Height,
             },
             Mode = configuration.Detection.Mode,
+            Game = configuration.Game,
             MinimumConfidence = chosen.Confidence,
             NameThreshold = chosen.Name,
             DevelopmentMetrics = chosen.Metrics,

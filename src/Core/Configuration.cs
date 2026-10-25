@@ -61,7 +61,8 @@ public sealed record ProfileSettings
 public sealed record KillerRegionSettings
 {
     public double XMinRatio { get; init; }
-    public double XMaxRatio { get; init; } = 0.48;
+    /// <summary>Unset means the default of the game, see <see cref="Configuration.ResolveKillerMaxRatio"/>.</summary>
+    public double? XMaxRatio { get; init; }
 }
 
 public sealed record KillfeedSettings
@@ -110,7 +111,8 @@ public sealed record OcrSettings
 
 public sealed record DeduplicationSettings
 {
-    public double DuplicateWindowSeconds { get; init; } = 8.0;
+    /// <summary>Unset means the default of the game, see <see cref="Configuration.ResolveDuplicateWindowSeconds"/>.</summary>
+    public double? DuplicateWindowSeconds { get; init; }
     public double TextSimilarityThreshold { get; init; } = 88.0;
     public double OpponentSimilarityThreshold { get; init; } = 85.0;
 }
@@ -138,6 +140,8 @@ public sealed record Configuration
     public const int CurrentVersion = 1;
 
     public int ConfigVersion { get; init; } = CurrentVersion;
+    /// <summary>Which game's killfeed the recordings show: bf6 or cod.</summary>
+    public string Game { get; init; } = "bf6";
     public PlayerSettings Player { get; init; } = new();
     public VideoSettings Video { get; init; } = new();
     public KillfeedSettings Killfeed { get; init; } = new();
@@ -159,15 +163,33 @@ public sealed record Configuration
         KillerSide = Killfeed.KillerSide,
         Direction = Killfeed.Direction,
         KillerMinRatio = Killfeed.KillerRegion.XMinRatio,
-        KillerMaxRatio = Killfeed.KillerRegion.XMaxRatio,
-        DuplicateWindowSeconds = Deduplication.DuplicateWindowSeconds,
+        KillerMaxRatio = ResolveKillerMaxRatio(),
+        // CoD draws enemy names in red straight onto the scene, without a backdrop. The OCR misreads
+        // them over bright ground ("Dicrtys Haren" for "Dirrty-Harry") at a confidence of 0.58 to 0.73,
+        // while clean readings stay above 0.85; a misreading counted as a name splits one kill in two.
+        MinimumOpponentConfidence = Game == "cod" ? 0.8 : 0,
+        DuplicateWindowSeconds = ResolveDuplicateWindowSeconds(),
         TextThreshold = Deduplication.TextSimilarityThreshold,
         OpponentThreshold = Deduplication.OpponentSimilarityThreshold,
     };
 
     /// <summary>
+    /// How far right the own name may sit and still be the killer. CoD starts every killer name at
+    /// the left edge, but after a short killer name the victim already starts at 0.45 of the region.
+    /// </summary>
+    public double ResolveKillerMaxRatio() => Killfeed.KillerRegion.XMaxRatio ?? (Game == "cod" ? 0.33 : 0.48);
+
+    /// <summary>
+    /// How long a row may go unseen and still be the same kill. A CoD row lives about five seconds
+    /// and a killed player is back within seconds, so the BF6 window merged a second kill of the
+    /// same opponent twelve seconds after the first.
+    /// </summary>
+    public double ResolveDuplicateWindowSeconds() =>
+        Deduplication.DuplicateWindowSeconds ?? (Game == "cod" ? 4 : 8);
+
+    /// <summary>
     /// Killfeed region for a resolution: matching profile, then normalized, then absolute, then the
-    /// BF6 default.
+    /// default of the game.
     /// </summary>
     public RegionSettings ResolveKillfeedRegion(int videoWidth, int videoHeight)
     {
@@ -179,18 +201,23 @@ public sealed record Configuration
                 videoWidth, videoHeight, "killfeed.region_normalized");
         if (Killfeed.Region is not null)
             return Inside(Killfeed.Region, videoWidth, videoHeight, "killfeed.region");
-        return DefaultKillfeedRegion(videoWidth, videoHeight);
+        return DefaultKillfeedRegion(Game, videoWidth, videoHeight);
     }
 
     /// <summary>
-    /// Where BF6 draws the killfeed. The HUD sits in the top-right corner and scales with the screen
-    /// height, so ultrawide recordings keep it at the right edge. Measured at 2560x1440 on reviewed
-    /// samples; a changed HUD scale in the game needs a region of its own.
+    /// Where the game draws the killfeed. Both HUDs scale with the screen height, so ultrawide
+    /// recordings keep it at the same edge. Measured at 2560x1440 on reviewed samples; a changed
+    /// HUD scale in the game needs a region of its own.
     /// </summary>
-    public static RegionSettings DefaultKillfeedRegion(int videoWidth, int videoHeight)
+    public static RegionSettings DefaultKillfeedRegion(string game, int videoWidth, int videoHeight)
     {
         var scale = videoHeight / 1440d;
         int Scaled(double pixels) => (int)Math.Round(pixels * scale, MidpointRounding.ToEven);
+        // CoD stacks the killfeed above the minimap's left edge; it ends above the ping line
+        // ("Name ◇ Gefahr!"), which must stay outside the region.
+        if (game == "cod")
+            return new() { X = Scaled(40), Y = Scaled(650), Width = Math.Min(videoWidth, Scaled(640)), Height = Scaled(270) };
+        // BF6 keeps it in the top-right corner.
         var width = Math.Min(videoWidth, Scaled(710));
         return new() { X = videoWidth - width, Y = Scaled(173), Width = width, Height = Scaled(295) };
     }
@@ -237,6 +264,39 @@ public static class ConfigurationFile
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData,
             Environment.SpecialFolderOption.DoNotVerify),
         "BF6-Highlight-Extractor", "config.yaml");
+
+    /// <summary>
+    /// The user configuration of one game. Battlefield 6 keeps the original file name, so an
+    /// existing installation keeps its settings.
+    /// </summary>
+    public static string UserConfigPath(string game) => game == "bf6" ? DefaultUserConfigPath
+        : Path.Combine(Path.GetDirectoryName(DefaultUserConfigPath)!, $"config-{game}.yaml");
+
+    // Lives beside the configurations, not in one of them: switching must not rewrite a game's settings.
+    private static string ActiveGameFile =>
+        Path.Combine(Path.GetDirectoryName(DefaultUserConfigPath)!, "active-game.txt");
+
+    /// <summary>The game the application showed last; Battlefield 6 when none was chosen yet.</summary>
+    public static string ActiveGame
+    {
+        get
+        {
+            try
+            {
+                var game = File.Exists(ActiveGameFile) ? File.ReadAllText(ActiveGameFile).Trim() : "";
+                return game is "bf6" or "cod" ? game : "bf6";
+            }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+            {
+                return "bf6";
+            }
+        }
+        set
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(ActiveGameFile)!);
+            File.WriteAllText(ActiveGameFile, value);
+        }
+    }
 
     public static Configuration Load(string path)
     {
@@ -296,6 +356,7 @@ public static class ConfigurationFile
         var settings = configuration;
         Check(settings.ConfigVersion is >= 1 and <= Configuration.CurrentVersion, "config_version",
             $"Unterstützt wird Version 1 bis {Configuration.CurrentVersion} ({settings.ConfigVersion})");
+        Check(settings.Game is "bf6" or "cod", "game", "Erlaubt sind bf6, cod");
         Check(settings.Player.Names.Count > 0 && settings.Player.Names.All(n => !string.IsNullOrWhiteSpace(n)),
             "player.names", "Mindestens ein nicht leerer Spielername ist erforderlich");
         Check(!string.IsNullOrWhiteSpace(settings.Video.OutputDirectory), "video.output_directory",
@@ -306,8 +367,8 @@ public static class ConfigurationFile
         Check(settings.Killfeed.KillerSide is "left" or "right", "killfeed.killer_side",
             "Erlaubt sind left, right");
         Range(settings.Killfeed.KillerRegion.XMinRatio, "killfeed.killer_region.x_min_ratio", 0, 1);
-        Range(settings.Killfeed.KillerRegion.XMaxRatio, "killfeed.killer_region.x_max_ratio", 0, 1);
-        Check(settings.Killfeed.KillerRegion.XMaxRatio > settings.Killfeed.KillerRegion.XMinRatio,
+        Range(settings.ResolveKillerMaxRatio(), "killfeed.killer_region.x_max_ratio", 0, 1);
+        Check(settings.ResolveKillerMaxRatio() > settings.Killfeed.KillerRegion.XMinRatio,
             "killfeed.killer_region.x_max_ratio", "Muss größer als x_min_ratio sein");
         Region(settings.Killfeed.Region, "killfeed.region", problems);
         Normalized(settings.Killfeed.RegionNormalized, "killfeed.region_normalized", problems);
@@ -354,8 +415,8 @@ public static class ConfigurationFile
         Range(settings.Ocr.MinimumConfidence, "ocr.minimum_confidence", 0, 1);
         Range(settings.Ocr.PlayerNameSimilarityThreshold, "ocr.player_name_similarity_threshold", 0, 100);
 
-        Check(double.IsFinite(settings.Deduplication.DuplicateWindowSeconds)
-            && settings.Deduplication.DuplicateWindowSeconds >= 0,
+        Check(double.IsFinite(settings.ResolveDuplicateWindowSeconds())
+            && settings.ResolveDuplicateWindowSeconds() >= 0,
             "deduplication.duplicate_window_seconds", "Wert darf nicht negativ sein");
         Range(settings.Deduplication.TextSimilarityThreshold, "deduplication.text_similarity_threshold", 0, 100);
         Range(settings.Deduplication.OpponentSimilarityThreshold,

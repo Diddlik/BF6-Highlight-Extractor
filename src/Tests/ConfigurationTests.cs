@@ -125,6 +125,41 @@ public sealed class ConfigurationTests : IDisposable
     }
 
     [Fact]
+    public void EachGameHasItsOwnKillfeedDefaults()
+    {
+        var battlefield = ConfigurationFile.Load(Write("bf6.yaml", Minimal));
+        Assert.Equal(new RegionSettings { X = 1850, Y = 173, Width = 710, Height = 295 },
+            battlefield.ResolveKillfeedRegion(2560, 1440));
+        Assert.Equal(.48, battlefield.ToDetectionSettings().KillerMaxRatio);
+        Assert.Equal(8, battlefield.ToDetectionSettings().DuplicateWindowSeconds);
+        Assert.Equal(0, battlefield.ToDetectionSettings().MinimumOpponentConfidence);
+
+        var cod = ConfigurationFile.Load(Write("cod.yaml", "game: cod\n" + Minimal));
+        Assert.Equal(new RegionSettings { X = 40, Y = 650, Width = 640, Height = 270 },
+            cod.ResolveKillfeedRegion(2560, 1440));
+        Assert.Equal(new RegionSettings { X = 30, Y = 488, Width = 480, Height = 202 },
+            cod.ResolveKillfeedRegion(1920, 1080));
+        Assert.Equal(.33, cod.ToDetectionSettings().KillerMaxRatio);
+        Assert.Equal(4, cod.ToDetectionSettings().DuplicateWindowSeconds);
+        Assert.Equal(.8, cod.ToDetectionSettings().MinimumOpponentConfidence);
+
+        var configured = ConfigurationFile.Load(Write("cod-set.yaml", "game: cod\n" + Minimal + """
+
+            killfeed:
+              killer_region:
+                x_max_ratio: 0.4
+            deduplication:
+              duplicate_window_seconds: 6
+            """));
+        Assert.Equal(.4, configured.ToDetectionSettings().KillerMaxRatio);
+        Assert.Equal(6, configured.ToDetectionSettings().DuplicateWindowSeconds);
+
+        var message = Assert.Throws<ConfigurationException>(() =>
+            ConfigurationFile.Load(Write("unknown.yaml", "game: valorant\n" + Minimal))).Message;
+        Assert.Contains("game", message);
+    }
+
+    [Fact]
     public void TemplateModeNeedsRegionAndTemplates()
     {
         var path = Write("template-mode.yaml", Minimal + """
