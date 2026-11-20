@@ -36,6 +36,15 @@ diesen Sekunden nicht zweimal töten. Verschiedene Gegner bleiben getrennte Kill
 Pings und Markierungen (`… hat eine Gefahr gepingt`, `Ping abgebrochen`) stehen im selben
 Killfeed und tragen den eigenen Namen. Sie werden als Satz erkannt und verworfen.
 
+In Battlefield 6 blendet ein Störsender den Killfeed aus. Die Kill-Meldung unter dem
+Fadenkreuz bleibt sichtbar: der Name des Gegners über einem Text wie `KILLS`,
+`KILL BESTÄTIGT` oder `KOPFSCHUSS`. Sie erscheint nur für eigene Kills und wird deshalb
+zusätzlich gelesen. Erkannt wird sie am Text, nicht an der Farbe, die sich im Spiel ändern
+lässt. `ASSIST BESTÄTIGT`, Wiederbelebungen und `CASH ERHALTEN` zählen nicht. Bisher sind
+nur die deutschen Texte gemessen. Zeigen Meldung und Killfeed denselben Kill, zählt er einmal.
+Solange die Meldung ohne Unterbrechung steht, ist nur ein höherer Zähler (`KILLS x 2`) ein
+neuer Kill, weil die Texterkennung den Namen dort oft falsch liest.
+
 Zusätzlich prüft ein kleines Bildmodell jede Zeile, die die Texterkennung für einen eigenen
 Kill hält. Es sieht, was der Texterkennung entgeht: Waffensymbol oder Satz, eigener Name
 links oder rechts. Das Modell verwirft einen Kandidaten nur, wenn es sich zu mindestens 90 %
@@ -136,6 +145,7 @@ Das Spiel bestimmt die Standardwerte der Erkennung, solange die Datei keine eige
 | eigener Name als Killer bis | 48 % der Bereichsbreite | 33 % |
 | Zeitfenster für denselben Kill | 8 s | 4 s, weil Gegner in CoD nach Sekunden wieder da sind |
 | Bildmodell für Zeilen | an | aus, es kennt nur BF6-Zeilen |
+| Kill-Meldung unter dem Fadenkreuz | wird gelesen | wird nicht gelesen |
 | unsicher gelesener Gegner (Konfidenz < 0,8) | gilt als Name | gilt als ungelesen |
 
 CoD zeichnet Gegnernamen rot direkt ins Bild. Über hellem Grund liest die Texterkennung sie

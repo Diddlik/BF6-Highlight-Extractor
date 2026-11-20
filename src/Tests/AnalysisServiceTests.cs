@@ -80,7 +80,8 @@ public sealed class AnalysisServiceTests : IAsyncLifetime
         var (result, output, ocr) = await Run(Config(), new() { [20] = ("BulletWaltz Gegner1", 4) });
         Assert.False(result.Interrupted);
         Assert.Equal(30, result.Summary.FramesSampled);
-        Assert.Equal(30, ocr.Calls);
+        // The killfeed and the BF6 kill notice, once each per frame.
+        Assert.Equal(60, ocr.Calls);
         var events = Reports.ReadEventsJson(Path.Combine(output, "events.json"));
         Assert.Single(events);
         Assert.Equal(2.0, events[0].TimestampSeconds);
@@ -188,7 +189,8 @@ public sealed class AnalysisServiceTests : IAsyncLifetime
     {
         var (result, _, ocr) = await Run(Config(changeDetection: true), []);
         Assert.Equal(30, result.Summary.FramesSampled);
-        Assert.InRange(ocr.Calls, 1, 15);
+        // Half of the 60 calls for the killfeed and the kill notice without it.
+        Assert.InRange(ocr.Calls, 2, 30);
         Assert.Equal(ocr.Calls, result.Summary.OcrCalls);
     }
 

@@ -7,7 +7,16 @@ public sealed class EventDeduplicator
     private readonly Dictionary<string, double> lastTimestamp = new(StringComparer.Ordinal);
     // Every spelling the OCR produced for the opponent of one killfeed row ("darkrabbit", "derkrabbit").
     private sealed record Recent(KillCandidate Event, string Text, List<string> Opponents)
-    { public double LastSeen { get; set; } = Event.TimestampSeconds; }
+    {
+        public double LastSeen { get; set; } = Event.TimestampSeconds;
+        /// <summary>The highest kill count the notice showed for this kill, 0 before it showed one.</summary>
+        public int NoticeCount { get; set; } = Event.DetectionMethod == KillNotice.Method
+            ? KillNotice.Count(Event.RawText) : 0;
+    }
+
+    // The notice shows a kill for seconds while the OCR garbles the name ("emramo3" for "1Miglio3").
+    // Read at 5 frames a second, a gap above this means it went away.
+    private const double NoticeGapSeconds = 1;
 
     // A ping row stays on screen for seconds and its sentence is read in almost every frame; in the odd
     // frame only the name survives. Measured: the frame before such a slip always showed the ping.
@@ -57,17 +66,24 @@ public sealed class EventDeduplicator
         var opponent = Normalize(candidate.OpponentName ?? "");
         foreach (var entry in recent)
         {
+            // The kill notice does not show the killer, so it stands for any configured name.
             if (entry.Event.SourceVideo != candidate.SourceVideo ||
-                entry.Event.PlayerNameConfigured != candidate.PlayerNameConfigured ||
+                (entry.Event.PlayerNameConfigured != candidate.PlayerNameConfigured
+                    && entry.Event.DetectionMethod != KillNotice.Method
+                    && candidate.DetectionMethod != KillNotice.Method) ||
                 entry.Event.EventType != candidate.EventType) continue;
             // The weapon icon and the own name come out as noise ("DA 62", "BullefWalfz"), so the row text
             // alone misses repeats. The same opponent cannot die twice within the window, and a row whose
             // opponent was not read cannot be told apart from the one already on screen.
-            var repeat = NameMatching.TokenSortRatio(text, entry.Text) >= settings.TextThreshold
+            var count = candidate.DetectionMethod == KillNotice.Method ? KillNotice.Count(candidate.RawText) : 0;
+            if (entry.NoticeCount > 0 && count > entry.NoticeCount) continue;
+            var repeat = (count > 0 && now - entry.LastSeen <= NoticeGapSeconds)
+                || NameMatching.TokenSortRatio(text, entry.Text) >= settings.TextThreshold
                 || opponent.Length == 0 || entry.Opponents.Count == 0
                 || entry.Opponents.Any(known => SameOpponent(opponent, known));
             if (!repeat) continue;
             entry.LastSeen = now;
+            entry.NoticeCount = Math.Max(entry.NoticeCount, count);
             if (opponent.Length != 0) entry.Opponents.Add(opponent);
             return false;
         }
